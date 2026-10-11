@@ -12,7 +12,7 @@
 //!   live in `sessionStorage` (still readable from JS, but they are *one-shot*: invalid after the
 //!   callback consumes them, so leakage has zero replay value).
 //! - **Callback** — `handle_oauth_callback` exchanges the code with `credentials: "include"`.
-//!   coauth sets the session cookie. On success, sodmin stores ONLY a non-secret `session_active=1`
+//!   coauth sets the session cookie. On success, codmin stores ONLY a non-secret `session_active=1`
 //!   marker plus the userinfo block (id / display name / avatar). None of these carry entropy.
 //! - **API calls** — `api::client::api_client` now sends every request with `credentials:
 //!   "include"` so the cookie travels with the request automatically. There is no `Authorization:
@@ -37,7 +37,7 @@ use crate::utils::net::error::HttpError;
 use crate::utils::security::crypto::{base64url_encode, random_token};
 use crate::utils::storage;
 
-const OAUTH_CLIENT_ID: &str = "sodmin";
+const OAUTH_CLIENT_ID: &str = "codmin";
 const COAUTH_ADMIN_SCOPE: &str = "urn:coauth:admin";
 const ARKRET_ADMIN_SCOPE: &str = "urn:arkret:admin:*";
 const PKCE_VERIFIER_KEY: &str = "pkce_code_verifier";

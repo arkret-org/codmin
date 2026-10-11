@@ -2,10 +2,10 @@ use crate::api::client::{NO_BODY, api_client};
 use crate::types::*;
 use crate::utils::net::error::HttpError;
 
-const SERVER_INFO_PATH: &str = "/_soland/admin/server/info";
+const SERVER_INFO_PATH: &str = "/_coland/admin/server/info";
 const SERVER_DESCRIBE_PATH: &str = "/_arkret/describe";
-const SERVER_STATUS_PATH: &str = "/_soland/admin/server/status";
-const SERVER_STATS_PATH: &str = "/_soland/admin/server/stats";
+const SERVER_STATUS_PATH: &str = "/_coland/admin/server/status";
+const SERVER_STATS_PATH: &str = "/_coland/admin/server/stats";
 
 pub async fn get_server_info() -> Result<AdminServerInfo, HttpError> {
     api_client(SERVER_INFO_PATH, "GET", NO_BODY).await
@@ -34,11 +34,11 @@ pub struct HealthEnvelope {
     pub hardening: Option<HardeningStatus>,
 }
 
-/// T8.3 — fetch station (soland) `/health` for the hardening
+/// T8.3 — fetch station (coland) `/health` for the hardening
 /// dashboard. Returns the parsed envelope including the `hardening`
-/// block; older soland builds without the field still parse cleanly
+/// block; older coland builds without the field still parse cleanly
 /// (Option::None).
-pub async fn get_soland_health() -> Result<HealthEnvelope, HttpError> {
+pub async fn get_coland_health() -> Result<HealthEnvelope, HttpError> {
     api_client("/health", "GET", NO_BODY).await
 }
 

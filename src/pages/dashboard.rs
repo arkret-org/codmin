@@ -344,7 +344,7 @@ fn conformance_level(describe: &ServerDescribeDocument) -> Option<String> {
         .and_then(|limits| json_string(&limits, &["profile_status", "conformance"]))
 }
 
-/// `GET /_soland/admin/server/status` is a reachability probe: it answers
+/// `GET /_coland/admin/server/status` is a reachability probe: it answers
 /// `ok` or it fails the request. It runs no component health checks, so the
 /// dashboard reports reachability and never invents a component roll-up.
 fn health_summary(status: Option<&AdminServerStatus>) -> String {

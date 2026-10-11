@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Bring up the sodmin example stack (postgres + coauth + soland + floria + sodmin).
+# Bring up the codmin example stack (postgres + coauth + coland + floria + codmin).
 #
 # Usage:
 #   ./examples/up.sh                 # build images, generate config, bring stack up
@@ -7,7 +7,7 @@
 #   ./examples/up.sh --regen-config  # regenerate examples/coauth-config.yaml
 #
 # Image overrides honour the same env vars the compose file reads:
-#   COAUTH_IMAGE  SOLAND_IMAGE  FLORIA_IMAGE  SODMIN_IMAGE
+#   COAUTH_IMAGE  COLAND_IMAGE  FLORIA_IMAGE  CODMIN_IMAGE
 #
 # Exit codes:
 #   0 - every service reported healthy within budget
@@ -65,10 +65,10 @@ if ! command -v openssl >/dev/null 2>&1; then
 fi
 
 UMBRELLA_DIR="$(cd "${EXAMPLES_DIR}/../.." && pwd)"
-for sibling in arkret-rust-sdk arkret-spec coauth soland floria sodmin cotest garth; do
+for sibling in arkret-rust-sdk arkret-spec coauth coland floria codmin cotest garth; do
     if [[ ! -d "${UMBRELLA_DIR}/${sibling}" ]]; then
         echo "[example-stack/up] missing sibling ${UMBRELLA_DIR}/${sibling}" >&2
-        echo "[example-stack/up] umbrella layout expected: arkret/{arkret-rust-sdk,arkret-spec,coauth,soland,floria,sodmin,cotest,garth}/" >&2
+        echo "[example-stack/up] umbrella layout expected: arkret/{arkret-rust-sdk,arkret-spec,coauth,coland,floria,codmin,cotest,garth}/" >&2
         exit 2
     fi
 done
@@ -181,7 +181,7 @@ fi
 if (( NO_BUILD == 0 )); then
     # Each Rust/Dioxus image can use the full compiler budget. Avoid running
     # several independent release builds at once on a cold CI runner.
-    for service in soland floria sodmin; do
+    for service in coland floria codmin; do
         echo "[example-stack/up] building ${service} image"
         docker compose -f "${COMPOSE_FILE}" build "${service}" || {
             echo "[example-stack/up] ${service} image build failed" >&2
@@ -193,7 +193,7 @@ fi
 python3 "${EXAMPLES_DIR}/prepare-tls.py"
 
 echo "[example-stack/up] initializing separate durable service KeyStores (existing keys are retained)"
-docker compose -f "${COMPOSE_FILE}" run --rm --no-deps soland-keystore-init
+docker compose -f "${COMPOSE_FILE}" run --rm --no-deps coland-keystore-init
 
 echo "[example-stack/up] preparing service databases"
 docker compose -f "${COMPOSE_FILE}" up -d --wait postgres
@@ -202,7 +202,7 @@ docker compose -f "${COMPOSE_FILE}" exec -T postgres \
 
 keystore_state=0
 docker compose -f "${COMPOSE_FILE}" run --rm --no-deps \
-    --entrypoint /bin/sh soland-keystore-init -ec \
+    --entrypoint /bin/sh coland-keystore-init -ec \
     'if test -e /var/lib/coauth/keystore.v1; then exit 0; else exit 42; fi' || keystore_state=$?
 if (( keystore_state != 0 && keystore_state != 42 )); then
     echo "[example-stack/up] could not inspect the durable Coauth KeyStore" >&2
@@ -231,9 +231,9 @@ cat <<'EOF'
 
   postgres : localhost:55432   (user=arkret pass=arkret db=arkret)
   coauth   : http://localhost:57080/health
-  soland   : https://127.0.0.1:58787/health (CA: examples/.local/tls/ca.crt)
+  coland   : https://127.0.0.1:58787/health (CA: examples/.local/tls/ca.crt)
   floria   : http://localhost:55000/ready
-  sodmin   : http://localhost:58200/healthz
+  codmin   : http://localhost:58200/healthz
 
 Run ./examples/smoke.sh to verify each /health returns 200.
 Run ./examples/down.sh to tear down + drop volumes.

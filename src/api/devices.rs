@@ -1,10 +1,10 @@
 //! Device admin API — D14 production endpoint.
 //!
-//! `GET /_soland/admin/devices` is the typed cursor-paginated production
+//! `GET /_coland/admin/devices` is the typed cursor-paginated production
 //! query (shared `AdminDeviceList` contract); `filter[name_or_id]` is
 //! applied server-side.
 
-use soland_contracts::admin::AdminDeviceList;
+use coland_contracts::admin::AdminDeviceList;
 
 use crate::api::client::{NO_BODY, api_client, build_url};
 use crate::utils::net::error::HttpError;
@@ -23,6 +23,6 @@ pub async fn list_devices(
     if !search.is_empty() {
         params.push(("filter[name_or_id]", search));
     }
-    let url = build_url("/_soland/admin/devices", &params)?;
+    let url = build_url("/_coland/admin/devices", &params)?;
     api_client(&url, "GET", NO_BODY).await
 }

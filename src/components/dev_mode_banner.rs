@@ -1,7 +1,7 @@
 //! T1.4 — Development-mode warning banner.
 //!
 //! Polls the admin describe surface (`GET /_arkret/describe`) for the
-//! `development_mode` field surfaced by soland. When the connected server
+//! `development_mode` field surfaced by coland. When the connected server
 //! reports `development_mode == true`, the layout renders a red,
 //! non-dismissible top banner so operators can never mistake a dev
 //! deployment for production at a glance.
@@ -9,7 +9,7 @@
 //! The banner is intentionally cheap to render:
 //!   - One `use_resource` shared at the layout level (one HTTP call per mount, not per page).
 //!   - Renders nothing while the describe call is in flight or when the server reports
-//!     `development_mode == false` (or omits the field — older soland builds predate T1.4).
+//!     `development_mode == false` (or omits the field — older coland builds predate T1.4).
 //!   - No close button: the banner is the safety signal, hiding it defeats the purpose.
 
 use dioxus::prelude::*;

@@ -8,7 +8,7 @@ use crate::router::Route;
 
 // The Breadcrumbs rendering has been migrated to yoface
 // (`yoface::ui::page_header::Breadcrumbs`, `href: Option<String>`). Only a
-// **thin adapter** layer is kept locally: sodmin's call sites use the strongly
+// **thin adapter** layer is kept locally: codmin's call sites use the strongly
 // typed `crate::router::Route` (which validates at compile time that the route
 // exists), and the adapter converts each `Route` into the `href` string yoface
 // expects via `Routable`'s `Display` (`route.to_string()` is the URL path),

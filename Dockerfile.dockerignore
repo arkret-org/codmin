@@ -4,10 +4,10 @@
 !arkret-rust-sdk/**
 !coauth
 !coauth/**
-!soland
-!soland/**
-!sodmin
-!sodmin/**
+!coland
+!coland/**
+!codmin
+!codmin/**
 **/target
 **/target-*
 **/node_modules
@@ -30,8 +30,8 @@ secrets/
 */secrets/
 coauth/conformance/test-config.yaml
 coauth/conformance/test-config.yaml.raw
-sodmin/examples/coauth-config.yaml
-sodmin/examples/coauth-config.yaml.raw
-sodmin/examples/logs/
+codmin/examples/coauth-config.yaml
+codmin/examples/coauth-config.yaml.raw
+codmin/examples/logs/
 .codex-tmp
 arkret-work

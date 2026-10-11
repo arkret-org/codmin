@@ -1,6 +1,6 @@
-//! Post-deploy E2E smoke test runner for sodmin's soland admin surface.
+//! Post-deploy E2E smoke test runner for codmin's coland admin surface.
 //!
-//! Hits the configured soland's admin health + each Stream H' endpoint
+//! Hits the configured coland's admin health + each Stream H' endpoint
 //! with an admin bearer token and prints a PASS/FAIL summary. Useful as
 //! a one-shot ops sanity check after a deploy:
 //!
@@ -8,9 +8,9 @@
 //! (CLI args leak into shell history, CI logs, and `/proc/<pid>/cmdline`):
 //!
 //! ```ignore
-//! SODMIN_SMOKE_TOKEN=<BEARER> \
-//! cargo run --bin sodmin-smoke -- \
-//!     --base-url https://soland.example.com \
+//! CODMIN_SMOKE_TOKEN=<BEARER> \
+//! cargo run --bin codmin-smoke -- \
+//!     --base-url https://coland.example.com \
 //!     --realm-id ak:realm:AXtI0JHl403DNDFAoBki57-5cESsvwc5LMyLnrl7o-A8
 //! ```
 //!
@@ -19,7 +19,7 @@
 //!
 //! Exit code is non-zero when any check fails so this can be wired into
 //! a CI gate or deploy webhook. The binary intentionally does NOT import
-//! the rest of the sodmin crate (which is wasm32-only); each request
+//! the rest of the codmin crate (which is wasm32-only); each request
 //! body shape is reproduced as a small inline literal so the smoke
 //! runner stays a self-contained native binary.
 
@@ -42,9 +42,9 @@ struct Args {
 
 impl Args {
     fn parse() -> Result<Self, String> {
-        let mut base_url = env::var("SODMIN_SMOKE_BASE_URL").ok();
-        let mut token = env::var("SODMIN_SMOKE_TOKEN").ok();
-        let mut realm_id = env::var("SODMIN_SMOKE_REALM_ID").ok();
+        let mut base_url = env::var("CODMIN_SMOKE_BASE_URL").ok();
+        let mut token = env::var("CODMIN_SMOKE_TOKEN").ok();
+        let mut realm_id = env::var("CODMIN_SMOKE_REALM_ID").ok();
         let mut timeout_secs = DEFAULT_TIMEOUT_SECS;
 
         let mut args = env::args().skip(1);
@@ -83,9 +83,9 @@ impl Args {
         }
 
         let base_url = base_url
-            .ok_or_else(|| "--base-url (or SODMIN_SMOKE_BASE_URL env) is required".to_string())?;
+            .ok_or_else(|| "--base-url (or CODMIN_SMOKE_BASE_URL env) is required".to_string())?;
         let realm_id = realm_id
-            .ok_or_else(|| "--realm-id (or SODMIN_SMOKE_REALM_ID env) is required".to_string())?;
+            .ok_or_else(|| "--realm-id (or CODMIN_SMOKE_REALM_ID env) is required".to_string())?;
 
         Ok(Args {
             base_url: base_url.trim_end_matches('/').to_string(),
@@ -98,9 +98,9 @@ impl Args {
 
 fn print_help() {
     println!(
-        "sodmin-smoke — soland admin endpoint smoke test\n\n\
-USAGE:\n  SODMIN_SMOKE_TOKEN=<BEARER> sodmin-smoke --base-url <URL> --realm-id <REALM_ID>\n\n\
-OPTIONS:\n  -u, --base-url     soland base URL (e.g. https://soland.example.com)\n  -t, --token        admin bearer token. PREFER the env var $SODMIN_SMOKE_TOKEN\n                     — CLI args leak into shell history, CI logs, and the\n                     process table (/proc/<pid>/cmdline)\n  -r, --realm-id     Realm id to probe (Stream H' is per-Realm)\n      --timeout      per-request timeout in seconds (default {DEFAULT_TIMEOUT_SECS})\n  -h, --help         print this message\n"
+        "codmin-smoke — coland admin endpoint smoke test\n\n\
+USAGE:\n  CODMIN_SMOKE_TOKEN=<BEARER> codmin-smoke --base-url <URL> --realm-id <REALM_ID>\n\n\
+OPTIONS:\n  -u, --base-url     coland base URL (e.g. https://coland.example.com)\n  -t, --token        admin bearer token. PREFER the env var $CODMIN_SMOKE_TOKEN\n                     — CLI args leak into shell history, CI logs, and the\n                     process table (/proc/<pid>/cmdline)\n  -r, --realm-id     Realm id to probe (Stream H' is per-Realm)\n      --timeout      per-request timeout in seconds (default {DEFAULT_TIMEOUT_SECS})\n  -h, --help         print this message\n"
     );
 }
 
@@ -131,10 +131,10 @@ pub(crate) fn classify_status(status: u16) -> CheckOutcome {
 }
 
 /// Pure helper: build a per-Realm admin URL like
-/// `<base>/_soland/admin/realms/<id>/<suffix>`. URL-encodes the Realm id.
+/// `<base>/_coland/admin/realms/<id>/<suffix>`. URL-encodes the Realm id.
 pub(crate) fn build_realm_url(base_url: &str, realm_id: &str, suffix: &str) -> String {
     format!(
-        "{}/_soland/admin/realms/{}/{}",
+        "{}/_coland/admin/realms/{}/{}",
         base_url.trim_end_matches('/'),
         urlencoding_encode(realm_id),
         suffix.trim_start_matches('/'),
@@ -211,7 +211,7 @@ fn run() -> ExitCode {
     let args = match Args::parse() {
         Ok(a) => a,
         Err(e) => {
-            eprintln!("sodmin-smoke: {e}");
+            eprintln!("codmin-smoke: {e}");
             eprintln!("run with --help for usage");
             return ExitCode::from(2);
         }
@@ -225,7 +225,7 @@ fn run() -> ExitCode {
                 headers.insert(AUTHORIZATION, hv);
             }
             Err(e) => {
-                eprintln!("sodmin-smoke: bad token: {e}");
+                eprintln!("codmin-smoke: bad token: {e}");
                 return ExitCode::from(2);
             }
         }
@@ -238,7 +238,7 @@ fn run() -> ExitCode {
     {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("sodmin-smoke: failed to build http client: {e}");
+            eprintln!("codmin-smoke: failed to build http client: {e}");
             return ExitCode::from(2);
         }
     };
@@ -251,7 +251,7 @@ fn run() -> ExitCode {
     let checks = vec![
         (
             "health",
-            // soland's health probe is at the root `/health`, not under
+            // coland's health probe is at the root `/health`, not under
             // the admin namespace (which has no `health` route).
             format!("{base}/health"),
         ),
@@ -262,7 +262,7 @@ fn run() -> ExitCode {
         ),
     ];
 
-    println!("sodmin-smoke → {base} (realm={realm_id})");
+    println!("codmin-smoke → {base} (realm={realm_id})");
     if args.token.is_none() {
         println!("  (no admin token supplied — auth-required endpoints will likely FAIL)");
     }
@@ -334,13 +334,13 @@ mod tests {
     #[test]
     fn build_realm_url_strips_trailing_base_slash() {
         let url = build_realm_url(
-            "https://soland.example.com/",
+            "https://coland.example.com/",
             "ak:realm:AXtI0JHl403DNDFAoBki57-5cESsvwc5LMyLnrl7o-A8",
             "links",
         );
         assert_eq!(
             url,
-            "https://soland.example.com/_soland/admin/realms/ak:realm:AXtI0JHl403DNDFAoBki57-5cESsvwc5LMyLnrl7o-A8/links"
+            "https://coland.example.com/_coland/admin/realms/ak:realm:AXtI0JHl403DNDFAoBki57-5cESsvwc5LMyLnrl7o-A8/links"
         );
     }
 

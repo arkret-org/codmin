@@ -16,7 +16,7 @@ pub async fn list_notification_channels() -> Result<Vec<NotificationChannelStatu
 
 /// Returns the static catalog of known notification template keys. The
 /// backend endpoint is non-paginated — it returns the full known-keys
-/// list every call — so the sodmin UI now flat-lists the entries
+/// list every call — so the codmin UI now flat-lists the entries
 /// instead of pretending there's a paging cursor.
 pub async fn list_notification_templates() -> Result<Vec<NotificationTemplateEntry>, HttpError> {
     let resp: coauth_admin_types::NotificationTemplatesOutcome =

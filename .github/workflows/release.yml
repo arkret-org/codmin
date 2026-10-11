@@ -26,7 +26,7 @@ env:
 
 defaults:
   run:
-    working-directory: sodmin
+    working-directory: codmin
 
 jobs:
   build:
@@ -37,7 +37,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          path: sodmin
+          path: codmin
           submodules: recursive
 
       - name: Check out arkret-rust-sdk
@@ -56,11 +56,11 @@ jobs:
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
-      - name: Check out soland
+      - name: Check out coland
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          repository: ${{ github.repository_owner }}/soland
-          path: soland
+          repository: ${{ github.repository_owner }}/coland
+          path: coland
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
@@ -78,7 +78,7 @@ jobs:
       - name: Cache cargo registry, git, and target
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
-          workspaces: sodmin
+          workspaces: codmin
           shared-key: wasm
 
       - name: Install dioxus-cli
@@ -97,9 +97,9 @@ jobs:
           test -f "$dist_dir/index.html"
           echo "dir=$dist_dir" >> "$GITHUB_OUTPUT"
           ref_name="${GITHUB_REF_NAME:-local}"
-          archive="sodmin-${ref_name}-web-public.tar.gz"
+          archive="codmin-${ref_name}-web-public.tar.gz"
           tar -czf "$archive" -C "$dist_dir" .
-          echo "archive=sodmin/$archive" >> "$GITHUB_OUTPUT"
+          echo "archive=codmin/$archive" >> "$GITHUB_OUTPUT"
 
       - name: Compute sha256
         run: |
@@ -114,7 +114,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: sodmin/package-lock.json
+          cache-dependency-path: codmin/package-lock.json
 
       - name: Install npm dependencies
         run: npm ci
@@ -122,8 +122,8 @@ jobs:
       - name: Generate Rust and npm SBOMs
         run: |
           set -euo pipefail
-          cargo cyclonedx --format json --all --override-filename sodmin-rust.cdx
-          npm sbom --sbom-format cyclonedx > sodmin-npm.cdx.json
+          cargo cyclonedx --format json --all --override-filename codmin-rust.cdx
+          npm sbom --sbom-format cyclonedx > codmin-npm.cdx.json
 
       - name: Attest bundle build provenance
         if: github.event_name != 'pull_request'
@@ -136,14 +136,14 @@ jobs:
         uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999 # v4
         with:
           subject-path: ${{ steps.artifact.outputs.archive }}
-          sbom-path: sodmin/sodmin-rust.cdx.json
+          sbom-path: codmin/codmin-rust.cdx.json
 
       - name: Attest npm SBOM
         if: github.event_name != 'pull_request'
         uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999 # v4
         with:
           subject-path: ${{ steps.artifact.outputs.archive }}
-          sbom-path: sodmin/sodmin-npm.cdx.json
+          sbom-path: codmin/codmin-npm.cdx.json
 
       - name: Generate local cosign evidence
         run: bash scripts/local-cosign-evidence.sh "../${{ steps.artifact.outputs.archive }}" cosign-evidence
@@ -151,10 +151,10 @@ jobs:
       - name: Upload local bundle artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: sodmin-web-public
+          name: codmin-web-public
           path: |
             ${{ steps.artifact.outputs.archive }}
             ${{ steps.artifact.outputs.archive }}.sha256
-            sodmin/sodmin-rust.cdx.json
-            sodmin/sodmin-npm.cdx.json
-            sodmin/cosign-evidence/
+            codmin/codmin-rust.cdx.json
+            codmin/codmin-npm.cdx.json
+            codmin/cosign-evidence/

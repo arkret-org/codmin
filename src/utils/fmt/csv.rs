@@ -1,10 +1,10 @@
 //! Client-side CSV export helper for admin list pages.
 //!
 //! Why this exists: operators routinely want to spreadsheet a snapshot
-//! of a sodmin list (agents / devices / spaces) for offline review or
-//! to attach to an incident ticket. Round-tripping through the soland
+//! of a codmin list (agents / devices / spaces) for offline review or
+//! to attach to an incident ticket. Round-tripping through the coland
 //! admin API for an export endpoint is heavyweight for what's
-//! ultimately UI sugar, and it would force soland to grow a
+//! ultimately UI sugar, and it would force coland to grow a
 //! resource-specific CSV serializer for every list. This helper keeps
 //! the export client-side: take the same rows already rendered into
 //! the table, run them through a single safe CSV writer, and trigger
@@ -85,7 +85,7 @@ pub fn export_to_csv(filename: &str, csv: &str) {
     let window = match web_sys::window() {
         Some(w) => w,
         None => {
-            log::warn!("sodmin.csv.export: window unavailable");
+            log::warn!("codmin.csv.export: window unavailable");
             return;
         }
     };
@@ -101,7 +101,7 @@ pub fn export_to_csv(filename: &str, csv: &str) {
     let blob = match Blob::new_with_str_sequence_and_options(&array, &bag) {
         Ok(b) => b,
         Err(_) => {
-            log::warn!("sodmin.csv.export: blob construction failed");
+            log::warn!("codmin.csv.export: blob construction failed");
             return;
         }
     };

@@ -27,8 +27,8 @@ fn App() -> Element {
     rsx! {
         // Design token injection order:
         //   1. yoface default tokens.
-        //   2. Soft Orbit overrides for sodmin's brand aliases.
-        //   3. sodmin utility tokens.
+        //   2. Soft Orbit overrides for codmin's brand aliases.
+        //   3. codmin utility tokens.
         // See the top of yoface_tokens.css for the full rationale.
         style { {yoface::TOKENS_CSS} }
         style { {include_str!("./yoface_tokens.css")} }

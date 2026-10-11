@@ -27,7 +27,7 @@ async fn fetch_media_page(
     if let Some(cursor) = cursor.filter(|c| !c.is_empty()) {
         params.push(("cursor", cursor));
     }
-    let url = build_url("/_soland/admin/media", &params)?;
+    let url = build_url("/_coland/admin/media", &params)?;
     api_client(&url, "GET", NO_BODY).await
 }
 
@@ -87,9 +87,9 @@ fn media_row_matches(row: &AdminMediaRow, needle: &str) -> bool {
 }
 
 pub async fn get_media_statistics() -> Result<AdminMediaStatistics, HttpError> {
-    api_client("/_soland/admin/media/statistics", "GET", NO_BODY).await
+    api_client("/_coland/admin/media/statistics", "GET", NO_BODY).await
 }
 
 pub async fn list_media_by_actor() -> Result<AdminMediaByActorList, HttpError> {
-    api_client("/_soland/admin/media/by-actor", "GET", NO_BODY).await
+    api_client("/_coland/admin/media/by-actor", "GET", NO_BODY).await
 }

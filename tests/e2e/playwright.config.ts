@@ -1,7 +1,7 @@
-// Playwright config for the sodmin tests/e2e/ suite. The specs talk to
-// a sodmin dev instance backed by a coauth + soland stack.
+// Playwright config for the codmin tests/e2e/ suite. The specs talk to
+// a codmin dev instance backed by a coauth + coland stack.
 //
-// Run from the sodmin repo root:
+// Run from the codmin repo root:
 //   npx playwright test -c tests/e2e/playwright.config.ts
 //
 // The specs self-skip if the required env vars are unset, so this is
@@ -9,7 +9,7 @@
 
 import { defineConfig, devices } from "@playwright/test";
 
-const BASE_URL = process.env.SODMIN_E2E_BASE_URL || "http://localhost:8080";
+const BASE_URL = process.env.CODMIN_E2E_BASE_URL || "http://localhost:8080";
 
 export default defineConfig({
   testDir: ".",
@@ -33,7 +33,7 @@ export default defineConfig({
       name: "chromium-desktop",
       use: { ...devices["Desktop Chrome"] },
     },
-    // Responsive coverage: sodmin's admin UI ships a mobile breakpoint
+    // Responsive coverage: codmin's admin UI ships a mobile breakpoint
     // and an iPad layout; mobile.spec.ts asserts the breakpoint actually
     // engages on these viewports.
     {

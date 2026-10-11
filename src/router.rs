@@ -142,7 +142,7 @@ fn AuthenticatedLayout() -> Element {
         };
     }
 
-    // sodmin treats coauth process-admin and Station admin reachability as one
+    // codmin treats coauth process-admin and Station admin reachability as one
     // operator role in the current deployment model. Backend calls still
     // enforce their own authorization; this layout only prevents obviously
     // non-admin users from entering either admin surface.

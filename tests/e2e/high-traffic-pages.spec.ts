@@ -1,8 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 
-const BASE_URL = process.env.SODMIN_E2E_BASE_URL || "";
-const ADMIN_EMAIL = process.env.SODMIN_E2E_ADMIN_EMAIL || "";
-const ADMIN_PASSWORD = process.env.SODMIN_E2E_ADMIN_PASSWORD || "";
+const BASE_URL = process.env.CODMIN_E2E_BASE_URL || "";
+const ADMIN_EMAIL = process.env.CODMIN_E2E_ADMIN_EMAIL || "";
+const ADMIN_PASSWORD = process.env.CODMIN_E2E_ADMIN_PASSWORD || "";
 
 async function login(page: Page) {
   await page.goto(`${BASE_URL}/login`);
@@ -27,7 +27,7 @@ test.describe("high-traffic page smoke", () => {
     if (!BASE_URL || !ADMIN_EMAIL || !ADMIN_PASSWORD) {
       test.skip(
         true,
-        "SODMIN_E2E_BASE_URL / _ADMIN_EMAIL / _ADMIN_PASSWORD must be set",
+        "CODMIN_E2E_BASE_URL / _ADMIN_EMAIL / _ADMIN_PASSWORD must be set",
       );
     }
   });

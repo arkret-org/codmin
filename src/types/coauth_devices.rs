@@ -1,7 +1,7 @@
 //! UI-facing names for coauth's shared device-admin contract.
 //!
 //! The wire DTOs live in `coauth-admin-types`; this module only preserves the
-//! existing sodmin names and presentation helpers.
+//! existing codmin names and presentation helpers.
 
 use chrono::{DateTime, Utc};
 pub use coauth_admin_types::{

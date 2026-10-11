@@ -1,7 +1,7 @@
 //! Space hierarchy admin view
 //!
 //! Per-Space tree showing the immediate parent (at most one) and the
-//! direct children. Backed by the `GET /_soland/admin/spaces` snapshot.
+//! direct children. Backed by the `GET /_coland/admin/spaces` snapshot.
 //!
 //! The visual is intentionally lightweight: a single column with an
 //! "ancestor" row, the centered Space row, and an indented list of

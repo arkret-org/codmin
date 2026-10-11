@@ -85,7 +85,7 @@ pub fn AppHeader(collapsed: Signal<bool>, mobile_sidebar_open: Signal<bool>) -> 
                 // The notification center was removed: it had no producer
                 // (nothing ever pushed into the global signal), so the bell,
                 // unread badge, and dropdown were a permanently-empty, dead
-                // UI. Reintroduce alongside the soland notification feed when
+                // UI. Reintroduce alongside the coland notification feed when
                 // that lands (recoverable from git history).
 
                 {

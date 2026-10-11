@@ -1,18 +1,18 @@
 #!/bin/sh
 set -eu
 
-SOLAND_URL="${SOLAND_URL:-}"
+COLAND_URL="${COLAND_URL:-}"
 COAUTH_URL="${COAUTH_URL:-}"
 COAUTH_PUBLIC_URL="${COAUTH_PUBLIC_URL:-}"
-SODMIN_TELEMETRY_ENDPOINT="${SODMIN_TELEMETRY_ENDPOINT:-}"
-SODMIN_PORT="${SODMIN_PORT:-80}"
-SODMIN_UPSTREAM_CA_FILE="${SODMIN_UPSTREAM_CA_FILE:-/etc/ssl/certs/ca-certificates.crt}"
+CODMIN_TELEMETRY_ENDPOINT="${CODMIN_TELEMETRY_ENDPOINT:-}"
+CODMIN_PORT="${CODMIN_PORT:-80}"
+CODMIN_UPSTREAM_CA_FILE="${CODMIN_UPSTREAM_CA_FILE:-/etc/ssl/certs/ca-certificates.crt}"
 
 RESOLVERS="$(awk '/^nameserver / { print $2 }' /etc/resolv.conf | paste -sd ' ' -)"
 LOOKUP_UNAVAILABLE=0
 
-if [ -z "$SOLAND_URL" ]; then
-    echo "SOLAND_URL must be set" >&2
+if [ -z "$COLAND_URL" ]; then
+    echo "COLAND_URL must be set" >&2
     exit 1
 fi
 
@@ -98,12 +98,12 @@ json_escape() {
 }
 printf '{"coauth_public_url":"%s","telemetry_endpoint":"%s"}' \
     "$(json_escape "$COAUTH_PUBLIC_URL")" \
-    "$(json_escape "$SODMIN_TELEMETRY_ENDPOINT")" \
+    "$(json_escape "$CODMIN_TELEMETRY_ENDPOINT")" \
     > /runtime/config.json
 
 cat > /etc/nginx/conf.d/default.conf <<EOF
 server {
-    listen ${SODMIN_PORT};
+    listen ${CODMIN_PORT};
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
@@ -112,7 +112,7 @@ server {
     # deployment CA. SNI and hostname verification remain enabled.
     proxy_ssl_verify on;
     proxy_ssl_server_name on;
-    proxy_ssl_trusted_certificate ${SODMIN_UPSTREAM_CA_FILE};
+    proxy_ssl_trusted_certificate ${CODMIN_UPSTREAM_CA_FILE};
 
     gzip on;
     gzip_min_length 1024;
@@ -143,15 +143,15 @@ server {
         try_files /index.html =503;
     }
 
-    # Deep healthcheck that also verifies upstream soland
+    # Deep healthcheck that also verifies upstream coland
     # connectivity. Container orchestrators (k8s, nomad) can use this
-    # as a readiness probe so a sodmin pod is not advertised "ready"
-    # while soland is unreachable. Errors (DNS failure, network down,
-    # soland returning anything other than 2xx/3xx) return 503 via
+    # as a readiness probe so a codmin pod is not advertised "ready"
+    # while coland is unreachable. Errors (DNS failure, network down,
+    # coland returning anything other than 2xx/3xx) return 503 via
     # nginx error_page so the probe fails as expected.
     location = /healthz/deep {
         access_log off;
-        proxy_pass ${SOLAND_URL}/healthz;
+        proxy_pass ${COLAND_URL}/healthz;
         proxy_set_header Host \$host;
         proxy_connect_timeout 2s;
         proxy_read_timeout 2s;
@@ -161,7 +161,7 @@ server {
     location = /healthz-upstream-down {
         access_log off;
         internal;
-        return 503 "upstream soland unreachable\n";
+        return 503 "upstream coland unreachable\n";
     }
 EOF
 
@@ -196,10 +196,10 @@ EOF
     fi
 fi
 
-if can_resolve_url_host "$SOLAND_URL"; then
-    write_proxy_location "/_arkret/self/events/" "$SOLAND_URL"
-    write_proxy_location "/_arkret/self/sync/" "$SOLAND_URL"
-    write_proxy_location "/_arkret/find/directory/" "$SOLAND_URL"
+if can_resolve_url_host "$COLAND_URL"; then
+    write_proxy_location "/_arkret/self/events/" "$COLAND_URL"
+    write_proxy_location "/_arkret/self/sync/" "$COLAND_URL"
+    write_proxy_location "/_arkret/find/directory/" "$COLAND_URL"
     # `gate/account/*` is a shared auth/admission surface (service-http-binding
     # §2.1: served by clients AND the Station — the path segment is an
     # attack-surface classifier, NOT a single backing service). coauth owns most
@@ -207,19 +207,19 @@ if can_resolve_url_host "$SOLAND_URL"; then
     # email-auth, passkey/oidc, register) via the `/_arkret/gate/` rule above,
     # but `ak.gate.account.command.logout.v1` is a Station op (revoke
     # bearer + device session record + to-device) that coauth does not serve.
-    # Route that one longer prefix to soland; nginx longest-prefix match makes
+    # Route that one longer prefix to coland; nginx longest-prefix match makes
     # it win over `/_arkret/gate/` regardless of declaration order.
-    write_proxy_location "/_arkret/gate/account/logout" "$SOLAND_URL"
+    write_proxy_location "/_arkret/gate/account/logout" "$COLAND_URL"
     # All other `/_arkret/*` trust-circle traffic (self/root/find/peer/open/edge)
-    # terminates on soland, per arkret-spec service-http-binding.md §2.2. The
+    # terminates on coland, per arkret-spec service-http-binding.md §2.2. The
     # `/_arkret/gate/` coauth override above is a longer prefix and wins for
     # auth endpoints.
-    write_proxy_location "/_arkret/" "$SOLAND_URL"
-    # soland's deployment-local operator + product surface (`/_soland/*`):
+    write_proxy_location "/_arkret/" "$COLAND_URL"
+    # coland's deployment-local operator + product surface (`/_coland/*`):
     # admin operator API plus the product-surface self/root extensions
-    # (e.g. /_soland/self/circles, /_soland/root/identity/recovery-*). coauth
+    # (e.g. /_coland/self/circles, /_coland/root/identity/recovery-*). coauth
     # keeps its own `/_coauth/` namespace declared above.
-    write_proxy_location "/_soland/" "$SOLAND_URL"
+    write_proxy_location "/_coland/" "$COLAND_URL"
 else
     if ! grep -q "resolver " /etc/nginx/conf.d/default.conf; then
         [ -n "$RESOLVERS" ] || RESOLVERS="127.0.0.11"
@@ -228,19 +228,19 @@ else
 EOF
     fi
     cat >> /etc/nginx/conf.d/default.conf <<EOF
-    set \$soland_backend ${SOLAND_URL};
+    set \$coland_backend ${COLAND_URL};
 EOF
-    write_dynamic_proxy_location "/_arkret/self/events/" "soland_backend"
-    write_dynamic_proxy_location "/_arkret/self/sync/" "soland_backend"
-    write_dynamic_proxy_location "/_arkret/find/directory/" "soland_backend"
+    write_dynamic_proxy_location "/_arkret/self/events/" "coland_backend"
+    write_dynamic_proxy_location "/_arkret/self/sync/" "coland_backend"
+    write_dynamic_proxy_location "/_arkret/find/directory/" "coland_backend"
     # Station device logout (see the resolvable branch above): a
-    # longer prefix than `/_arkret/gate/` so it wins to soland.
-    write_dynamic_proxy_location "/_arkret/gate/account/logout" "soland_backend"
-    # All other `/_arkret/*` trust-circle traffic terminates on soland
+    # longer prefix than `/_arkret/gate/` so it wins to coland.
+    write_dynamic_proxy_location "/_arkret/gate/account/logout" "coland_backend"
+    # All other `/_arkret/*` trust-circle traffic terminates on coland
     # (see the resolvable branch above for rationale).
-    write_dynamic_proxy_location "/_arkret/" "soland_backend"
-    # soland operator + product surface at `/_soland/*`.
-    write_dynamic_proxy_location "/_soland/" "soland_backend"
+    write_dynamic_proxy_location "/_arkret/" "coland_backend"
+    # coland operator + product surface at `/_coland/*`.
+    write_dynamic_proxy_location "/_coland/" "coland_backend"
 fi
 
 cat >> /etc/nginx/conf.d/default.conf <<EOF

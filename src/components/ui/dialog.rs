@@ -1,6 +1,6 @@
 //! `ConfirmDialog` rendering is delegated to yoface.
 //!
-//! This adapter preserves sodmin's existing prop names while translating them
+//! This adapter preserves codmin's existing prop names while translating them
 //! to the yoface modal API:
 //! - `description` -> yoface `message`
 //! - `confirm_text`/`cancel_text` -> yoface `confirm_label`/`cancel_label`

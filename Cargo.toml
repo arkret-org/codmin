@@ -1,5 +1,5 @@
 [package]
-name = "sodmin"
+name = "codmin"
 version = "0.3.0"
 authors = ["Arkret Authors"]
 license = "AGPL-3.0-or-later"
@@ -41,7 +41,7 @@ regex-lite = "0.1.9"
 reqwest = { version = "0.13", default-features = false }
 serde = "1.0.229"
 serde_json = "1.0.151"
-soland-contracts = { path = "../soland/crates/contracts" }
+coland-contracts = { path = "../coland/crates/contracts" }
 urlencoding = "2.1.3"
 wasm-bindgen = "0.2.127"
 wasm-bindgen-futures = "0.4.77"
@@ -49,12 +49,12 @@ web-sys = "0.3.104"
 yoface = { git = "https://github.com/arkret-org/yoface", branch = "main" }
 
 [[bin]]
-name = "sodmin"
+name = "codmin"
 path = "src/main.rs"
 
 [[bin]]
-name = "sodmin-smoke"
-path = "src/bin/sodmin_smoke.rs"
+name = "codmin-smoke"
+path = "src/bin/codmin_smoke.rs"
 required-features = ["smoke"]
 
 [features]
@@ -69,7 +69,7 @@ arkret-models-crypto = { workspace = true, default-features = false }
 arkret-models-discovery = { workspace = true, default-features = false }
 arkret-models-identity = { workspace = true, default-features = false }
 arkret-wire = { workspace = true, default-features = false }
-# Global report #10 — sodmin previously hand-copied every protocol type.
+# Global report #10 — codmin previously hand-copied every protocol type.
 # Depend on the precise protocol owner crates (default features off so the
 # wasm bundle stays lean — the `client` / `keystore-*` / `salvo` / `mls`
 # features pull native-only deps and are deliberately NOT enabled here).
@@ -87,7 +87,7 @@ log = { workspace = true }
 regex-lite = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-soland-contracts = { workspace = true }
+coland-contracts = { workspace = true }
 urlencoding = { workspace = true }
 wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = { workspace = true }
@@ -128,8 +128,8 @@ reqwest = { workspace = true, default-features = false, features = ["blocking", 
 
 [build-dependencies]
 
-# Native-only deps used by the `sodmin-smoke` post-deploy smoke test
-# binary (src/bin/sodmin_smoke.rs). Gated on cfg(not(target_arch="wasm32"))
+# Native-only deps used by the `codmin-smoke` post-deploy smoke test
+# binary (src/bin/codmin_smoke.rs). Gated on cfg(not(target_arch="wasm32"))
 # so they don't bloat the wasm bundle.
 serde_json = { workspace = true }
 

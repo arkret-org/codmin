@@ -1,19 +1,19 @@
-# Sodmin examples
+# Codmin examples
 
-The integrated bring-up: postgres + coauth + soland + floria + sodmin,
+The integrated bring-up: postgres + coauth + coland + floria + codmin,
 driven by `docker-compose.example-stack.yaml` + `up.sh` / `down.sh` /
 `smoke.sh`. Exercised every night in CI via
 [`.github/workflows/nightly-example-stack.yaml`](../.github/workflows/nightly-example-stack.yaml).
 
-## Sodmin example stack
+## Codmin example stack
 
 | Service  | Image base                              | Host port | Probe         |
 |----------|-----------------------------------------|-----------|---------------|
 | postgres | `postgres:16-alpine`                    | `55432`   | `pg_isready`  |
 | coauth   | `gcr.io/distroless/cc-debian12:nonroot` | `57080`   | `/health`     |
-| soland   | `debian:bookworm-slim`                  | `58787`   | `/health`     |
+| coland   | `debian:bookworm-slim`                  | `58787`   | `/health`     |
 | floria   | `gcr.io/distroless/cc-debian13:nonroot` | `55000`   | `/ready`      |
-| sodmin   | `nginx:alpine`                          | `58200`   | `/healthz`    |
+| codmin   | `nginx:alpine`                          | `58200`   | `/healthz`    |
 
 Container ports differ from host ports; see
 [`docker-compose.example-stack.yaml`](docker-compose.example-stack.yaml)
@@ -22,14 +22,14 @@ for the full mapping.
 ### Repository layout assumption
 
 The compose file references sibling repos via relative build contexts.
-Coauth + sodmin both use an **umbrella build context** (`../..` →
+Coauth + codmin both use an **umbrella build context** (`../..` →
 `arkret/`) so the workspace `Cargo.toml` path-deps
 `../arkret-rust-sdk/...` and `../coauth/crates/admin-types` resolve
-inside the build sandbox. Soland and Floria use named SDK build contexts;
-Soland additionally receives the Spec and Floria contract contexts.
+inside the build sandbox. Coland and Floria use named SDK build contexts;
+Coland additionally receives the Spec and Floria contract contexts.
 
 The SDK's `.dockerignore` filters its named contexts, and the Coauth and
-Sodmin Dockerfile-specific ignore files filter their umbrella contexts.
+Codmin Dockerfile-specific ignore files filter their umbrella contexts.
 Build caches, Git internals and local credentials stay outside build inputs.
 The bring-up script builds the remaining service images in sequence so
 independent Rust release builds do not compete for the runner's memory.
@@ -39,11 +39,11 @@ arkret/
   arkret-rust-sdk/                      <-- required (path-dep target)
   arkret-spec/
   coauth/                                 <-- required (path-dep + image)
-  soland/
+  coland/
   floria/
   cotest/
   garth/
-  sodmin/
+  codmin/
     examples/
       docker-compose.example-stack.yaml   <-- run from here
       up.sh / down.sh / smoke.sh
@@ -64,7 +64,7 @@ The compose stack expects:
 - `curl` on PATH (`smoke.sh` probes each `/health` endpoint).
 - `openssl` on PATH (`prepare-tls.py` creates and validates a private
   development CA and the Station's TLS certificate).
-- All seven sibling repos shown above checked out alongside Sodmin.
+- All seven sibling repos shown above checked out alongside Codmin.
 
 Before the first `up.sh` invocation on a new machine, confirm Docker is
 reachable and the sibling repos exist. `up.sh` and `smoke.sh` perform the
@@ -79,21 +79,21 @@ locally with the same feature flags the Dockerfiles use:
 # coauth — distroless build features (no native bundling); wired in C36.5
 cargo build --bin coauth --no-default-features --features docker,cedar -p coauth
 
-# soland — single-binary release; default features
-cargo build --release --bin soland
+# coland — single-binary release; default features
+cargo build --release --bin coland
 
 # floria — single-binary release; default features
 cargo build --release --bin floria
 
-# sodmin — Dioxus WASM SPA; uses dx, not cargo
+# codmin — Dioxus WASM SPA; uses dx, not cargo
 cargo install dioxus-cli@0.7.10 --locked
 dx build --release
 # Query cargo metadata --format-version 1 --no-deps for target_directory.
-# Web output is under its dx/sodmin/release/web/public directory.
+# Web output is under its dx/codmin/release/web/public directory.
 ```
 
-Smoke binary (Rust-side): `cargo build --bin sodmin-smoke` builds the
-post-deploy probe shipped in the sodmin repo (`src/bin/sodmin_smoke.rs`).
+Smoke binary (Rust-side): `cargo build --bin codmin-smoke` builds the
+post-deploy probe shipped in the codmin repo (`src/bin/codmin_smoke.rs`).
 
 ### Quickstart
 
@@ -108,17 +108,17 @@ post-deploy probe shipped in the sodmin repo (`src/bin/sodmin_smoke.rs`).
 ./examples/down.sh
 ```
 
-Open [http://localhost:58200](http://localhost:58200) for the sodmin SPA
+Open [http://localhost:58200](http://localhost:58200) for the codmin SPA
 once `up.sh` reports the stack healthy.
 
 ### Health and persistent identity
 
-Coauth and Soland use their native `healthcheck` subcommands. Floria uses
+Coauth and Coland use their native `healthcheck` subcommands. Floria uses
 its std-only `floria-healthcheck` executable; its distroless image has no
-shell or curl. Sodmin uses Alpine's wget. Compose waits for every service
+shell or curl. Codmin uses Alpine's wget. Compose waits for every service
 to be healthy, then `smoke.sh` independently requires HTTP 200 from all
 four published health endpoints. Host ports bind only to loopback.
-The explicit Compose project name `arkret-sodmin-example` isolates these
+The explicit Compose project name `arkret-codmin-example` isolates these
 services and volumes from other repositories' `examples/` stacks.
 
 Floria explicitly loads the read-only `floria-config.kdl`, which enables its
@@ -128,13 +128,13 @@ Those placeholders cannot authenticate to JPush. This health gate neither
 sends nor verifies external push notifications; replace them with your
 provider credentials before exercising push delivery.
 
-`up.sh` creates separate Coauth and Soland databases before either service
+`up.sh` creates separate Coauth and Coland databases before either service
 runs its migrations. An explicit one-shot setup container calls the official
-`soland-keystore-keygen --if-missing` helper to create separate, validated
+`coland-keystore-keygen --if-missing` helper to create separate, validated
 base64-encoded 32-byte wrapping keys for both services. Each encrypted KeyStore
 has its own data volume and a separate master-key volume, mounted read-only by
-its service. Soland also persists its identity bundle. The setup assigns
-ownership to the images' actual users (Soland 10001, Coauth 65532).
+its service. Coland also persists its identity bundle. The setup assigns
+ownership to the images' actual users (Coland 10001, Coauth 65532).
 Coauth's generated configuration explicitly selects `encrypted_file`, rather
 than desktop Secret Service. Only an empty Coauth KeyStore triggers the separate
 `coauth-provision` setup service with `--first-provisioning`; it is stopped after
@@ -148,11 +148,11 @@ the current durable backend.
 Development mode permits initial local Station provisioning. The Station's
 advertised service identity uses HTTPS, including on this development network.
 `prepare-tls.py` generates a private development CA and a 30-day leaf certificate
-for `soland.example` and `127.0.0.1`; `up.sh` validates and reuses existing material.
+for `coland.example` and `127.0.0.1`; `up.sh` validates and reuses existing material.
 The generated files live under the gitignored and Docker-excluded
-`examples/.local/tls/` directory. The CA private key stays on the host. Soland
+`examples/.local/tls/` directory. The CA private key stays on the host. Coland
 mounts only the public CA, leaf certificate and leaf key read-only; its native
-healthcheck trusts that CA through `SSL_CERT_FILE`. Sodmin's HTTPS upstream proxy
+healthcheck trusts that CA through `SSL_CERT_FILE`. Codmin's HTTPS upstream proxy
 enables certificate and hostname verification against the same CA.
 `smoke.sh` uses `curl --cacert` and still requires HTTP 200. To probe manually:
 
@@ -180,9 +180,9 @@ instead of rebuilding each service:
 
 ```bash
 COAUTH_IMAGE=coauth:dev \
-SOLAND_IMAGE=soland:dev \
+COLAND_IMAGE=coland:dev \
 FLORIA_IMAGE=floria:dev \
-SODMIN_IMAGE=sodmin:dev \
+CODMIN_IMAGE=codmin:dev \
     ./examples/up.sh --no-build
 ```
 
@@ -210,8 +210,8 @@ regression doesn't require local docker reproduction.
 | `coauth config generate failed`         | `coauth:dev` image not built — run `up.sh` without `--no-build`, or pre-pull `COAUTH_IMAGE`. |
 | `port 55432 already bound`              | Local postgres on host. Stop it or change the host port in the compose file. |
 | `coauth` healthcheck flaps              | Postgres still migrating. The `start_period: 20s` should cover it; bump if your machine is slow. |
-| `sodmin: never returned 200`            | The Dioxus build inside the image is large. Re-run `smoke.sh` with `SMOKE_ATTEMPT_BUDGET=120`. |
-| Build context error: `../../coauth` not found | Sibling repos aren't checked out. Either clone them next to `sodmin/` or override every `*_IMAGE` env var. |
+| `codmin: never returned 200`            | The Dioxus build inside the image is large. Re-run `smoke.sh` with `SMOKE_ATTEMPT_BUDGET=120`. |
+| Build context error: `../../coauth` not found | Sibling repos aren't checked out. Either clone them next to `codmin/` or override every `*_IMAGE` env var. |
 | `502 Bad Gateway` during apt-get      | Docker Desktop proxy or upstream Debian mirror flake. Floria/coauth wrap apt in a 5-attempt retry loop (added C37.3); just re-run `up.sh` if it surfaces. |
 | `cargo chef cook: failed to read /arkret-rust-sdk/...` | Sibling `arkret-rust-sdk` missing from umbrella checkout. Confirm the sibling checkout exists before rerunning. |
-| `cargo fetch --locked: ../arkret-rust-sdk not found` | Same as above. The sodmin/coauth Dockerfiles need arkret-rust-sdk side-by-side at the umbrella context root. |
+| `cargo fetch --locked: ../arkret-rust-sdk not found` | Same as above. The codmin/coauth Dockerfiles need arkret-rust-sdk side-by-side at the umbrella context root. |

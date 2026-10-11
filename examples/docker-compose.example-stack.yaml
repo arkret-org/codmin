@@ -1,7 +1,7 @@
 # Real development services for the nightly health and admin SPA smoke gate.
-# Coauth and Soland have separate databases. Account Authority authentication
+# Coauth and Coland have separate databases. Account Authority authentication
 # additionally requires the TLS and Station trust-edge deployment configuration.
-name: arkret-sodmin-example
+name: arkret-codmin-example
 services:
   postgres:
     image: postgres:16-alpine
@@ -72,72 +72,72 @@ services:
     networks: [example-stack]
 
   # One-shot setup outside server startup. Validate existing keys, never rotate.
-  soland-keystore-init:
-    image: ${SOLAND_IMAGE:-soland:dev}
+  coland-keystore-init:
+    image: ${COLAND_IMAGE:-coland:dev}
     profiles: [setup]
     user: "0:0"
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - |
-        install -d -m 0700 -o 10001 -g 10001 /secrets /var/lib/soland/keystore /var/lib/soland/identity-bundle
-        /usr/local/bin/soland-keystore-keygen --output /secrets/master-key --if-missing
+        install -d -m 0700 -o 10001 -g 10001 /secrets /var/lib/coland/keystore /var/lib/coland/identity-bundle
+        /usr/local/bin/coland-keystore-keygen --output /secrets/master-key --if-missing
         chown 10001:10001 /secrets/master-key
         chmod 0400 /secrets/master-key
         install -d -m 0700 -o 65532 -g 65532 /coauth-secrets /var/lib/coauth /var/lib/coauth/data /var/lib/coauth/data/media
-        /usr/local/bin/soland-keystore-keygen --output /coauth-secrets/master-key --if-missing
+        /usr/local/bin/coland-keystore-keygen --output /coauth-secrets/master-key --if-missing
         chown 65532:65532 /coauth-secrets/master-key
         chmod 0400 /coauth-secrets/master-key
     volumes:
-      - example_soland_master_key:/secrets
-      - example_soland_data:/var/lib/soland
+      - example_coland_master_key:/secrets
+      - example_coland_data:/var/lib/coland
       - example_coauth_master_key:/coauth-secrets
       - example_coauth_data:/var/lib/coauth
     network_mode: none
 
-  soland:
-    image: ${SOLAND_IMAGE:-soland:dev}
+  coland:
+    image: ${COLAND_IMAGE:-coland:dev}
     build:
-      context: ../../soland
+      context: ../../coland
       dockerfile: Dockerfile
       additional_contexts:
         arkret-rust-sdk: ../../arkret-rust-sdk
         arkret-spec: ../../arkret-spec
         floria: ../../floria
-    container_name: arkret-example-soland
+    container_name: arkret-example-coland
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      SOLAND_BIND: 0.0.0.0:8787
-      SOLAND_HEALTHCHECK_URL: https://127.0.0.1:8787/health
-      SOLAND_PUBLIC_BASE_URL: https://soland.example:8787
-      SOLAND_TLS_CERT_PATH: /run/example-tls/soland.crt
-      SOLAND_TLS_KEY_PATH: /run/example-tls/soland.key
+      COLAND_BIND: 0.0.0.0:8787
+      COLAND_HEALTHCHECK_URL: https://127.0.0.1:8787/health
+      COLAND_PUBLIC_BASE_URL: https://coland.example:8787
+      COLAND_TLS_CERT_PATH: /run/example-tls/coland.crt
+      COLAND_TLS_KEY_PATH: /run/example-tls/coland.key
       SSL_CERT_FILE: /run/example-tls/ca.crt
-      DATABASE_URL: postgresql://arkret:arkret@postgres:5432/soland
-      SOLAND_TRUST_DOMAIN: ak:trust_domain:soland.example
-      SOLAND_DEVELOPMENT_MODE: "true"
-      SOLAND_KEYSTORE_BACKEND: encrypted_file
-      SOLAND_KEYSTORE_PATH: /var/lib/soland/keystore/soland.v1
-      SOLAND_KEYSTORE_MASTER_KEY_FILE: /run/secrets/master-key
-      SOLAND_SERVICE_IDENTITY_BUNDLE_DIR: /var/lib/soland/identity-bundle
+      DATABASE_URL: postgresql://arkret:arkret@postgres:5432/coland
+      COLAND_TRUST_DOMAIN: ak:trust_domain:coland.example
+      COLAND_DEVELOPMENT_MODE: "true"
+      COLAND_KEYSTORE_BACKEND: encrypted_file
+      COLAND_KEYSTORE_PATH: /var/lib/coland/keystore/coland.v1
+      COLAND_KEYSTORE_MASTER_KEY_FILE: /run/secrets/master-key
+      COLAND_SERVICE_IDENTITY_BUNDLE_DIR: /var/lib/coland/identity-bundle
       RUST_LOG: info
     volumes:
-      - example_soland_data:/var/lib/soland
-      - example_soland_master_key:/run/secrets:ro
+      - example_coland_data:/var/lib/coland
+      - example_coland_master_key:/run/secrets:ro
       - ./.local/tls/ca.crt:/run/example-tls/ca.crt:ro
-      - ./.local/tls/soland.crt:/run/example-tls/soland.crt:ro
-      - ./.local/tls/soland.key:/run/example-tls/soland.key:ro
+      - ./.local/tls/coland.crt:/run/example-tls/coland.crt:ro
+      - ./.local/tls/coland.key:/run/example-tls/coland.key:ro
     ports: ["127.0.0.1:58787:8787"]
     healthcheck:
-      test: ["CMD", "/usr/local/bin/soland", "healthcheck"]
+      test: ["CMD", "/usr/local/bin/coland", "healthcheck"]
       interval: 5s
       timeout: 5s
       retries: 30
       start_period: 20s
     networks:
       example-stack:
-        aliases: [soland.example]
+        aliases: [coland.example]
 
   floria:
     image: ${FLORIA_IMAGE:-floria:dev}
@@ -162,23 +162,23 @@ services:
       start_period: 15s
     networks: [example-stack]
 
-  sodmin:
-    image: ${SODMIN_IMAGE:-sodmin:dev}
+  codmin:
+    image: ${CODMIN_IMAGE:-codmin:dev}
     build:
       context: ../..
-      dockerfile: sodmin/Dockerfile
-    container_name: arkret-example-sodmin
+      dockerfile: codmin/Dockerfile
+    container_name: arkret-example-codmin
     depends_on:
       coauth:
         condition: service_healthy
-      soland:
+      coland:
         condition: service_healthy
     environment:
-      SOLAND_URL: https://soland.example:8787
-      SODMIN_UPSTREAM_CA_FILE: /run/example-tls/ca.crt
+      COLAND_URL: https://coland.example:8787
+      CODMIN_UPSTREAM_CA_FILE: /run/example-tls/ca.crt
       COAUTH_URL: http://coauth:7080
       COAUTH_PUBLIC_URL: http://localhost:57080
-      SODMIN_PORT: "80"
+      CODMIN_PORT: "80"
     volumes: ["./.local/tls/ca.crt:/run/example-tls/ca.crt:ro"]
     ports: ["127.0.0.1:58200:80"]
     healthcheck:
@@ -195,7 +195,7 @@ networks:
 
 volumes:
   example_pgdata:
-  example_soland_data:
-  example_soland_master_key:
+  example_coland_data:
+  example_coland_master_key:
   example_coauth_data:
   example_coauth_master_key:

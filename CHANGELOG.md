@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `sodmin` (Arkret Server admin UI) are documented in
+All notable changes to `codmin` (Arkret Server admin UI) are documented in
 this file. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 this project is pre-1.0 so wire-breaking changes can land in any release until
 the SDK pins down its 1.0 contract.
@@ -25,7 +25,7 @@ the SDK pins down its 1.0 contract.
 - Clarified that device revoke atomically terminalizes linked grants in
   coauth; Stations observe that terminal state through fresh
   introspection rather than maintaining a second grant lifecycle truth.
-- Preserved the admin key boundary: sodmin neither drafts grant Events nor
+- Preserved the admin key boundary: codmin neither drafts grant Events nor
   obtains principal, device, recovery, or service signing keys.
 
 ## Spec sync 2026-05-31 (arkret-spec @ c2848a4)
@@ -67,17 +67,17 @@ the SDK pins down its 1.0 contract.
   read-only operational and audit views.
 - Documented the three allowed surfaces: deployment-local writes,
   service-attested account/session actions, and read-only principal/notary-key
-  state. sodmin continues to hold no Arkret device or notary key.
+  state. codmin continues to hold no Arkret device or notary key.
 
 ### AKP-0007 Circle rollout
 
 UI surfaces for the encrypted-sub-boundary primitive shipped by
-soland and coauth.
+coland and coauth.
 
 - **Added** Circle management UI: `/circles`, `/circles/new`,
   `/circles/:id`, `/circles/:id/members`, `/circles/:id/scope` Dioxus
   pages plus a `src/api/circles.rs` fetch wrapper. Eight
-  `/_soland/self/circles/*` routes added to `build.rs` REQUIRED_SOLAND so a
+  `/_coland/self/circles/*` routes added to `build.rs` REQUIRED_COLAND so a
   missing route fails the wasm build at contract-check time.
 - **Added** Capability grant dialog gains a quick-select for the
   six `ak.circle.*` actions and an `allowed_circle_ids` CSV input
@@ -109,8 +109,8 @@ soland and coauth.
 
 ### Protocol review closures (2026-05-20, arkret-spec `2a4d39b..a77b995`)
 
-UI surfaces for the wire changes implemented in soland / coauth.
-See [`../_sodmin_soland_todos.md`](../_sodmin_soland_todos.md) for the workstream context.
+UI surfaces for the wire changes implemented in coland / coauth.
+See [`../_codmin_coland_todos.md`](../_codmin_coland_todos.md) for the workstream context.
 
 - **Added** `ServiceDescribe` v2 admin view — all 17 required fields
   rendered; `development_mode=true` paired with non-empty

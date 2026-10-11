@@ -1,10 +1,10 @@
 //! Actor admin API — D14 production endpoints.
 //!
-//! `GET /_soland/admin/actors` is the typed cursor-paginated production
+//! `GET /_coland/admin/actors` is the typed cursor-paginated production
 //! query (shared `AdminActorList` contract); search is applied server-side
 //! via `filter[search]`. Account deactivation addresses accounts by DID.
 
-use soland_contracts::admin::{AdminActor, AdminActorList};
+use coland_contracts::admin::{AdminActor, AdminActorList};
 
 use crate::api::client::{NO_BODY, NoBody, api_client, build_url};
 use crate::utils::net::error::HttpError;
@@ -23,12 +23,12 @@ pub async fn list_actors(
     if !search.is_empty() {
         params.push(("filter[search]", search));
     }
-    let url = build_url("/_soland/admin/actors", &params)?;
+    let url = build_url("/_coland/admin/actors", &params)?;
     api_client(&url, "GET", NO_BODY).await
 }
 
 pub async fn get_actor(id: &str) -> Result<AdminActor, HttpError> {
-    let url = format!("/_soland/admin/actors/{}", urlencoding::encode(id));
+    let url = format!("/_coland/admin/actors/{}", urlencoding::encode(id));
     api_client(&url, "GET", NO_BODY).await
 }
 
@@ -36,7 +36,7 @@ pub async fn get_actor(id: &str) -> Result<AdminActor, HttpError> {
 /// accounts by principal DID, not by the surrogate `ak:account:` row id).
 pub async fn deactivate_account(did: &str) -> Result<(), HttpError> {
     let url = format!(
-        "/_soland/admin/accounts/{}/deactivate",
+        "/_coland/admin/accounts/{}/deactivate",
         urlencoding::encode(did)
     );
     let body = serde_json::json!({});

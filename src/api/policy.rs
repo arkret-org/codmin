@@ -1,9 +1,9 @@
 use arkret_wire::event_kind_str;
-use serde_json::{Value, json};
-use soland_contracts::admin::policy::{
+use coland_contracts::admin::policy::{
     AdminPolicyDocument, AdminPolicyDocumentPage, AdminPolicyPayload, PolicyEffect,
     UpsertPolicyDocumentRequestBody,
 };
+use serde_json::{Value, json};
 
 use crate::api::client::{NO_BODY, NoBody, api_client, build_url};
 use crate::types::policy::{
@@ -41,7 +41,7 @@ pub async fn list_policies(filter: PolicyListFilter) -> Result<AdminPolicyListOu
         .iter()
         .map(|(key, value)| (*key, value.as_str()))
         .collect::<Vec<_>>();
-    let url = build_url("/_soland/self/policies", &query)?;
+    let url = build_url("/_coland/self/policies", &query)?;
     let resp: AdminPolicyDocumentPage = api_client(&url, "GET", NO_BODY).await?;
     Ok(AdminPolicyListOutcome {
         data: resp
@@ -61,7 +61,7 @@ pub async fn create_policy(req: &CreatePolicyRequest) -> Result<AdminPolicy, Htt
     require_operator_policy_request(req)?;
     let body = upsert_body(None, req)?;
     let resp: AdminPolicyDocument =
-        api_client("/_soland/self/policies", "POST", Some(&body)).await?;
+        api_client("/_coland/self/policies", "POST", Some(&body)).await?;
     Ok(policy_from_document(resp))
 }
 
@@ -72,12 +72,12 @@ pub async fn update_policy(id: &str, req: &CreatePolicyRequest) -> Result<AdminP
     require_operator_policy_request(req)?;
     let body = upsert_body(Some(id.to_string()), req)?;
     let resp: AdminPolicyDocument =
-        api_client("/_soland/self/policies", "POST", Some(&body)).await?;
+        api_client("/_coland/self/policies", "POST", Some(&body)).await?;
     Ok(policy_from_document(resp))
 }
 
 pub async fn delete_policy(id: &str) -> Result<(), HttpError> {
-    let url = format!("/_soland/self/policies/{}", urlencoding::encode(id));
+    let url = format!("/_coland/self/policies/{}", urlencoding::encode(id));
     let _: NoBody = api_client(&url, "DELETE", NO_BODY).await?;
     Ok(())
 }
@@ -200,7 +200,7 @@ pub fn request_targets_pin_policy(req: &CreatePolicyRequest) -> bool {
 
 fn pin_policy_unavailable_error() -> HttpError {
     HttpError::message(
-        "pin policy editing is unavailable until soland exposes a standard pin policy summary API",
+        "pin policy editing is unavailable until coland exposes a standard pin policy summary API",
     )
 }
 

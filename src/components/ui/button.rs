@@ -1,6 +1,6 @@
 //! `Button` — migrated to yoface (`yoface::ui::button::Button`).
 //!
-//! This thin **adapter** is kept locally: sodmin's call sites use
+//! This thin **adapter** is kept locally: codmin's call sites use
 //! `ButtonVariant::Default` (yoface renamed it to `Primary`), and they are
 //! used to passing `class` / `disabled` / `type` / `onclick` as named props
 //! (not `Option`). The adapter maps the local enum onto yoface's and passes

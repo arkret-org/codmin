@@ -1,6 +1,6 @@
-//! B-C key-backup admin surface — talks to the soland endpoints
-//! deployment-local admin alias: `GET /_soland/admin/key-backups?series_id=...`
-//! plus the soland identity recovery extension endpoints.
+//! B-C key-backup admin surface — talks to the coland endpoints
+//! deployment-local admin alias: `GET /_coland/admin/key-backups?series_id=...`
+//! plus the coland identity recovery extension endpoints.
 
 use arkret_identifiers::DidCoreId;
 use arkret_models_crypto::{KeysBackupsList, RecoveryPolicySummary};
@@ -8,11 +8,11 @@ use arkret_models_crypto::{KeysBackupsList, RecoveryPolicySummary};
 use crate::api::client::{NO_BODY, api_client, build_url};
 use crate::utils::net::error::HttpError;
 
-// Recovery policy browse is a soland identity extension on the
-// product surface (`/_soland/root/identity/*`); it is NOT a `/_arkret`
+// Recovery policy browse is a coland identity extension on the
+// product surface (`/_coland/root/identity/*`); it is NOT a `/_arkret`
 // protocol operation (the protocol surface only has describe/resolve/
 // document/log/receipts/submit-did-operation/recovery-sessions).
-const RECOVERY_POLICIES_PATH: &str = "/_soland/root/identity/recovery-policies";
+const RECOVERY_POLICIES_PATH: &str = "/_coland/root/identity/recovery-policies";
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -20,7 +20,7 @@ struct RecoveryPoliciesEnvelope {
     policies: Vec<RecoveryPolicySummary>,
 }
 
-/// `GET /_soland/admin/key-backups?series_id=&backup_kind=` — list backup
+/// `GET /_coland/admin/key-backups?series_id=&backup_kind=` — list backup
 /// envelopes grouped by series. Empty `series_id` returns the per-series
 /// head roll-up.
 pub async fn list_backups(
@@ -34,11 +34,11 @@ pub async fn list_backups(
     if let Some(c) = backup_kind {
         params.push(("backup_kind", c));
     }
-    let url = build_url("/_soland/admin/key-backups", &params)?;
+    let url = build_url("/_coland/admin/key-backups", &params)?;
     api_client(&url, "GET", NO_BODY).await
 }
 
-/// `GET /_soland/root/identity/recovery-policies` — current recovery policies.
+/// `GET /_coland/root/identity/recovery-policies` — current recovery policies.
 pub async fn list_recovery_policies(
     principal_id: Option<&DidCoreId>,
 ) -> Result<Vec<RecoveryPolicySummary>, HttpError> {
@@ -51,7 +51,7 @@ pub async fn list_recovery_policies(
     Ok(resp.policies)
 }
 
-// NOTE: `POST /_soland/root/identity/recovery-policy` requires the full
+// NOTE: `POST /_coland/root/identity/recovery-policy` requires the full
 // `ak.schema.recovery_policy.v1` object carrying a principal-signed
 // `auth_data` transcript (REC-1) — the admin UI cannot sign on the
-// principal's behalf, so sodmin exposes the recovery surface read-only.
+// principal's behalf, so codmin exposes the recovery surface read-only.

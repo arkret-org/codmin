@@ -3796,7 +3796,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sodmin"
+name = "codmin"
 version = "0.3.0"
 dependencies = [
  "arkret-canonical",
@@ -3821,7 +3821,7 @@ dependencies = [
  "reqwest 0.13.4",
  "serde",
  "serde_json",
- "soland-contracts",
+ "coland-contracts",
  "urlencoding",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -3831,7 +3831,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "soland-contracts"
+name = "coland-contracts"
 version = "0.3.0"
 dependencies = [
  "arkret-canonical",

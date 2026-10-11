@@ -1,4 +1,4 @@
-//! HTTP client for the soland Realm link-graph admin surface
+//! HTTP client for the coland Realm link-graph admin surface
 //! (the `ak.realm.link` projection).
 //!
 //! A "Realm link" is a typed edge between two security boundaries.
@@ -27,7 +27,7 @@ pub async fn list_realm_links(
     direction: RealmLinkDirection,
 ) -> Result<RealmLinkList, HttpError> {
     let url = format!(
-        "/_soland/admin/realms/{}/links?direction={}",
+        "/_coland/admin/realms/{}/links?direction={}",
         urlencoding::encode(realm_id),
         direction_query(direction),
     );

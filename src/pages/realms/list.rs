@@ -16,7 +16,7 @@ use crate::utils::fmt::csv::{build_csv, export_to_csv};
 use crate::utils::i18n::t;
 
 const PAGE_SIZE: u64 = 20;
-const AUTOREFRESH_STORAGE_KEY: &str = "sodmin.realms.autorefresh";
+const AUTOREFRESH_STORAGE_KEY: &str = "codmin.realms.autorefresh";
 
 #[component]
 pub fn RealmList() -> Element {

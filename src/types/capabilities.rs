@@ -1,11 +1,11 @@
 //! Capability grant admin surface — contract-authoritative types plus thin
 //! display helpers.
 //!
-//! The row is the shared `soland_contracts::admin::CapabilitySummary` (D14
-//! production projection of the authz read-index grant). sodmin adds no
+//! The row is the shared `coland_contracts::admin::CapabilitySummary` (D14
+//! production projection of the authz read-index grant). codmin adds no
 //! wire mirror; display-only conveniences live in [`CapabilitySummaryExt`].
 
-pub use soland_contracts::admin::CapabilitySummary;
+pub use coland_contracts::admin::CapabilitySummary;
 
 /// Display helpers for the shared [`CapabilitySummary`].
 pub trait CapabilitySummaryExt {

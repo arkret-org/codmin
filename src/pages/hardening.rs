@@ -1,7 +1,7 @@
 //! T8.3 — aggregate production hardening dashboard.
 //!
 //! This page fetches a non-sensitive `hardening` block from each service
-//! that Sodmin can actually address (the local Soland plus the
+//! that Codmin can actually address (the local Coland plus the
 //! configured Coauth upstream), then renders a per-service checklist
 //! with green / red chips and an aggregate score.
 //!
@@ -32,7 +32,7 @@ fn http_skip(message: &str) -> HttpError {
 /// (older deployments), or `unreachable` is set when the fetch
 /// failed.
 struct ServiceHardening {
-    /// Service slug used in URLs / DIDs (`soland`, `coauth`).
+    /// Service slug used in URLs / DIDs (`coland`, `coauth`).
     slug: &'static str,
     /// i18n key for the user-facing label.
     label_key: &'static str,
@@ -47,7 +47,7 @@ struct ServiceHardening {
 
 #[component]
 pub fn HardeningDashboard() -> Element {
-    let mut soland_health = use_resource(|| async { server::get_soland_health().await });
+    let mut coland_health = use_resource(|| async { server::get_coland_health().await });
     let mut coauth_health = use_resource(|| async {
         if !crate::utils::net::session::has_coauth() {
             return Err(http_skip("coauth not configured"));
@@ -56,14 +56,14 @@ pub fn HardeningDashboard() -> Element {
     });
 
     let services: Vec<ServiceHardening> = {
-        let soland = soland_health.read();
+        let coland = coland_health.read();
         let coauth = coauth_health.read();
         vec![
             service_from_health(
-                "soland",
-                "hardening.svc_soland",
-                "hardening.svc_soland_desc",
-                soland.as_ref(),
+                "coland",
+                "hardening.svc_coland",
+                "hardening.svc_coland_desc",
+                coland.as_ref(),
                 None,
             ),
             service_from_health(
@@ -93,7 +93,7 @@ pub fn HardeningDashboard() -> Element {
                 Button {
                     variant: ButtonVariant::Outline,
                     onclick: move |_| {
-                        soland_health.restart();
+                        coland_health.restart();
                         coauth_health.restart();
                     },
                     {t("common.refresh")}

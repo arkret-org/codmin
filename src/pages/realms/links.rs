@@ -21,7 +21,7 @@ use crate::utils::i18n::t;
 
 /// Map a free-form `link_kind` to the badge variant used to colour the
 /// chip. Unknown kinds fall back to the neutral `Secondary` variant so
-/// the surface keeps rendering when soland introduces a new link
+/// the surface keeps rendering when coland introduces a new link
 /// shape.
 fn link_kind_variant(link_kind: &RealmLinkKind) -> BadgeVariant {
     match link_kind.as_str() {

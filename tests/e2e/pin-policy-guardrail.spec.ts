@@ -1,10 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 
-const BASE_URL = process.env.SODMIN_E2E_BASE_URL || "";
-const ADMIN_EMAIL = process.env.SODMIN_E2E_ADMIN_EMAIL || "";
-const ADMIN_PASSWORD = process.env.SODMIN_E2E_ADMIN_PASSWORD || "";
-const PIN_POLICY_ID = process.env.SODMIN_E2E_PIN_POLICY_ID || "";
-const PRIVATE_SENTINEL = process.env.SODMIN_E2E_PIN_POLICY_PRIVATE_SENTINEL || "";
+const BASE_URL = process.env.CODMIN_E2E_BASE_URL || "";
+const ADMIN_EMAIL = process.env.CODMIN_E2E_ADMIN_EMAIL || "";
+const ADMIN_PASSWORD = process.env.CODMIN_E2E_ADMIN_PASSWORD || "";
+const PIN_POLICY_ID = process.env.CODMIN_E2E_PIN_POLICY_ID || "";
+const PRIVATE_SENTINEL = process.env.CODMIN_E2E_PIN_POLICY_PRIVATE_SENTINEL || "";
 
 async function login(page: Page) {
   await page.goto(`${BASE_URL}/login`);
@@ -19,7 +19,7 @@ test.describe("pin policy guardrails", () => {
     if (!BASE_URL || !ADMIN_EMAIL || !ADMIN_PASSWORD || !PIN_POLICY_ID) {
       test.skip(
         true,
-        "SODMIN_E2E_BASE_URL / _ADMIN_EMAIL / _ADMIN_PASSWORD / _PIN_POLICY_ID must be set",
+        "CODMIN_E2E_BASE_URL / _ADMIN_EMAIL / _ADMIN_PASSWORD / _PIN_POLICY_ID must be set",
       );
     }
   });

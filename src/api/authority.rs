@@ -4,7 +4,7 @@
 //! client needs: which Station governs the Realm right now, how that authority
 //! was reached from genesis, and where the Realm commit stream head sits. All
 //! three arrive in one nonce-bound `RealmAuthorityBundle`
-//! (`sync/authority-commit-log.md` sections 7 and 8); sodmin renders it and never
+//! (`sync/authority-commit-log.md` sections 7 and 8); codmin renders it and never
 //! re-derives authority locally.
 
 use arkret_wire::{AuthorityBundleRequest, Base64UrlString, RealmAuthorityBundle, RealmId};

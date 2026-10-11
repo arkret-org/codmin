@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const BASE_URL = process.env.SODMIN_E2E_BASE_URL || "";
-const ADMIN_EMAIL = process.env.SODMIN_E2E_ADMIN_EMAIL || "";
-const ADMIN_PASSWORD = process.env.SODMIN_E2E_ADMIN_PASSWORD || "";
+const BASE_URL = process.env.CODMIN_E2E_BASE_URL || "";
+const ADMIN_EMAIL = process.env.CODMIN_E2E_ADMIN_EMAIL || "";
+const ADMIN_PASSWORD = process.env.CODMIN_E2E_ADMIN_PASSWORD || "";
 
 async function gotoReady(page: Page, route: string) {
   await page.goto(`${BASE_URL}${route}`, { waitUntil: "domcontentloaded" });
@@ -30,7 +30,7 @@ async function assertNoHorizontalOverflow(page: Page) {
 test.describe("RTL layout smoke", () => {
   test.beforeAll(async () => {
     if (!BASE_URL) {
-      test.skip(true, "SODMIN_E2E_BASE_URL must be set");
+      test.skip(true, "CODMIN_E2E_BASE_URL must be set");
     }
   });
 

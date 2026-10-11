@@ -1,9 +1,9 @@
 # tests/e2e — Playwright suite
 
-This directory holds the Playwright e2e tests for sodmin.
+This directory holds the Playwright e2e tests for codmin.
 
 Automated CI runs only `npm run test:smoke`, which is limited to the
-unauthenticated responsive smoke that needs `SODMIN_E2E_BASE_URL` only.
+unauthenticated responsive smoke that needs `CODMIN_E2E_BASE_URL` only.
 The authenticated high-risk management specs in this directory are manual
 or seeded-stack checks: they require admin credentials plus account, device,
 or policy ids and are intentionally not reported as automated CI coverage.
@@ -22,16 +22,16 @@ or policy ids and are intentionally not reported as automated CI coverage.
 ## Running locally
 
 ```bash
-# 1. Boot a sodmin dev instance + soland + coauth (manual, today)
-#    — typically: `npm run stack:up` in the sodmin repo root.
+# 1. Boot a codmin dev instance + coland + coauth (manual, today)
+#    — typically: `npm run stack:up` in the codmin repo root.
 
 # 2. Export env vars pointing at the dev instance
-export SODMIN_E2E_BASE_URL=http://localhost:8080
-export SODMIN_E2E_ADMIN_EMAIL=admin@example.com
-export SODMIN_E2E_ADMIN_PASSWORD=changeme
-export SODMIN_E2E_ACCOUNT_ID=01HXY...
+export CODMIN_E2E_BASE_URL=http://localhost:8080
+export CODMIN_E2E_ADMIN_EMAIL=admin@example.com
+export CODMIN_E2E_ADMIN_PASSWORD=changeme
+export CODMIN_E2E_ACCOUNT_ID=01HXY...
 
-# 3. From the sodmin repo root, install playwright + browsers if needed
+# 3. From the codmin repo root, install playwright + browsers if needed
 npm install
 npx playwright install chromium
 
@@ -47,9 +47,9 @@ explicitly provisions those variables and seeded backend data.
 
 | Condition                                         | Outcome |
 |---------------------------------------------------|---------|
-| `SODMIN_E2E_BASE_URL` unset                       | skip    |
-| `SODMIN_E2E_ADMIN_EMAIL` / `_PASSWORD` unset      | skip    |
-| `SODMIN_E2E_ACCOUNT_ID` unset                     | skip    |
+| `CODMIN_E2E_BASE_URL` unset                       | skip    |
+| `CODMIN_E2E_ADMIN_EMAIL` / `_PASSWORD` unset      | skip    |
+| `CODMIN_E2E_ACCOUNT_ID` unset                     | skip    |
 | All env vars set + dev stack running              | run     |
 
 ## High-traffic page smoke
@@ -57,10 +57,10 @@ explicitly provisions those variables and seeded backend data.
 `high-traffic-pages.spec.ts` adds authenticated route-level smokes for
 the server-ops surfaces (dashboard, actors, spaces, federation,
 deactivation, audit, policy, server status). Governance pages
-(moderation/applets/agents/directory/circles) were removed from sodmin
+(moderation/applets/agents/directory/circles) were removed from codmin
 in the ops-level consolidation and now live in inkson, so they are no
-longer smoked here. These tests use the shared `SODMIN_E2E_BASE_URL`,
-`SODMIN_E2E_ADMIN_EMAIL`, and `SODMIN_E2E_ADMIN_PASSWORD` env vars and
+longer smoked here. These tests use the shared `CODMIN_E2E_BASE_URL`,
+`CODMIN_E2E_ADMIN_EMAIL`, and `CODMIN_E2E_ADMIN_PASSWORD` env vars and
 self-skip when the local stack is not configured.
 
 ## Happy-path device revoke + cascade audit
@@ -83,8 +83,8 @@ landed on the canonical coauth audit pipeline):
 
 Required env vars (in addition to the shared trio):
 
-- `SODMIN_E2E_ACCOUNT_ID` — the target account
-- `SODMIN_E2E_DEVICE_ID` — a revocable (Active or Stale) device on
+- `CODMIN_E2E_ACCOUNT_ID` — the target account
+- `CODMIN_E2E_DEVICE_ID` — a revocable (Active or Stale) device on
   that account
 
 If unset, the spec self-skips.

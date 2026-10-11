@@ -1,6 +1,6 @@
 //! Audit admin API — D14 production endpoint.
 //!
-//! `GET /_soland/admin/audit` is the typed production query (shared
+//! `GET /_coland/admin/audit` is the typed production query (shared
 //! `AdminAuditList` contract, newest first). All filtering happens server-side via
 //! `filter[...]` / `since` / `until`; the old fetch-everything-then-filter
 //! client loop is gone. `target_type` / `target_id` / `source_ip` /
@@ -8,12 +8,12 @@
 //! longer query dimensions.
 
 use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
-use soland_contracts::admin::AdminAuditList;
+use coland_contracts::admin::AdminAuditList;
 
 use crate::api::client::{NO_BODY, api_client, build_url};
 use crate::utils::net::error::HttpError;
 
-/// Server-side filter set for `/_soland/admin/audit`. Empty fields are
+/// Server-side filter set for `/_coland/admin/audit`. Empty fields are
 /// dropped before encoding so the wire form only carries what the operator
 /// actually filtered on.
 #[derive(Debug, Clone, Default)]
@@ -71,7 +71,7 @@ pub async fn list_audit_entries(
     for (key, value) in &query {
         params.push((key, value.as_str()));
     }
-    let url = build_url("/_soland/admin/audit", &params)?;
+    let url = build_url("/_coland/admin/audit", &params)?;
     api_client(&url, "GET", NO_BODY).await
 }
 

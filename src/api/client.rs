@@ -58,7 +58,7 @@ const SENSITIVE_QUERY_KEYS: &[&str] = &[
 
 /// Per-request correlation id (12 bytes / ~16 chars base64url) used in the
 /// `X-Arkret-Request-Id` header so admin actions can be traced across
-/// proxy + coauth + soland logs.
+/// proxy + coauth + coland logs.
 pub fn generate_request_id() -> String {
     random_token(12)
 }
@@ -67,7 +67,7 @@ pub fn generate_request_id() -> String {
 /// strong uniqueness so retries collapse on the server side; 16 random
 /// bytes (~22 base64url chars) gives ~128 bits of entropy.
 pub fn generate_idempotency_key() -> String {
-    format!("sodmin-{}", random_token(16))
+    format!("codmin-{}", random_token(16))
 }
 
 pub fn json_body<T: serde::Serialize + ?Sized>(value: &T) -> Result<String, HttpError> {
@@ -261,7 +261,7 @@ pub fn format_admin_error(
     } else {
         // Non-envelope body (opaque proxy error, HTML 5xx, etc.) — synthesize
         // a local, non-wire code so it is never mistaken for a registry code.
-        display_error("sodmin.http_status", status, text)
+        display_error("codmin.http_status", status, text)
     };
     let retry_after_ms = error_body
         .as_ref()
@@ -443,22 +443,22 @@ mod tests {
             canonical_operation_for_request("/_arkret/describe?service_kind=station", "GET")
                 .expect("registered describe operation");
         assert_eq!(operation.as_str(), "ak.server.read.describe.v1");
-        assert!(canonical_operation_for_request("/_soland/admin/server/info", "GET").is_none());
+        assert!(canonical_operation_for_request("/_coland/admin/server/info", "GET").is_none());
     }
 
     #[test]
     fn build_url_rejects_query_credentials() {
-        assert!(build_url("/_soland/admin/actors", &[("access_token", "secret")]).is_err());
-        assert!(build_url("/_soland/admin/actors?token=secret", &[]).is_err());
-        assert!(build_url("/_soland/admin/actors?client_secret=secret", &[]).is_err());
-        assert!(build_url("/_soland/admin/actors?oauth_code=secret", &[]).is_err());
+        assert!(build_url("/_coland/admin/actors", &[("access_token", "secret")]).is_err());
+        assert!(build_url("/_coland/admin/actors?token=secret", &[]).is_err());
+        assert!(build_url("/_coland/admin/actors?client_secret=secret", &[]).is_err());
+        assert!(build_url("/_coland/admin/actors?oauth_code=secret", &[]).is_err());
     }
 
     #[test]
     fn build_url_appends_query_params() {
         assert_eq!(
-            build_url("/_soland/admin/actors", &[("cursor", "c1")]).unwrap(),
-            "/_soland/admin/actors?cursor=c1"
+            build_url("/_coland/admin/actors", &[("cursor", "c1")]).unwrap(),
+            "/_coland/admin/actors?cursor=c1"
         );
     }
 

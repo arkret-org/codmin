@@ -1,7 +1,7 @@
-//! Soland Space container list
+//! Coland Space container list
 //!
 //! Cursor-paginated list of Spaces visible to the current admin scope,
-//! backed by `GET /_soland/admin/spaces`. Each row shows name, member
+//! backed by `GET /_coland/admin/spaces`. Each row shows name, member
 //! count, lifecycle state and an "Open detail"
 //! button that links to the existing per-space detail page.
 

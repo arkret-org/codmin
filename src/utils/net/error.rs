@@ -25,7 +25,7 @@ pub struct AdminErrorEnvelope {
 
 impl AdminErrorEnvelope {
     /// Parse the canonical spec/SDK RFC 9457 Problem Details shape
-    /// from an upstream (soland/coauth) error body. Returns `None` when the
+    /// from an upstream (coland/coauth) error body. Returns `None` when the
     /// body is not a canonical envelope (e.g. an opaque HTML 502 from the
     /// proxy), so callers fall back to a status-only message.
     pub fn from_wire(text: &str) -> Option<Self> {
@@ -108,7 +108,7 @@ pub fn display_error(errcode: &str, status: u16, message: &str) -> String {
         return format!("{errcode} ({status}): {localised}: {safe_message}");
     }
 
-    // soland's error envelope carries bare snake_case errcodes straight
+    // coland's error envelope carries bare snake_case errcodes straight
     // from the spec error-code-registry (there is no `ak.error.*`
     // prefix in the registry, and `schema` is registered as
     // `schema_violation`). Match those literal registry codes only.
@@ -230,7 +230,7 @@ mod tests {
     #[test]
     fn display_error_redacts_unregistered_code_message() {
         let s = display_error(
-            "sodmin.http_status",
+            "codmin.http_status",
             502,
             "proxy leaked alice@example.org from 203.0.113.9 with Bearer abc.def",
         );

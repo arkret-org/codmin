@@ -3,7 +3,7 @@ use crate::types::*;
 use crate::utils::net::error::HttpError;
 
 /// Cursor-paginated federation operation stream from
-/// `GET /_soland/admin/federation`. The backend returns
+/// `GET /_coland/admin/federation`. The backend returns
 /// `federation_operation` rows; `search` is a best-effort client-side filter
 /// over `operation_id` / `realm_id` (the endpoint does not yet support a
 /// server-side `filter` parameter).
@@ -17,7 +17,7 @@ pub async fn list_federation_operations(
     if let Some(c) = cursor.filter(|c| !c.is_empty()) {
         params.push(("cursor", c));
     }
-    let url = build_url("/_soland/admin/federation", &params)?;
+    let url = build_url("/_coland/admin/federation", &params)?;
     let mut resp: ListResponse<AdminFederationOperation> = api_client(&url, "GET", NO_BODY).await?;
     let needle = search.trim().to_ascii_lowercase();
     let data = resp

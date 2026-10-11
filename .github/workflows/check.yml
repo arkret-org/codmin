@@ -20,7 +20,7 @@ env:
 
 defaults:
   run:
-    working-directory: sodmin
+    working-directory: codmin
 
 jobs:
   rust:
@@ -31,7 +31,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          path: sodmin
+          path: codmin
           submodules: recursive
 
       - name: Check out arkret-rust-sdk
@@ -50,11 +50,11 @@ jobs:
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
-      - name: Check out soland
+      - name: Check out coland
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          repository: ${{ github.repository_owner }}/soland
-          path: soland
+          repository: ${{ github.repository_owner }}/coland
+          path: coland
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
@@ -74,10 +74,10 @@ jobs:
       - name: Cache cargo registry, git, and target
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
-          workspaces: sodmin
+          workspaces: codmin
 
       - name: cargo fmt (host)
-        run: cargo +nightly fmt --package sodmin -- --check
+        run: cargo +nightly fmt --package codmin -- --check
 
       - name: cargo check (host)
         run: cargo +stable check --workspace --all-targets --locked
@@ -96,7 +96,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          path: sodmin
+          path: codmin
           submodules: recursive
 
       - name: Check out arkret-rust-sdk
@@ -115,11 +115,11 @@ jobs:
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
-      - name: Check out soland
+      - name: Check out coland
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          repository: ${{ github.repository_owner }}/soland
-          path: soland
+          repository: ${{ github.repository_owner }}/coland
+          path: coland
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
@@ -137,7 +137,7 @@ jobs:
       - name: Cache cargo registry, git, and target
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
-          workspaces: sodmin
+          workspaces: codmin
           shared-key: wasm
 
       - name: Install dioxus-cli
@@ -159,7 +159,7 @@ jobs:
       - name: Upload web artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: sodmin-web-public
+          name: codmin-web-public
           path: ${{ steps.dist.outputs.dir }}
 
   e2e:
@@ -171,13 +171,13 @@ jobs:
       - name: Check out source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          path: sodmin
+          path: codmin
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: sodmin/package-lock.json
+          cache-dependency-path: codmin/package-lock.json
       - name: Install npm deps
         run: npm ci
       - name: Install Playwright browsers
@@ -185,8 +185,8 @@ jobs:
       - name: Download web artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: sodmin-web-public
-          path: sodmin/dist
+          name: codmin-web-public
+          path: codmin/dist
       - name: Start static SPA
         env:
           COAUTH_PUBLIC_URL: http://127.0.0.1:4173
@@ -196,19 +196,19 @@ jobs:
           sleep 2
       - name: Run Playwright smoke
         env:
-          SODMIN_E2E_BASE_URL: http://127.0.0.1:4173
+          CODMIN_E2E_BASE_URL: http://127.0.0.1:4173
         run: npm run test:smoke -- --reporter=line
       - name: Run axe Playwright gate
         env:
-          SODMIN_E2E_BASE_URL: http://127.0.0.1:4173
+          CODMIN_E2E_BASE_URL: http://127.0.0.1:4173
         run: npm run test:a11y -- --reporter=line
       - name: Run keyboard gate
         env:
-          SODMIN_E2E_BASE_URL: http://127.0.0.1:4173
+          CODMIN_E2E_BASE_URL: http://127.0.0.1:4173
         run: npm run test:keyboard -- --reporter=line
       - name: Run RTL gate
         env:
-          SODMIN_E2E_BASE_URL: http://127.0.0.1:4173
+          CODMIN_E2E_BASE_URL: http://127.0.0.1:4173
         run: npm run test:rtl -- --reporter=line
 
   lighthouse:
@@ -220,20 +220,20 @@ jobs:
       - name: Check out source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          path: sodmin
+          path: codmin
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: sodmin/package-lock.json
+          cache-dependency-path: codmin/package-lock.json
       - name: Install npm deps
         run: npm ci
       - name: Download web artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: sodmin-web-public
-          path: sodmin/dist
+          name: codmin-web-public
+          path: codmin/dist
       - name: Start static SPA
         env:
           COAUTH_PUBLIC_URL: http://127.0.0.1:4173

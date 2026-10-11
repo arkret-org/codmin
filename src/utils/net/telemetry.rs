@@ -2,7 +2,7 @@
 //!
 //! This module is intentionally tiny: when the deployment exposes a
 //! same-origin telemetry endpoint value in `/config.json` AND the operator
-//! has flipped the local `sodmin_telemetry_opt_in` flag in localStorage,
+//! has flipped the local `codmin_telemetry_opt_in` flag in localStorage,
 //! browser-side errors (HTTP errors with a status, JSON parse failures,
 //! capability denials) are POSTed to that endpoint as a structured
 //! payload — no PII, no message bodies, only:
@@ -13,7 +13,7 @@
 //! * `path` (the request path, query string stripped)
 //! * `ts` ISO-8601 timestamp
 //!
-//! Operators can correlate `request_id` with soland / coauth structured
+//! Operators can correlate `request_id` with coland / coauth structured
 //! logs to find the corresponding server-side log line. The
 //! `request_id` is also preserved in error UI metadata so the operator
 //! can paste it into a support ticket without opening DevTools.
@@ -21,7 +21,7 @@
 //! Sending failures are silently swallowed; telemetry MUST never break
 //! the UI.
 //!
-//! Error storms (e.g. soland briefly returning 5xx on every API call) are
+//! Error storms (e.g. coland briefly returning 5xx on every API call) are
 //! bounded by a client-side token-bucket rate limiter: at most
 //! [`MAX_EVENTS_PER_WINDOW`] events are sent per [`WINDOW_MS`]; overflow is
 //! dropped so telemetry never amplifies an outage into a request flood.
@@ -65,10 +65,10 @@ fn allow_send() -> bool {
 }
 
 /// localStorage key for the operator opt-in flag.
-const OPT_IN_KEY: &str = "sodmin_telemetry_opt_in";
+const OPT_IN_KEY: &str = "codmin_telemetry_opt_in";
 /// localStorage key for the runtime telemetry endpoint URL. Populated
 /// at boot from `/config.json#telemetry_endpoint`. May be unset.
-const ENDPOINT_KEY: &str = "sodmin_telemetry_endpoint";
+const ENDPOINT_KEY: &str = "codmin_telemetry_endpoint";
 
 /// Set the endpoint URL. CSP keeps `connect-src` on `'self'`, so only
 /// same-origin absolute paths are accepted.
@@ -108,7 +108,7 @@ struct ErrorEvent<'a> {
 ///
 /// 1. Strips the query string + fragment (cursor tokens / filter values count as PII).
 /// 2. Templates inline id segments to `{id}`. Our REST paths embed actor / account / realm / handle
-///    ids directly in the path (e.g. `/_soland/admin/accounts/01HXY.../dids/did:web:x`), and those
+///    ids directly in the path (e.g. `/_coland/admin/accounts/01HXY.../dids/did:web:x`), and those
 ///    ids — ULIDs, numeric ids, DIDs — are identifying. A segment is treated as an id when it
 ///    contains a `:` (DID / `ak:` ref), starts with a digit (ULID / numeric id), or is an overly
 ///    long opaque token. Static words like `api`, `v1`, `accounts` are preserved.
@@ -149,7 +149,7 @@ pub fn report_http_error(path: &str, error: &HttpError) {
         .body
         .as_ref()
         .map(|b| b.errcode.as_str())
-        .unwrap_or("sodmin.http_status");
+        .unwrap_or("codmin.http_status");
     let event = ErrorEvent {
         errcode,
         status: error.status,
@@ -241,20 +241,20 @@ mod tests {
     #[test]
     fn redact_path_templates_inline_ids() {
         // ULID account id + DID segment → both templated; static words
-        // (_soland / admin / accounts / dids) preserved.
+        // (_coland / admin / accounts / dids) preserved.
         assert_eq!(
-            redact_path("/_soland/admin/accounts/01HXYABCDEF/dids/did:web:alice.example"),
-            "/_soland/admin/accounts/{id}/dids/{id}"
+            redact_path("/_coland/admin/accounts/01HXYABCDEF/dids/did:web:alice.example"),
+            "/_coland/admin/accounts/{id}/dids/{id}"
         );
         // Numeric id templated.
         assert_eq!(
-            redact_path("/_soland/admin/accounts/12345/deactivate"),
-            "/_soland/admin/accounts/{id}/deactivate"
+            redact_path("/_coland/admin/accounts/12345/deactivate"),
+            "/_coland/admin/accounts/{id}/deactivate"
         );
         // No ids → unchanged.
         assert_eq!(
-            redact_path("/_soland/admin/server/info"),
-            "/_soland/admin/server/info"
+            redact_path("/_coland/admin/server/info"),
+            "/_coland/admin/server/info"
         );
     }
 }

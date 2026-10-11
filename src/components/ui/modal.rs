@@ -5,7 +5,7 @@
 //! To avoid renaming props one by one across ~20 call sites (among them
 //! `destructive: bool` → `variant` is a type change, and some are dynamic
 //! expressions, which makes blind edits error-prone), a **thin adapter** layer
-//! is kept here that passes through / translates sodmin's existing prop names
+//! is kept here that passes through / translates codmin's existing prop names
 //! to yoface's new API:
 //!   * `DialogActions.confirm_text`/`cancel_text` → yoface `confirm_label`/`cancel_label`
 //!   * `DialogActions.destructive: bool` → yoface `variant: ButtonVariant::{Destructive,Primary}`

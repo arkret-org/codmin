@@ -12,11 +12,11 @@ pub async fn list_realms(
     if let Some(c) = cursor.filter(|c| !c.is_empty()) {
         params.push(("cursor", c));
     }
-    let url = build_url("/_soland/admin/realms", &params)?;
+    let url = build_url("/_coland/admin/realms", &params)?;
     api_client(&url, "GET", NO_BODY).await
 }
 
 pub async fn get_realm(id: &str) -> Result<AdminRealmItem, HttpError> {
-    let url = format!("/_soland/admin/realms/{}", urlencoding::encode(id));
+    let url = format!("/_coland/admin/realms/{}", urlencoding::encode(id));
     api_client(&url, "GET", NO_BODY).await
 }

@@ -1,13 +1,13 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: sodmin
+  name: codmin
   labels:
-    app.kubernetes.io/name: sodmin
+    app.kubernetes.io/name: codmin
     app.kubernetes.io/component: admin-spa
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    # sodmin enforces a strict CSP at the nginx layer; do not allow the
+    # codmin enforces a strict CSP at the nginx layer; do not allow the
     # ingress controller to rewrite headers.
     nginx.ingress.kubernetes.io/server-snippet: |
       more_clear_headers "Server";
@@ -16,16 +16,16 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - sodmin.example.com
-      secretName: sodmin-tls
+        - codmin.example.com
+      secretName: codmin-tls
   rules:
-    - host: sodmin.example.com
+    - host: codmin.example.com
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: sodmin
+                name: codmin
                 port:
                   name: http

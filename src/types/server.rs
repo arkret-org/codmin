@@ -1,21 +1,21 @@
 //! Server status / info / stats / describe admin surfaces.
 //!
-//! `/_soland/admin/server/{info,stats,status}` are deployment-local operator
-//! endpoints whose shapes live in `soland_contracts::admin`; sodmin keeps no
+//! `/_coland/admin/server/{info,stats,status}` are deployment-local operator
+//! endpoints whose shapes live in `coland_contracts::admin`; codmin keeps no
 //! wire mirror of them.
 //!
 //! The `/_arkret/describe` payload is the SDK-authoritative
-//! [`ServiceDescribe`] (`arkret_models_discovery`). sodmin does not mirror it
+//! [`ServiceDescribe`] (`arkret_models_discovery`). codmin does not mirror it
 //! either; service-proprietary top-level extensions are read from the SDK
 //! model's flattened `extensions` map.
 
 // (The `VerifiedProfileEntry` /
 // `InteropSurfaceEntry` element types are reachable through the SDK
-// directly; sodmin views consume them via the `ServiceDescribe`
+// directly; codmin views consume them via the `ServiceDescribe`
 // fields and need no local re-export.)
 pub use arkret_models_discovery::ServiceDescribe;
+pub use coland_contracts::admin::{AdminServerInfo, AdminServerStats, AdminServerStatus};
 use serde::{Deserialize, Serialize};
-pub use soland_contracts::admin::{AdminServerInfo, AdminServerStats, AdminServerStatus};
 
 /// `/_arkret/describe` response envelope.
 ///
@@ -100,20 +100,20 @@ mod tests {
     /// Minimal payload satisfying every required `ServiceDescribe` field.
     fn base_describe() -> serde_json::Value {
         json!({
-            "service_id": "ak:did_core:web:soland.local",
+            "service_id": "ak:did_core:web:coland.local",
             "service_resolution": {
-                "did": "did:web:soland.local",
+                "did": "did:web:coland.local",
                 "method_history_head": "fixture-head",
                 "version_id": "fixture-v1"
             },
-            "trust_domain": "ak:trust_domain:soland.local",
+            "trust_domain": "ak:trust_domain:coland.local",
             "service_kind": "station",
             "protocol_version": "1.0",
             "supported_profiles": [],
             "supported_operation_bundles": ["ak.operation_bundle.station.describe.v1"],
             "transport_bindings": [{
                 "kind": "http_json",
-                "base_url": "https://soland.local/",
+                "base_url": "https://coland.local/",
                 "extension_profile_required": null
             }],
             "supported_features": [],
@@ -138,15 +138,15 @@ mod tests {
     #[test]
     fn describe_document_parses_sdk_authoritative_shape() {
         let describe: ServerDescribeDocument =
-            serde_json::from_value(base_describe()).expect("soland describe should deserialize");
+            serde_json::from_value(base_describe()).expect("coland describe should deserialize");
 
-        assert_eq!(describe.service_id.as_str(), "ak:did_core:web:soland.local");
+        assert_eq!(describe.service_id.as_str(), "ak:did_core:web:coland.local");
         describe
             .validate()
             .expect("describe semantics should validate");
         assert_eq!(
             describe.trust_domain.as_str(),
-            "ak:trust_domain:soland.local"
+            "ak:trust_domain:coland.local"
         );
         assert_eq!(describe.service_kind, arkret_wire::ServiceKind::Station);
         assert!(!describe.development_mode);
@@ -205,14 +205,14 @@ mod tests {
     fn server_status_parses_the_producer_shape() {
         let status: AdminServerStatus = serde_json::from_value(json!({
             "status": "ok",
-            "service_id": "ak:did_core:web:soland.local",
+            "service_id": "ak:did_core:web:coland.local",
             "storage": "postgres",
             "development_mode": true,
             "checked_by": "ak:did_core:web:alice.example",
             "generated_at": "2026-08-14T00:00:00.000Z",
             "counts": { "accounts": 4, "devices": null, "realms": 2 },
         }))
-        .expect("soland status should deserialize");
+        .expect("coland status should deserialize");
 
         assert!(status.is_ok());
         assert_eq!(status.counts.devices, None);

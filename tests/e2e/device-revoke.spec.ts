@@ -1,20 +1,20 @@
 // Happy-path device revoke + cascade-revoke Playwright e2e.
 //
-// Drives the sodmin SPA against a sodmin dev instance + a coauth + soland
+// Drives the codmin SPA against a codmin dev instance + a coauth + coland
 // dev stack. The test exercises the per-account device admin page:
 // boot the SPA, sign the admin in, navigate to the accounts list, open
 // an account detail page, jump to the per-account device list, click
 // Revoke on a target device, confirm the destructive ConfirmDialog,
 // assert the device row badge transitions to Revoked, and assert the
 // coauth audit feed surfaces the cascade-revoke session-grant entries
-// emitted by the soland side.
+// emitted by the coland side.
 //
 // Pattern matches the `risk-action.spec.ts` shape — identical
 // env-var contract, identical "self-skip when env vars unset" behaviour.
 //
-// Skip behaviour: if any of `SODMIN_E2E_BASE_URL`,
-// `SODMIN_E2E_ADMIN_EMAIL`, `SODMIN_E2E_ADMIN_PASSWORD`,
-// `SODMIN_E2E_ACCOUNT_ID`, or `SODMIN_E2E_DEVICE_ID` are unset, the
+// Skip behaviour: if any of `CODMIN_E2E_BASE_URL`,
+// `CODMIN_E2E_ADMIN_EMAIL`, `CODMIN_E2E_ADMIN_PASSWORD`,
+// `CODMIN_E2E_ACCOUNT_ID`, or `CODMIN_E2E_DEVICE_ID` are unset, the
 // test calls `test.skip()` so a CI environment that hasn't wired the
 // dev stack still passes. The expectation is that an operator boots a
 // local dev stack manually (or via `npm run stack:up`), seeds a
@@ -23,11 +23,11 @@
 
 import { test, expect } from "@playwright/test";
 
-const BASE_URL = process.env.SODMIN_E2E_BASE_URL || "";
-const ADMIN_EMAIL = process.env.SODMIN_E2E_ADMIN_EMAIL || "";
-const ADMIN_PASSWORD = process.env.SODMIN_E2E_ADMIN_PASSWORD || "";
-const ACCOUNT_ID = process.env.SODMIN_E2E_ACCOUNT_ID || "";
-const DEVICE_ID = process.env.SODMIN_E2E_DEVICE_ID || "";
+const BASE_URL = process.env.CODMIN_E2E_BASE_URL || "";
+const ADMIN_EMAIL = process.env.CODMIN_E2E_ADMIN_EMAIL || "";
+const ADMIN_PASSWORD = process.env.CODMIN_E2E_ADMIN_PASSWORD || "";
+const ACCOUNT_ID = process.env.CODMIN_E2E_ACCOUNT_ID || "";
+const DEVICE_ID = process.env.CODMIN_E2E_DEVICE_ID || "";
 
 test.describe("device-revoke happy-path", () => {
   test.beforeAll(async () => {
@@ -40,7 +40,7 @@ test.describe("device-revoke happy-path", () => {
     ) {
       test.skip(
         true,
-        "SODMIN_E2E_BASE_URL / _ADMIN_EMAIL / _ADMIN_PASSWORD / _ACCOUNT_ID / _DEVICE_ID must be set",
+        "CODMIN_E2E_BASE_URL / _ADMIN_EMAIL / _ADMIN_PASSWORD / _ACCOUNT_ID / _DEVICE_ID must be set",
       );
     }
   });

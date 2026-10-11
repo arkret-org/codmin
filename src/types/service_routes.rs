@@ -1,3 +1,3 @@
-//! Product-private service-route operations contracts shared with Soland.
+//! Product-private service-route operations contracts shared with Coland.
 
-pub use soland_contracts::admin::{AdminServiceRouteDetail, AdminServiceRouteList};
+pub use coland_contracts::admin::{AdminServiceRouteDetail, AdminServiceRouteList};

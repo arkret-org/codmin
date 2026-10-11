@@ -1,7 +1,7 @@
 name: Nightly example-stack
 
-# Bring up the full sodmin example stack (postgres + coauth + soland +
-# floria + sodmin) on a fresh GHA runner every night and assert each
+# Bring up the full codmin example stack (postgres + coauth + coland +
+# floria + codmin) on a fresh GHA runner every night and assert each
 # service responds 200 on its /health endpoint. Logs from every
 # container are captured and uploaded as artifacts on failure so a
 # regression doesn't require local docker reproduction.
@@ -33,12 +33,12 @@ jobs:
     # Four cold Rust/Dioxus images are built in sequence to bound memory.
     timeout-minutes: 120
     steps:
-      - name: Check out sodmin
+      - name: Check out codmin
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          path: sodmin
+          path: codmin
 
-      # The compose file references ../../{coauth,soland,floria} as
+      # The compose file references ../../{coauth,coland,floria} as
       # build contexts so we need sibling checkouts on disk. Pinning to
       # `main` keeps nightly bring-up reproducible against the umbrella
       # `arkret` layout described in examples/README.md.
@@ -50,11 +50,11 @@ jobs:
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
-      - name: Check out soland
+      - name: Check out coland
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          repository: ${{ github.repository_owner }}/soland
-          path: soland
+          repository: ${{ github.repository_owner }}/coland
+          path: coland
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
@@ -110,7 +110,7 @@ jobs:
 
       - name: Bring up example stack
         id: up
-        working-directory: sodmin
+        working-directory: codmin
         run: |
           # `up.sh` builds every image, generates a coauth config via an
           # ephemeral coauth container, brings the stack up with --wait,
@@ -119,7 +119,7 @@ jobs:
 
       - name: Smoke probe every /health endpoint
         id: smoke
-        working-directory: sodmin
+        working-directory: codmin
         env:
           # Generous budget on a cold-start GHA runner — coauth needs to
           # finish migrations against the freshly-spun postgres before
@@ -128,7 +128,7 @@ jobs:
         run: ./examples/smoke.sh
 
       - name: Verify durable Coauth keys across an ordinary restart
-        working-directory: sodmin
+        working-directory: codmin
         run: |
           python3 examples/check-key-persistence.py
           ./examples/smoke.sh
@@ -138,30 +138,30 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: sodmin/package-lock.json
+          cache-dependency-path: codmin/package-lock.json
 
       - name: Install Playwright dependencies
-        working-directory: sodmin
+        working-directory: codmin
         run: |
           npm ci
           npx playwright install --with-deps chromium
 
       - name: Run Playwright against example stack
-        working-directory: sodmin
+        working-directory: codmin
         env:
-          SODMIN_E2E_BASE_URL: http://localhost:58200
+          CODMIN_E2E_BASE_URL: http://localhost:58200
         run: npm run test:smoke -- --reporter=line
 
       - name: Run Lighthouse budget against example stack
-        working-directory: sodmin
+        working-directory: codmin
         run: npm run lhci -- --collect.url=http://localhost:58200/
 
       - name: Capture container logs (always)
         if: always()
-        working-directory: sodmin
+        working-directory: codmin
         run: |
           mkdir -p logs
-          for svc in postgres coauth coauth-provision soland floria sodmin; do
+          for svc in postgres coauth coauth-provision coland floria codmin; do
             docker compose -f examples/docker-compose.example-stack.yaml \
               logs --no-color --tail=2000 "${svc}" > "logs/${svc}.log" 2>&1 || true
           done
@@ -173,10 +173,10 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: example-stack-logs-${{ github.run_id }}
-          path: sodmin/logs/
+          path: codmin/logs/
           retention-days: 14
 
       - name: Tear down (always)
         if: always()
-        working-directory: sodmin
+        working-directory: codmin
         run: ./examples/down.sh || true

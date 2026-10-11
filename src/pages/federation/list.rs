@@ -15,7 +15,7 @@ use crate::types::federation::AdminFederationOperationExt;
 use crate::utils::i18n::t;
 
 const PAGE_SIZE: u64 = 25;
-const AUTOREFRESH_STORAGE_KEY: &str = "sodmin.federation.autorefresh";
+const AUTOREFRESH_STORAGE_KEY: &str = "codmin.federation.autorefresh";
 
 #[component]
 pub fn FederationList() -> Element {

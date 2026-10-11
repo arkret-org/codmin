@@ -1,3 +1,3 @@
-//! Soland invite-token admin contracts.
+//! Coland invite-token admin contracts.
 
-pub use soland_contracts::admin::invite_tokens::AdminInviteTokenItem;
+pub use coland_contracts::admin::invite_tokens::AdminInviteTokenItem;

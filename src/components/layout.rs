@@ -82,7 +82,7 @@ pub fn AppLayout(children: Element) -> Element {
             }
             div { class: "flex flex-1 flex-col overflow-hidden",
                 // T1.4: red, non-dismissible warning when the connected
-                // soland reports `development_mode == true`. Rendered
+                // coland reports `development_mode == true`. Rendered
                 // ABOVE the header so it stays in the operator's eyeline
                 // no matter which page they're on.
                 DevModeBanner {}

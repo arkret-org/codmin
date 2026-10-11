@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-// The label and search-input components live in yoface; sodmin keeps no
+// The label and search-input components live in yoface; codmin keeps no
 // local adapter for either.
 //   * `yoface::ui::label::LabelFor` takes `r#for` + `class` + children.
 //   * `yoface::ui::input::SearchInput` names its label prop `aria_label`.
@@ -9,7 +9,7 @@ pub use yoface::ui::label::LabelFor;
 /// `Input` — migrated to yoface (`yoface::ui::input::Input`, rendered with
 /// css_module).
 ///
-/// This thin **adapter** is kept locally: sodmin's call sites pass `value` /
+/// This thin **adapter** is kept locally: codmin's call sites pass `value` /
 /// `placeholder` / `disabled` / `oninput` (not `Option`) / and a set of HTML
 /// constraints (`min_length` / `max_length` / `pattern` / `aria_describedby`
 /// and so on) as named props. The adapter passes them through as attributes of

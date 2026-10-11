@@ -26,7 +26,7 @@ probe() {
     for attempt in $(seq 1 "${ATTEMPT_BUDGET}"); do
         local code
         local tls_options=()
-        if [[ "${name}" == "soland" ]]; then
+        if [[ "${name}" == "coland" ]]; then
             tls_options=(--cacert "${EXAMPLES_DIR}/.local/tls/ca.crt")
         fi
         code="$(curl -fsS "${tls_options[@]}" -o /dev/null -m 2 -w '%{http_code}' "${url}" || echo "000")"
@@ -44,9 +44,9 @@ probe() {
 # port mapping. Update both when adding a service.
 probes=(
     "coauth http://127.0.0.1:57080/health"
-    "soland https://127.0.0.1:58787/health"
+    "coland https://127.0.0.1:58787/health"
     "floria http://127.0.0.1:55000/ready"
-    "sodmin http://127.0.0.1:58200/healthz"
+    "codmin http://127.0.0.1:58200/healthz"
 )
 
 failures=0

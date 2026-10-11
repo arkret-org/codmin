@@ -21,7 +21,7 @@ pub async fn get_realm_organization_admin_view(
     realm_id: &str,
 ) -> Result<RealmOrganizationAdminView, HttpError> {
     let relationship_path = format!(
-        "/_soland/admin/realms/{}/organizations",
+        "/_coland/admin/realms/{}/organizations",
         urlencoding::encode(realm_id)
     );
     let relationships: RealmOrganizationRelationshipList =

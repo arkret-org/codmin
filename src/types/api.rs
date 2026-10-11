@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 // ── Pagination ──
 
-/// Permissive read view over the several list envelopes soland serves.
+/// Permissive read view over the several list envelopes coland serves.
 ///
 /// It is deliberately NOT a shared contract type: the producers differ
 /// (`AdminCollectionOutcome` carries `resource` / `items` / `production_gap`

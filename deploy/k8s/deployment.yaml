@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sodmin
+  name: codmin
   labels:
-    app.kubernetes.io/name: sodmin
+    app.kubernetes.io/name: codmin
     app.kubernetes.io/component: admin-spa
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app.kubernetes.io/name: sodmin
+      app.kubernetes.io/name: codmin
       app.kubernetes.io/component: admin-spa
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: sodmin
+        app.kubernetes.io/name: codmin
         app.kubernetes.io/component: admin-spa
     spec:
       automountServiceAccountToken: false
@@ -28,25 +28,25 @@ spec:
         kubernetes.io/arch: arm64
       containers:
         - name: nginx
-          # The sodmin container is a single nginx serving the Dioxus / WASM
-          # SPA plus reverse-proxy locations for soland + coauth. The current
+          # The codmin container is a single nginx serving the Dioxus / WASM
+          # SPA plus reverse-proxy locations for coland + coauth. The current
           # Gitea workflow publishes architecture-suffixed ARM64 tags only;
           # replace the repository with your configured registry and pin a
           # digest for production rollouts.
-          image: registry.example.com/arkret/sodmin:replace-with-immutable-arm64-release
+          image: registry.example.com/arkret/codmin:replace-with-immutable-arm64-release
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 80
           env:
-            - name: SOLAND_URL
-              value: http://soland.internal:8008
+            - name: COLAND_URL
+              value: http://coland.internal:8008
             - name: COAUTH_URL
               value: http://coauth.internal:7080
             - name: COAUTH_PUBLIC_URL
               value: https://coauth.example.com
             # Optional opt-in browser telemetry sink (see DEPLOYMENT.md).
-            # - name: SODMIN_TELEMETRY_ENDPOINT
+            # - name: CODMIN_TELEMETRY_ENDPOINT
             #   value: https://telemetry.example.com/api/v1/telemetry/error
           readinessProbe:
             httpGet:

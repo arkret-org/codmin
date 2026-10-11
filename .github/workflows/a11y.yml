@@ -16,7 +16,7 @@ permissions:
 
 defaults:
   run:
-    working-directory: sodmin
+    working-directory: codmin
 
 jobs:
   axe:
@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          path: sodmin
+          path: codmin
 
       - name: Check out arkret-rust-sdk
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -44,11 +44,11 @@ jobs:
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
-      - name: Check out soland
+      - name: Check out coland
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          repository: ${{ github.repository_owner }}/soland
-          path: soland
+          repository: ${{ github.repository_owner }}/coland
+          path: coland
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
@@ -57,7 +57,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: sodmin/package-lock.json
+          cache-dependency-path: codmin/package-lock.json
 
       - name: Install JS deps
         run: npm ci

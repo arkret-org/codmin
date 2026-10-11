@@ -217,7 +217,7 @@ fn describe_body(describe: &ServerDescribeDocument) -> Element {
         .map(|binding| serde_json::to_value(binding).unwrap_or(serde_json::Value::Null))
         .collect();
 
-    // T1.4 — surface the runtime posture. These are soland extension
+    // T1.4 — surface the runtime posture. These are coland extension
     // fields (emitted on `/health`), so they come from the extension envelope and usually render
     // as "-" on the spec-shaped `/_arkret/describe`. `development_mode`
     // is rendered separately below (with red styling) so the operator
@@ -282,7 +282,7 @@ fn describe_body(describe: &ServerDescribeDocument) -> Element {
                     }
                 }
             }
-            // Red posture chip — only renders when soland reports
+            // Red posture chip — only renders when coland reports
             // `development_mode == true`. Production deployments see the
             // normal grid below with no extra chrome.
             if development_mode_is_dev {
@@ -333,7 +333,7 @@ fn describe_body(describe: &ServerDescribeDocument) -> Element {
 
             // T6.2 §1 — conformance posture grouped into four buckets.
             // verified profiles flip to ❌ when development_mode is on,
-            // since soland's relaxed proof verifier voids the
+            // since coland's relaxed proof verifier voids the
             // verification claim.
             {conformance_section(describe, development_mode_is_dev)}
 

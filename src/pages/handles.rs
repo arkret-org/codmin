@@ -5,10 +5,10 @@
 //! - [`HandleList`] is a paginated table of `ak.handle.*` cells with issuer / expiry /
 //!   last-reassignment columns and inline revoke + reassign affordances.
 //! - [`HandleShow`] is the per-handle detail page; it pulls the audit trail from
-//!   `/_soland/admin/handles/{id}/audit` (T3.2's audit table) and exposes the revoke +
+//!   `/_coland/admin/handles/{id}/audit` (T3.2's audit table) and exposes the revoke +
 //!   force-reassign actions.
 //!
-//! Both columns render Soland's canonical `<localpart>:<domain>` value
+//! Both columns render Coland's canonical `<localpart>:<domain>` value
 //! verbatim, without adding a display sigil.
 
 use arkret_identifiers::DidCoreId;

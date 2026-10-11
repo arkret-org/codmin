@@ -15,7 +15,7 @@ use crate::utils::fmt::csv::{build_csv, export_to_csv};
 use crate::utils::i18n::t;
 
 const PAGE_SIZE: u64 = 25;
-const AUTOREFRESH_STORAGE_KEY: &str = "sodmin.devices.autorefresh";
+const AUTOREFRESH_STORAGE_KEY: &str = "codmin.devices.autorefresh";
 
 #[component]
 pub fn DeviceList() -> Element {

@@ -1,6 +1,6 @@
 //! Media admin surface — contract-authoritative types.
 //!
-//! Rows and aggregates are the shared `soland_contracts::admin` media
-//! contracts; sodmin keeps no wire mirror.
+//! Rows and aggregates are the shared `coland_contracts::admin` media
+//! contracts; codmin keeps no wire mirror.
 
-pub use soland_contracts::admin::{AdminMediaByActorList, AdminMediaRow, AdminMediaStatistics};
+pub use coland_contracts::admin::{AdminMediaByActorList, AdminMediaRow, AdminMediaStatistics};

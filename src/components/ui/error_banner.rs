@@ -32,7 +32,7 @@ pub fn resource_error<T>(result: &Option<Result<T, HttpError>>) -> Element {
 /// the two business couplings the yoface shared library deliberately stripped
 /// out (see the integration notes in yoface README §3.2):
 ///   * i18n —— the `common.error` / `common.retry` copy and the `error.<errcode>` localization are
-///     resolved on the sodmin side, then passed into the yoface component via `error_label` /
+///     resolved on the codmin side, then passed into the yoface component via `error_label` /
 ///     `retry_label` / `detail`;
 ///   * telemetry —— when the banner mounts, report analytics by `errcode` in a fire-and-forget
 ///     fashion.

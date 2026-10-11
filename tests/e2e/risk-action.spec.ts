@@ -1,14 +1,14 @@
 // Happy-path risk-action approval Playwright e2e.
 //
-// Drives the sodmin SPA against a sodmin dev instance + a soland dev
+// Drives the codmin SPA against a codmin dev instance + a coland dev
 // stack. The test is intentionally narrow: it boots the SPA, signs the
 // admin in, navigates to the accounts list, opens an account detail
 // page, kicks off the risk-action strand, and asserts that an audit row
 // appears for the action.
 //
-// Skip behaviour: if the env vars `SODMIN_E2E_BASE_URL`,
-// `SODMIN_E2E_ADMIN_EMAIL`, `SODMIN_E2E_ADMIN_PASSWORD`, or
-// `SODMIN_E2E_ACCOUNT_ID` are unset, the test calls `test.skip()` so a
+// Skip behaviour: if the env vars `CODMIN_E2E_BASE_URL`,
+// `CODMIN_E2E_ADMIN_EMAIL`, `CODMIN_E2E_ADMIN_PASSWORD`, or
+// `CODMIN_E2E_ACCOUNT_ID` are unset, the test calls `test.skip()` so a
 // CI environment that hasn't wired the dev stack still passes. The
 // expectation is that an operator runs the local dev stack manually
 // (or via `npm run stack:up`), exports the env vars, then invokes
@@ -16,17 +16,17 @@
 
 import { test, expect } from "@playwright/test";
 
-const BASE_URL = process.env.SODMIN_E2E_BASE_URL || "";
-const ADMIN_EMAIL = process.env.SODMIN_E2E_ADMIN_EMAIL || "";
-const ADMIN_PASSWORD = process.env.SODMIN_E2E_ADMIN_PASSWORD || "";
-const ACCOUNT_ID = process.env.SODMIN_E2E_ACCOUNT_ID || "";
+const BASE_URL = process.env.CODMIN_E2E_BASE_URL || "";
+const ADMIN_EMAIL = process.env.CODMIN_E2E_ADMIN_EMAIL || "";
+const ADMIN_PASSWORD = process.env.CODMIN_E2E_ADMIN_PASSWORD || "";
+const ACCOUNT_ID = process.env.CODMIN_E2E_ACCOUNT_ID || "";
 
 test.describe("risk-action happy-path", () => {
   test.beforeAll(async () => {
     if (!BASE_URL || !ADMIN_EMAIL || !ADMIN_PASSWORD || !ACCOUNT_ID) {
       test.skip(
         true,
-        "SODMIN_E2E_BASE_URL / _ADMIN_EMAIL / _ADMIN_PASSWORD / _ACCOUNT_ID must be set",
+        "CODMIN_E2E_BASE_URL / _ADMIN_EMAIL / _ADMIN_PASSWORD / _ACCOUNT_ID must be set",
       );
     }
   });

@@ -1,11 +1,11 @@
-//! HTTP client for the soland Space container admin surface.
+//! HTTP client for the coland Space container admin surface.
 //!
 //! Endpoints:
 //!
-//! - `GET /_soland/admin/spaces`: list Spaces visible to the current admin scope. Cursor-paginated.
+//! - `GET /_coland/admin/spaces`: list Spaces visible to the current admin scope. Cursor-paginated.
 //!
 //! Per-space hierarchy views are assembled client-side from the same snapshot;
-//! soland does not expose a dedicated hierarchy endpoint.
+//! coland does not expose a dedicated hierarchy endpoint.
 
 use crate::api::client::{NO_BODY, api_client, build_url};
 use crate::types::api::ListResponse;
@@ -29,7 +29,7 @@ pub async fn list_spaces(
     if let Some(cursor) = cursor.filter(|c| !c.is_empty()) {
         params.push(("cursor", cursor));
     }
-    let url = build_url("/_soland/admin/spaces", &params)?;
+    let url = build_url("/_coland/admin/spaces", &params)?;
     let resp: ListResponse<AdminSpaceRow> = api_client(&url, "GET", NO_BODY).await?;
     let needle = search.trim().to_ascii_lowercase();
     let data = if needle.is_empty() {

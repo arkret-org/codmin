@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tear down the sodmin example stack and drop volumes.
+# Tear down the codmin example stack and drop volumes.
 #
 # Usage:
 #   ./examples/down.sh             # docker compose down -v

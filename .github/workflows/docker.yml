@@ -20,13 +20,13 @@ jobs:
       contents: read
 
     steps:
-      - name: Check out sodmin
+      - name: Check out codmin
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          path: sodmin
+          path: codmin
 
-      # The sodmin Dockerfile uses an umbrella build context (parent of
-      # sodmin/) so cargo path-deps `../arkret-rust-sdk/...` and
+      # The codmin Dockerfile uses an umbrella build context (parent of
+      # codmin/) so cargo path-deps `../arkret-rust-sdk/...` and
       # `../coauth/crates/admin-types` resolve in the build sandbox.
       # Pin to `main` so single-repo image builds match nightly stack.
       - name: Check out coauth
@@ -45,11 +45,11 @@ jobs:
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
-      - name: Check out soland
+      - name: Check out coland
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          repository: ${{ github.repository_owner }}/soland
-          path: soland
+          repository: ${{ github.repository_owner }}/coland
+          path: coland
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
@@ -64,15 +64,15 @@ jobs:
       - name: Build Docker image locally
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
-          # Umbrella context (parent of sodmin/) so the Dockerfile's
-          # `COPY arkret-rust-sdk/`, `COPY coauth/`, `COPY sodmin/`
+          # Umbrella context (parent of codmin/) so the Dockerfile's
+          # `COPY arkret-rust-sdk/`, `COPY coauth/`, `COPY codmin/`
           # all resolve against sibling checkouts.
           context: .
-          file: ./sodmin/Dockerfile
+          file: ./codmin/Dockerfile
           platforms: linux/amd64,linux/arm64
           pull: true
           push: false
-          tags: sodmin:local
+          tags: codmin:local
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
 
@@ -81,7 +81,7 @@ jobs:
         with:
           version: v0.70.0
           scan-type: fs
-          scan-ref: ./sodmin
+          scan-ref: ./codmin
           format: table
           severity: CRITICAL,HIGH
           exit-code: "1"

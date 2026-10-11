@@ -1,21 +1,21 @@
-# sodmin Dockerfile.
+# codmin Dockerfile.
 #
-# Build context: the arkret umbrella directory (parent of sodmin).
-# The Cargo workspace at sodmin/Cargo.toml has path-deps on sibling
+# Build context: the arkret umbrella directory (parent of codmin).
+# The Cargo workspace at codmin/Cargo.toml has path-deps on sibling
 # repos that must be present in the build sandbox:
 #
 #   - ../arkret-rust-sdk/crates/...      (Arkret protocol types)
 #   - ../coauth/crates/{account,admin}-types
-#   - ../soland/crates/contracts
+#   - ../coland/crates/contracts
 #
-# Standalone single-repo build (the sodmin docker.yml workflow) checks
-# out coauth, soland and arkret-rust-sdk as siblings and invokes:
-#   docker build -f sodmin/Dockerfile ..
+# Standalone single-repo build (the codmin docker.yml workflow) checks
+# out coauth, coland and arkret-rust-sdk as siblings and invokes:
+#   docker build -f codmin/Dockerfile ..
 #
 # The example-stack compose file does the equivalent via
 #   build:
 #     context: ../..
-#     dockerfile: sodmin/Dockerfile
+#     dockerfile: codmin/Dockerfile
 
 FROM --platform=$BUILDPLATFORM rust:bookworm AS builder
 
@@ -35,32 +35,32 @@ RUN --network=default \
 # Build tools and Cargo metadata decoding.
 RUN apt-get update && apt-get install -y binaryen python3 && rm -rf /var/lib/apt/lists/*
 
-RUN --mount=type=cache,id=sodmin-cargo-registry,target=/usr/local/cargo/registry \
-    --mount=type=cache,id=sodmin-cargo-git,target=/usr/local/cargo/git \
+RUN --mount=type=cache,id=codmin-cargo-registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=codmin-cargo-git,target=/usr/local/cargo/git \
     cargo install dioxus-cli@0.7.10 --locked
 
 WORKDIR /workspace
 
 # Copy the sibling path-deps FIRST so cargo fetch / dx build can resolve
 # the workspace `path = "../<sibling>/..."` entries. Order matches the
-# umbrella layout: arkret/{arkret-rust-sdk,coauth,soland,sodmin}/.
+# umbrella layout: arkret/{arkret-rust-sdk,coauth,coland,codmin}/.
 COPY arkret-rust-sdk/ /workspace/arkret-rust-sdk
 COPY coauth/ /workspace/coauth
-COPY soland/ /workspace/soland
-COPY sodmin/ /workspace/sodmin
+COPY coland/ /workspace/coland
+COPY codmin/ /workspace/codmin
 
-WORKDIR /workspace/sodmin
+WORKDIR /workspace/codmin
 
 # Public git dependencies are fetched without build credentials.
 # Pre-fetch deps so source-only changes don't redownload the world.
-RUN --mount=type=cache,id=sodmin-cargo-registry,target=/usr/local/cargo/registry \
-    --mount=type=cache,id=sodmin-cargo-git,target=/usr/local/cargo/git \
+RUN --mount=type=cache,id=codmin-cargo-registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=codmin-cargo-git,target=/usr/local/cargo/git \
     cargo fetch --locked
 
 RUN --network=default \
-    --mount=type=cache,id=sodmin-cargo-registry,target=/usr/local/cargo/registry \
-    --mount=type=cache,id=sodmin-cargo-git,target=/usr/local/cargo/git \
-    --mount=type=cache,id=sodmin-target,target=/workspace/sodmin/target \
+    --mount=type=cache,id=codmin-cargo-registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=codmin-cargo-git,target=/usr/local/cargo/git \
+    --mount=type=cache,id=codmin-target,target=/workspace/codmin/target \
     built=false; \
     for i in 1 2 3; do \
         if dx build --release --debug-symbols false; then built=true; break; fi; \
@@ -75,21 +75,21 @@ RUN --network=default \
 FROM nginx:alpine
 
 COPY --from=builder /workspace/dist /usr/share/nginx/html
-COPY --chmod=755 sodmin/docker-entrypoint.sh /docker-entrypoint.sh
+COPY --chmod=755 codmin/docker-entrypoint.sh /docker-entrypoint.sh
 RUN mkdir -p /runtime && \
     chown -R 101:101 /usr/share/nginx/html /etc/nginx/conf.d /runtime
 
-# Runtime configuration. SOLAND_URL is the soland Station (admin
+# Runtime configuration. COLAND_URL is the coland Station (admin
 # + reducer surface) the proxy should forward to; COAUTH_URL is the
 # coauth admin service the proxy forwards to (with bearer); COAUTH_PUBLIC_URL
 # is the browser-facing coauth origin used for OAuth2 redirects.
 #
-ENV SOLAND_URL=""
+ENV COLAND_URL=""
 ENV COAUTH_URL=""
 ENV COAUTH_PUBLIC_URL=""
-ENV SODMIN_PORT="80"
+ENV CODMIN_PORT="80"
 
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD wget -q --spider "http://127.0.0.1:${SODMIN_PORT:-80}/healthz" || exit 1
+    CMD wget -q --spider "http://127.0.0.1:${CODMIN_PORT:-80}/healthz" || exit 1
 CMD ["/docker-entrypoint.sh"]

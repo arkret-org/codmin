@@ -1,13 +1,13 @@
 //! Space container admin surface — contract-authoritative row plus the
 //! SPA-local hierarchy aggregate.
 //!
-//! The row is the shared `soland_contracts::admin::AdminSpaceRow`
-//! (`GET /_soland/admin/spaces`). Per-space hierarchy is assembled
-//! client-side from the snapshot's `parent_space_id` fields; soland exposes
+//! The row is the shared `coland_contracts::admin::AdminSpaceRow`
+//! (`GET /_coland/admin/spaces`). Per-space hierarchy is assembled
+//! client-side from the snapshot's `parent_space_id` fields; coland exposes
 //! no hierarchy endpoint, so [`SpaceHierarchy`] never appears on the wire.
 
+pub use coland_contracts::admin::{AdminSpaceRow, SpaceHealth};
 use serde::{Deserialize, Serialize};
-pub use soland_contracts::admin::{AdminSpaceRow, SpaceHealth};
 
 /// Display helpers for the shared [`SpaceHealth`].
 pub trait SpaceHealthExt {

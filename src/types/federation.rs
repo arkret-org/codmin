@@ -1,13 +1,13 @@
 //! Federation admin surface — contract-authoritative row plus thin display
 //! helpers.
 //!
-//! `GET /_soland/admin/federation` returns a cursor-paginated stream of
+//! `GET /_coland/admin/federation` returns a cursor-paginated stream of
 //! **federation operations** (not peer-health rows). The row is the shared
-//! `soland_contracts::admin::AdminFederationOperation`, produced by soland's
+//! `coland_contracts::admin::AdminFederationOperation`, produced by coland's
 //! `admin_federation_items`
-//! (`soland/crates/http/src/routing/admin/collection.rs`).
+//! (`coland/crates/http/src/routing/admin/collection.rs`).
 
-pub use soland_contracts::admin::AdminFederationOperation;
+pub use coland_contracts::admin::AdminFederationOperation;
 
 /// Display helpers for the shared [`AdminFederationOperation`].
 pub trait AdminFederationOperationExt {

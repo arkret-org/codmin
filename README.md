@@ -1,4 +1,4 @@
-# sodmin
+# codmin
 
 Arkret administrator web UI for Station and coauth deployments. The app is built with Dioxus and compiled to WebAssembly.
 
@@ -24,7 +24,7 @@ adapt to your local toolchain.
 - **Issuer-local credential state (trigger + inspect)**: coauth account and
   session lifecycle operations backed by the Account Authority's durable
   issuer ledger. Session grants are signed credentials with issuer-local
-  lifecycle state; they are not Arkret Events and sodmin does not draft or
+  lifecycle state; they are not Arkret Events and codmin does not draft or
   submit grant Events.
 - **Service-attested Event state (trigger + inspect)**: lifecycle operations
   that the protocol explicitly models as Events signed by the authoritative
@@ -41,7 +41,7 @@ adapt to your local toolchain.
 - **Blob/media**: quota, metadata, retention and anti-enumeration diagnostics.
 - **coauth**: accounts, sessions, upstream providers, OAuth2 clients, registration tokens, notification channels and audit logs.
 
-`sodmin` authenticates through coauth OAuth + HttpOnly cookies and holds no
+`codmin` authenticates through coauth OAuth + HttpOnly cookies and holds no
 Arkret device or service signing key. It does not implement Arkret reducers,
 authorization decisions, or principal-key Event authoring. Those writes belong
 in a key-holding client, and shared Realm finality belongs to the Realm's
@@ -51,13 +51,13 @@ governing Station.
 
 ```mermaid
 flowchart LR
-  Browser["Admin browser"] --> Sodmin["sodmin Dioxus/WASM"]
-  Sodmin --> Nginx["nginx static host + proxy"]
-  Nginx --> Soland["soland Station admin API"]
+  Browser["Admin browser"] --> Codmin["codmin Dioxus/WASM"]
+  Codmin --> Nginx["nginx static host + proxy"]
+  Nginx --> Coland["coland Station admin API"]
   Nginx --> Coauth["coauth auth/account admin API"]
   Coauth --> OAuth["OAuth2 / PKCE session"]
-  Soland --> Reducers["Arkret reducers + admin projections"]
-  Soland --> Audit["Audit feed"]
+  Coland --> Reducers["Arkret reducers + admin projections"]
+  Coland --> Audit["Audit feed"]
 ```
 
 ## Realm vs Space
@@ -75,7 +75,7 @@ must be authored by a key-holding client. The **Realm links** page exposes typed
 
 These admin views close out protocol review findings. See
 [`CHANGELOG.md`](CHANGELOG.md) `[Unreleased]` and
-[`../_sodmin_soland_todos.md`](../_sodmin_soland_todos.md) for the canonical
+[`../_codmin_coland_todos.md`](../_codmin_coland_todos.md) for the canonical
 wire-breaking list.
 
 - **`ServiceDescribe` detail** — all 17 required fields rendered; the
@@ -124,12 +124,12 @@ dx build --platform web --release
 ## Container
 
 ```bash
-docker build -t sodmin .
+docker build -t codmin .
 docker run -p 9090:80 \
-  -e SOLAND_URL=http://soland:8008 \
+  -e COLAND_URL=http://coland:8008 \
   -e COAUTH_URL=http://coauth:7080 \
   -e COAUTH_PUBLIC_URL=https://auth.example.com \
-  sodmin
+  codmin
 ```
 
 ## Deployment
@@ -143,10 +143,10 @@ Required and optional environment variables:
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `SOLAND_URL` | yes | Internal URL of the soland Station reached by the proxy. |
+| `COLAND_URL` | yes | Internal URL of the coland Station reached by the proxy. |
 | `COAUTH_URL` | recommended | Internal URL of the coauth admin service. Enables the `/auth/`, `/_arkret/gate/`, `/_coauth/*`, `/authorize`, `/oauth/`, and `/.well-known/` proxy locations. |
 | `COAUTH_PUBLIC_URL` | recommended | Browser-facing coauth origin. Written to `/config.json` for the OAuth2 PKCE redirect. |
-| `SODMIN_PORT` | no | nginx listen port (default `80`). |
+| `CODMIN_PORT` | no | nginx listen port (default `80`). |
 
 The rendered nginx config enables gzip for static assets and sets a tight
 default Content-Security-Policy (`default-src 'self'; script-src 'self'
@@ -167,14 +167,14 @@ party auth), edit `connect-src` in `docker-entrypoint.sh` accordingly.
 ## API Clients
 
 `coauth-admin-types` is consumed directly via the workspace path dependency,
-and soland DTOs remain in the typed facade until a `soland-admin-types` crate
+and coland DTOs remain in the typed facade until a `coland-admin-types` crate
 exists. API client code must preserve Arkret error envelopes, reject URL query
 credentials, propagate `X-Arkret-Request-Id`, send `Idempotency-Key` for
 mutations, and redact sensitive diagnostics.
 
 ## Dashboard Discovery
 
-The dashboard reads native Arkret discovery metadata from `/_arkret/describe` and `/_soland/admin/server/info`. Discovery-backed fields currently rendered include service DID, coauth issuer DID, delegated/public DID resolver endpoint, supported profiles, reducer/schema profiles, event-kind registry version, OpenAPI version, health summary, and conformance declarations.
+The dashboard reads native Arkret discovery metadata from `/_arkret/describe` and `/_coland/admin/server/info`. Discovery-backed fields currently rendered include service DID, coauth issuer DID, delegated/public DID resolver endpoint, supported profiles, reducer/schema profiles, event-kind registry version, OpenAPI version, health summary, and conformance declarations.
 
 If discovery is unavailable or an older backend omits a field, the UI renders `-` or `Unknown` and does not treat the profile as implemented.
 
@@ -193,11 +193,11 @@ examples/       Local deployment examples, pending Arkret stack refresh
 
 ## Current Gaps
 
-See the cross-project [`../_sodmin_soland_todos.md`](../_sodmin_soland_todos.md). Remaining deferred work includes the docs site/user guide and example-stack cold image verification.
+See the cross-project [`../_codmin_coland_todos.md`](../_codmin_coland_todos.md). Remaining deferred work includes the docs site/user guide and example-stack cold image verification.
 
 ---
 
 <!-- circle-rollout milestone pointer -->
 > **Active milestone tracking** (local-only, gitignored): see
-> `_sodmin_soland_todos.md` in the parent `arkret/` directory for the
+> `_codmin_coland_todos.md` in the parent `arkret/` directory for the
 > circle-rollout (AKP-0007) work item list and per-stage checkpoints.

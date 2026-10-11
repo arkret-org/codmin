@@ -1,6 +1,6 @@
 # Operator Runbook
 
-This runbook covers operational tasks the sodmin operator drives that have
+This runbook covers operational tasks the codmin operator drives that have
 **non-trivial blast radius**. The single biggest one is flipping a realm
 into the strict-reject accountability posture (the
 `ak.profile.accountable_principals.strict_reject.v1` profile).
@@ -15,9 +15,9 @@ warnings into hard rejects across the entire `accountable_principal_ids` chain. 
 companion narratives are:
 
 - coauth side: [`coauth/docs/en/topics/deployment_hardening.md`](../../coauth/docs/en/topics/deployment_hardening.md)
-- soland side: [`soland/docs/runbook.md` → Strict-reject profile toggle](../../soland/docs/runbook.md#strict-reject-profile-toggle-cxprofileaccountable_principalsstrict_rejectv1)
+- coland side: [`coland/docs/runbook.md` → Strict-reject profile toggle](../../coland/docs/runbook.md#strict-reject-profile-toggle-cxprofileaccountable_principalsstrict_rejectv1)
 
-The sodmin operator is the **canonical actor** of the flip; this runbook is
+The codmin operator is the **canonical actor** of the flip; this runbook is
 the operational checklist for the human at the keyboard.
 
 ### Pre-flip checklist (24 hours before)
@@ -56,11 +56,11 @@ the operational checklist for the human at the keyboard.
 
 The submission produces three artifacts:
 
-- A `ak.realm.profile.update` event in soland.
+- A `ak.realm.profile.update` event in coland.
 - A `profile.accountable_principals.strict_reject.flip` audit row with
   `direction = on`, the operator's actor_id, the justification, and the
   prior/new state digests.
-- An `op:flip` row in sodmin's own action log.
+- An `op:flip` row in codmin's own action log.
 
 ### Watch window (30 min post-flip)
 
@@ -71,7 +71,7 @@ Monitor these dashboards in `/monitoring/strict-reject-flip`:
 | `coauth_accountable_principals_reject_total{profile="strict"}` | Rises from 0, levels off within (stale-baseline + 20%) | Continues climbing after 10 min; alert |
 | `coauth_session_grant_failure_total{reason="agent_paused"|"agent_deactivated"|"accountability_grant_missing"}` | Flat at pre-flip baseline | Spike — indicates a deeper failure that strict-reject is now surfacing |
 | `floria_delivery_profile_total{reason="accountability_reject"}` | Tiny spike, then flat | Sustained climb |
-| `soland_realm_profile_update_total{profile_id="strict_reject"}` | Increments once | Increments more than once — someone else is flipping; abort |
+| `coland_realm_profile_update_total{profile_id="strict_reject"}` | Increments once | Increments more than once — someone else is flipping; abort |
 
 ### Expected admin alerts
 
@@ -90,7 +90,7 @@ These alerts should NOT fire:
 - `coauth-session-grant-collapse` — if total session grants drop >25%
   vs baseline, the flip has cascaded into a user-visible outage.
   **Rollback immediately**.
-- `soland-audit-append-failures` — strict-reject increases audit volume;
+- `coland-audit-append-failures` — strict-reject increases audit volume;
   if this alert fires, the audit table is wedged. **Rollback** and
   triage the audit table separately.
 
@@ -126,7 +126,7 @@ After rollback:
 
 ### Frequently observed misconceptions
 
-- **"Strict-reject is global"** — No, it's realm-scoped. A single sodmin
+- **"Strict-reject is global"** — No, it's realm-scoped. A single codmin
   deployment may simultaneously host realms in strict and lenient
   postures. The flip you perform applies only to the realm you selected.
 - **"The flip is reversible by editing the audit row"** — No. Audit rows

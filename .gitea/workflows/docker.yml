@@ -137,10 +137,10 @@ jobs:
       packages: write
 
     steps:
-      - name: Check out sodmin
+      - name: Check out codmin
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          path: sodmin
+          path: codmin
 
       - name: Check out coauth
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -224,7 +224,7 @@ jobs:
             --pull \
             --secret id=github_token,env=GITHUB_TOKEN \
             "${tag_args[@]}" \
-            -f sodmin/Dockerfile \
+            -f codmin/Dockerfile \
             .
 
       - name: Smoke test ARM64 image
@@ -235,7 +235,7 @@ jobs:
           set -euo pipefail
 
           image="$(printf "%s\n" "$TAGS" | sed '/^$/d' | head -n1)"
-          cid="$(docker run -d --name sodmin-smoke --add-host soland:127.0.0.1 -e SOLAND_URL=http://soland:8008 "$image")"
+          cid="$(docker run -d --name codmin-smoke --add-host coland:127.0.0.1 -e COLAND_URL=http://coland:8008 "$image")"
 
           cleanup() {
             docker rm -f "$cid" >/dev/null 2>&1 || true
@@ -249,7 +249,7 @@ jobs:
           fi
 
           docker exec "$cid" nginx -t
-          docker exec "$cid" wget --spider -q http://127.0.0.1:${SODMIN_PORT:-80}/healthz
+          docker exec "$cid" wget --spider -q http://127.0.0.1:${CODMIN_PORT:-80}/healthz
 
       - name: Push ARM64 image tags
         if: needs.prepare.outputs.push_images == 'true'

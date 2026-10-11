@@ -1,5 +1,5 @@
 {
-  "name": "sodmin",
+  "name": "codmin",
   "version": "0.3.0",
   "description": "Arkret administrator web UI (Playwright e2e harness).",
   "directories": {
@@ -19,16 +19,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arkret-org/sodmin.git"
+    "url": "git+https://github.com/arkret-org/codmin.git"
   },
   "keywords": [],
   "author": "",
   "license": "AGPL-3.0-or-later",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/arkret-org/sodmin/issues"
+    "url": "https://github.com/arkret-org/codmin/issues"
   },
-  "homepage": "https://github.com/arkret-org/sodmin#readme",
+  "homepage": "https://github.com/arkret-org/codmin#readme",
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",
     "@lhci/cli": "^0.15.1",

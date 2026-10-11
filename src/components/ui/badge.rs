@@ -1,6 +1,6 @@
 //! `Badge` — migrated to yoface (`yoface::ui::badge::Badge`).
 //!
-//! This thin **adapter** is kept locally: sodmin's call sites use
+//! This thin **adapter** is kept locally: codmin's call sites use
 //! `BadgeVariant::Default` (yoface renamed it `Primary`) and
 //! `BadgeVariant::Success` (yoface has no equivalent semantic). The adapter
 //! hands the 4 mappable variants over to yoface (rendered with css_module +

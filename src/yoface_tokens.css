@@ -1,5 +1,5 @@
 /* =========================================================================
- * sodmin — yoface token bridge + the Soft Orbit re-skin (overrides the
+ * codmin — yoface token bridge + the Soft Orbit re-skin (overrides the
  * second-layer aliases)
  *
  * Task C4 step 4. Injection order (see main.rs App):
@@ -8,7 +8,7 @@
  *   2) this file            —— rewrites the "second-layer aliases" that the
  *                              yoface components actually reference into Soft
  *                              Orbit coral-orange's full color values
- *   3) src/style.css        —— sodmin's existing utility system (first-layer
+ *   3) src/style.css        —— codmin's existing utility system (first-layer
  *                              names use HSL triples, for use by the
  *                              `hsl(var(--x) / α)` alpha variants)
  *
@@ -16,19 +16,19 @@
  *   - The vast majority of the yoface components' css_module references the
  *     second-layer aliases (--primary-color-N / --secondary-color-N /
  *     --primary-error-color / --focused-border-color / --surface-* /
- *     --text-*). sodmin does **not** have those names, so overriding them
- *     conflicts with sodmin's utility tokens (--primary and other HSL triples)
+ *     --text-*). codmin does **not** have those names, so overriding them
+ *     conflicts with codmin's utility tokens (--primary and other HSL triples)
  *     not at all, and regresses nothing.
  *   - The first-layer shadcn names (--primary/--background/--card/--border/
  *     --muted/--foreground/--destructive/--radius …) are bare HSL triples in
- *     sodmin (for the utility system's `hsl(... / α)` opacity variants), which
+ *     codmin (for the utility system's `hsl(... / α)` opacity variants), which
  *     is incompatible with the "full color value" format yoface expects, so
  *     they **cannot coexist under the same names**. The two systems can only
- *     be unified onto the first layer once sodmin has migrated all its local
+ *     be unified onto the first layer once codmin has migrated all its local
  *     utility components to yoface and retired the utility tokens.
  *
  * Light / dark: yoface uses the `var(--dark, A) var(--light, B)` switch;
- * sodmin has historically used `<html class="dark|light">`. Below, the class is
+ * codmin has historically used `<html class="dark|light">`. Below, the class is
  * bridged to yoface's switch variables, so theme.rs still only toggles the
  * class and needs no changes.
  * ========================================================================= */

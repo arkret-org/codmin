@@ -2,30 +2,30 @@
 //!
 //! Why this exists: per-row destructive mutations on the admin pages
 //! leave a structured breadcrumb in the browser console + any attached
-//! log sink, so an operator can correlate a sodmin click with the
-//! soland-side audit row it produced.
+//! log sink, so an operator can correlate a codmin click with the
+//! coland-side audit row it produced.
 //!
 //! This is a console-only correlation aid ("did the click actually
 //! fire"), never the audit of record. The authoritative row is appended
-//! *server-side* by soland while it handles the admin action itself —
+//! *server-side* by coland while it handles the admin action itself —
 //! see `routing/admin/spec.rs` (`admin_account_state_action` →
 //! `append_audit_log`) and `routing/admin/actors.rs` — stamped with the
 //! authenticated session actor rather than a client-asserted one, and
-//! carrying the target id. sodmin therefore does not, and must not,
-//! post its own copy: `/_soland/self/audit/*` is the *client
+//! carrying the target id. codmin therefore does not, and must not,
+//! post its own copy: `/_coland/self/audit/*` is the *client
 //! self-service* telemetry sink (it binds writes to the posting actor's
 //! own session and has no target field), not an admin audit surface.
 //!
 //! Output format is a single `log::info!` line shaped like:
 //! ```text
-//! sodmin.admin.action target=account id=… action=deactivate outcome=accepted note=…
+//! codmin.admin.action target=account id=… action=deactivate outcome=accepted note=…
 //! ```
 //!
 //! The format is stable so a downstream `dioxus-logger` sink can parse
 //! it without re-deriving the schema.
 
 /// Outcome of an admin click — the toast variant on the page mirrors
-/// this. `Accepted` means the soland HTTP call returned 2xx; `Rejected`
+/// this. `Accepted` means the coland HTTP call returned 2xx; `Rejected`
 /// means it returned a non-2xx.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AdminAuditOutcome {
@@ -61,7 +61,7 @@ pub fn format_admin_audit_line(
         None => String::new(),
     };
     format!(
-        "sodmin.admin.action target={} id={} action={} outcome={}{}",
+        "codmin.admin.action target={} id={} action={} outcome={}{}",
         target,
         id,
         action,
@@ -92,7 +92,7 @@ fn redact_note(note: &str) -> String {
 /// Emit an admin audit trace via `log::info!`. Thin wrapper around
 /// [`format_admin_audit_line`] — the page-side call sites use this so
 /// they never have to format the line themselves. The line only
-/// correlates with the authoritative server-side audit row soland
+/// correlates with the authoritative server-side audit row coland
 /// appended while handling the admin endpoint that was just called.
 pub fn emit_admin_audit(
     target: &str,

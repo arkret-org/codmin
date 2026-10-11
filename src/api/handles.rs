@@ -1,13 +1,13 @@
-//! HTTP client for the soland Handle admin surface (T6.2 §2).
+//! HTTP client for the coland Handle admin surface (T6.2 §2).
 //!
 //! Endpoints:
 //!
-//! - `GET /_soland/admin/handles` — paginated list of `ak.handle.*` cells visible to the current
+//! - `GET /_coland/admin/handles` — paginated list of `ak.handle.*` cells visible to the current
 //!   admin scope.
-//! - `GET /_soland/admin/handles/{id}` — single handle row.
-//! - `GET /_soland/admin/handles/{id}/audit` — handle audit trail from the T3.2 audit table.
-//! - `POST /_soland/admin/handles/{id}/revoke` — update issuer-local lifecycle state.
-//! - `POST /_soland/admin/handles/{id}/reassign` — re-bind the issuer-local name to a stable
+//! - `GET /_coland/admin/handles/{id}` — single handle row.
+//! - `GET /_coland/admin/handles/{id}/audit` — handle audit trail from the T3.2 audit table.
+//! - `POST /_coland/admin/handles/{id}/revoke` — update issuer-local lifecycle state.
+//! - `POST /_coland/admin/handles/{id}/reassign` — re-bind the issuer-local name to a stable
 //!   subject ID.
 
 use crate::api::client::{NO_BODY, api_client, build_url};
@@ -21,7 +21,7 @@ pub async fn list_handles(
     search: &str,
 ) -> Result<ListResponse<AdminHandleRecord>, HttpError> {
     let url = build_url(
-        "/_soland/admin/handles",
+        "/_coland/admin/handles",
         &[
             ("page", &page.to_string()),
             ("per_page", &per_page.to_string()),
@@ -32,17 +32,17 @@ pub async fn list_handles(
 }
 
 pub async fn get_handle(id: &str) -> Result<AdminHandleRecord, HttpError> {
-    let url = format!("/_soland/admin/handles/{}", urlencoding::encode(id));
+    let url = format!("/_coland/admin/handles/{}", urlencoding::encode(id));
     api_client(&url, "GET", NO_BODY).await
 }
 
 pub async fn get_handle_audit(id: &str) -> Result<ListResponse<AdminHandleAuditEvent>, HttpError> {
-    let url = format!("/_soland/admin/handles/{}/audit", urlencoding::encode(id));
+    let url = format!("/_coland/admin/handles/{}/audit", urlencoding::encode(id));
     api_client(&url, "GET", NO_BODY).await
 }
 
 pub async fn revoke_handle(id: &str) -> Result<(), HttpError> {
-    let url = format!("/_soland/admin/handles/{}/revoke", urlencoding::encode(id));
+    let url = format!("/_coland/admin/handles/{}/revoke", urlencoding::encode(id));
     api_client(&url, "POST", NO_BODY).await
 }
 
@@ -54,7 +54,7 @@ pub async fn reassign_handle(
         return Err(HttpError::message(error_key));
     }
     let url = format!(
-        "/_soland/admin/handles/{}/reassign",
+        "/_coland/admin/handles/{}/reassign",
         urlencoding::encode(id)
     );
     api_client(&url, "POST", Some(req)).await

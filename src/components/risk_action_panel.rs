@@ -453,7 +453,7 @@ fn build_risk_action_approval_draft(
         ticket: proposal.ticket.clone(),
         approved_by: None,
         approval_note: Some(format!(
-            "sodmin approval for proposal {} action {}",
+            "codmin approval for proposal {} action {}",
             proposal.proposal_id, proposal.action
         )),
         approval_proof_jws: String::new(),
@@ -462,7 +462,7 @@ fn build_risk_action_approval_draft(
 
 fn risk_action_approval_signing_available() -> bool {
     // coauth requires a detached Ed25519 JWS over the approval transcript.
-    // sodmin currently authenticates with a bearer token and does not possess
+    // codmin currently authenticates with a bearer token and does not possess
     // the admin DID private key, so the UI must not submit unverifiable
     // approvals.
     false
@@ -475,7 +475,7 @@ fn build_risk_action_execute_draft(
         action: approval.action.clone(),
         ticket: approval.ticket.clone(),
         execution_note: Some(format!(
-            "sodmin execute proposal {} action {}",
+            "codmin execute proposal {} action {}",
             approval.proposal_id, approval.action
         )),
     }

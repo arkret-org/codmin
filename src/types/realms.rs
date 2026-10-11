@@ -1,13 +1,13 @@
 //! Realm admin surface — contract-authoritative types plus thin display
 //! helpers.
 //!
-//! The row is the shared `soland_contracts::admin::AdminRealmItem`; sodmin
+//! The row is the shared `coland_contracts::admin::AdminRealmItem`; codmin
 //! keeps no wire mirror. The object carrying encryption / join-rule /
 //! history-access / realm-class boundary fields is a Realm. Space
 //! containers are represented separately by [`crate::types::spaces::AdminSpaceRow`].
 
+pub use coland_contracts::admin::{AdminRealmItem, RealmClass};
 use serde::Serialize;
-pub use soland_contracts::admin::{AdminRealmItem, RealmClass};
 
 /// Display helpers for the shared [`AdminRealmItem`].
 pub trait AdminRealmItemExt {

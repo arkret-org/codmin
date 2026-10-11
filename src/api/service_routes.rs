@@ -1,4 +1,4 @@
-//! Read-only Soland service-route operations client.
+//! Read-only Coland service-route operations client.
 
 use crate::api::client::{NO_BODY, api_client};
 use crate::types::{AdminServiceRouteDetail, AdminServiceRouteList};
@@ -8,7 +8,7 @@ pub async fn list_service_routes(
     cursor: Option<&str>,
     limit: usize,
 ) -> Result<AdminServiceRouteList, HttpError> {
-    let mut url = format!("/_soland/admin/service-routes?limit={limit}");
+    let mut url = format!("/_coland/admin/service-routes?limit={limit}");
     if let Some(cursor) = cursor {
         url.push_str("&cursor=");
         url.push_str(&urlencoding::encode(cursor));
@@ -21,7 +21,7 @@ pub async fn get_service_route(
     service_kind: &str,
 ) -> Result<AdminServiceRouteDetail, HttpError> {
     let url = format!(
-        "/_soland/admin/service-routes/{}/{}",
+        "/_coland/admin/service-routes/{}/{}",
         urlencoding::encode(service_id),
         urlencoding::encode(service_kind)
     );

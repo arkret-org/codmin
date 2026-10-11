@@ -1,11 +1,11 @@
 //! Capability admin API — D14 production endpoint.
 //!
-//! `GET /_soland/admin/capabilities` is the typed cursor-paginated
+//! `GET /_coland/admin/capabilities` is the typed cursor-paginated
 //! production query (shared `AdminCapabilityList` contract). Revoked tombstones are
 //! included by default (`filter[state]=all` server default) so operators
 //! see the full grant ledger.
 
-use soland_contracts::admin::AdminCapabilityList;
+use coland_contracts::admin::AdminCapabilityList;
 
 use crate::api::client::{NO_BODY, api_client, build_url};
 use crate::utils::net::error::HttpError;
@@ -19,6 +19,6 @@ pub async fn list_capabilities(
     if let Some(cursor) = cursor.filter(|cursor| !cursor.is_empty()) {
         params.push(("cursor", cursor));
     }
-    let url = build_url("/_soland/admin/capabilities", &params)?;
+    let url = build_url("/_coland/admin/capabilities", &params)?;
     api_client(&url, "GET", NO_BODY).await
 }
