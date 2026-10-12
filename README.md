@@ -123,13 +123,18 @@ dx build --platform web --release
 
 ## Container
 
+Images are published to `ghcr.io/arkret-org/codmin` for Linux amd64 and arm64.
+Main branch builds publish `latest`, `main`, and `sha-<commit>`; `v*` tags publish
+version tags (stable versions also update `latest`). Pull requests build and scan
+both architectures without publishing.
+
 ```bash
-docker build -t codmin .
+docker pull ghcr.io/arkret-org/codmin:latest
 docker run -p 9090:80 \
   -e COLAND_URL=http://coland:8008 \
   -e COAUTH_URL=http://coauth:7080 \
   -e COAUTH_PUBLIC_URL=https://auth.example.com \
-  codmin
+  ghcr.io/arkret-org/codmin:latest
 ```
 
 ## Deployment
