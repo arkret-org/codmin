@@ -74,6 +74,9 @@ RUN --network=default \
 
 FROM nginx:alpine
 
+# Apply available security fixes to packages inherited from the base image.
+RUN apk upgrade --no-cache
+
 COPY --from=builder /workspace/dist /usr/share/nginx/html
 COPY --chmod=755 codmin/docker-entrypoint.sh /docker-entrypoint.sh
 RUN mkdir -p /runtime && \
