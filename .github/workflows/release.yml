@@ -97,6 +97,7 @@ jobs:
           test -f "$dist_dir/index.html"
           echo "dir=$dist_dir" >> "$GITHUB_OUTPUT"
           ref_name="${GITHUB_REF_NAME:-local}"
+          ref_name="${ref_name//[^a-zA-Z0-9._-]/-}"
           archive="codmin-${ref_name}-web-public.tar.gz"
           tar -czf "$archive" -C "$dist_dir" .
           echo "archive=codmin/$archive" >> "$GITHUB_OUTPUT"
