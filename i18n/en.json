@@ -60,7 +60,7 @@
   "authz_caps.holder": "Holder DID",
   "authz_caps.scope": "Scope",
   "authz_caps.status": "Status",
-  "authz_caps.subtitle": "coland authz capability grants visible to the current admin scope. Filter by holder / peer / scope; revoke to publish a ak.capability.revoke Event.",
+  "authz_caps.subtitle": "Read-only review of this Station's accepted grant records. Requires Station operator access; lifecycle state does not assert effective permission.",
   "authz_caps.title": "Authz capability grants",
   "capabilities.active": "Active",
   "capabilities.capability": "Capability",
@@ -72,7 +72,7 @@
   "capabilities.no_capabilities": "No capabilities found",
   "capabilities.revoked": "Revoked",
   "capabilities.scope": "Scope",
-  "capabilities.subtitle": "Capability grants and revocations",
+  "capabilities.subtitle": "Read-only review of this Station's accepted grant records. Requires Station operator access; lifecycle state does not assert effective permission.",
   "capabilities.title": "Capabilities",
   "claims_panel.already_revoked": "already revoked",
   "claims_panel.empty": "No claim material is exposed by the current coauth account admin contract.",
@@ -884,5 +884,11 @@
   "spaces.parent_label": "Parent",
   "spaces.search_current_page_hint": "Search filters only the currently loaded server page.",
   "spaces.search_placeholder": "Search by Space id or name",
-  "spaces.this_label": "This"
+  "spaces.this_label": "This",
+  "capabilities.filter_realm": "Realm ID (optional)",
+  "capabilities.filter_actor": "Complete subject ActorId JSON (optional)",
+  "capabilities.filter_all": "All records",
+  "capabilities.apply_filters": "Apply filters",
+  "capabilities.revision": "Accepted revision",
+  "capabilities.relinquished": "Relinquished"
 }

@@ -60,7 +60,7 @@
   "authz_caps.holder": "Holder DID",
   "authz_caps.scope": "Scope",
   "authz_caps.status": "状态",
-  "authz_caps.subtitle": "当前管理员作用域可见的 coland authz 权限授予。可按 holder / peer / scope 过滤；撤销将发布 ak.capability.revoke Event。",
+  "authz_caps.subtitle": "只读审查本站已接受的授权记录，需要 Station 运营权限。记录生命周期状态不表示当前有效权限。",
   "authz_caps.title": "Authz 权限授予",
   "capabilities.active": "生效中",
   "capabilities.capability": "Capability",
@@ -72,7 +72,7 @@
   "capabilities.no_capabilities": "未找到任何 capability",
   "capabilities.revoked": "已吊销",
   "capabilities.scope": "Scope",
-  "capabilities.subtitle": "Capability 的授予与吊销",
+  "capabilities.subtitle": "只读审查本站已接受的授权记录，需要 Station 运营权限。记录生命周期状态不表示当前有效权限。",
   "capabilities.title": "Capabilities",
   "claims_panel.already_revoked": "已吊销",
   "claims_panel.empty": "当前 coauth 账户管理契约未暴露任何 claim 材料。",
@@ -884,5 +884,11 @@
   "spaces.parent_label": "父级",
   "spaces.search_current_page_hint": "搜索只筛选服务端当前已加载页。",
   "spaces.search_placeholder": "按 Space ID 或名称搜索",
-  "spaces.this_label": "本"
+  "spaces.this_label": "本",
+  "capabilities.filter_realm": "Realm ID（可选）",
+  "capabilities.filter_actor": "完整主体 ActorId JSON（可选）",
+  "capabilities.filter_all": "所有记录",
+  "capabilities.apply_filters": "应用筛选",
+  "capabilities.revision": "已接受 revision",
+  "capabilities.relinquished": "已放弃"
 }

@@ -1,58 +1,35 @@
-//! Capability grant admin surface — contract-authoritative types plus thin
-//! display helpers.
-//!
-//! The row is the shared `coland_contracts::admin::CapabilitySummary` (D14
-//! production projection of the authz read-index grant). codmin adds no
-//! wire mirror; display-only conveniences live in [`CapabilitySummaryExt`].
+//! Display-only helpers for SDK-owned accepted grant current rows.
 
 pub use coland_contracts::admin::CapabilitySummary;
 
-/// Display helpers for the shared [`CapabilitySummary`].
 pub trait CapabilitySummaryExt {
     fn actions_display(&self) -> String;
     fn resource_display(&self) -> String;
+    fn issuer_display(&self) -> String;
+    fn subject_display(&self) -> String;
+    fn expiry_display(&self) -> String;
 }
 
 impl CapabilitySummaryExt for CapabilitySummary {
     fn actions_display(&self) -> String {
-        if self.actions.is_empty() {
-            "-".to_string()
-        } else {
-            self.actions.join(", ")
-        }
+        self.value.actions.join(", ")
     }
-
     fn resource_display(&self) -> String {
-        self.resource.clone().unwrap_or_else(|| "-".to_string())
+        arkret_canonical::canonical_json_string(&self.value.resources)
+            .unwrap_or_else(|_| "unavailable".to_owned())
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use arkret_wire::CapabilityActionId;
-
-    use super::{CapabilitySummary, CapabilitySummaryExt};
-
-    #[test]
-    fn summary_parses_production_wire_shape() {
-        let summary: CapabilitySummary = serde_json::from_value(serde_json::json!({
-            "grant_id": "ak:grant:AbhvODyrIRCskAIoS9IXLjMfD-Zsr8lwDpiCU_zLR4it",
-            "realm_id": "ak:realm:Adzr6hWdpvvoBoHZ2PftHKATea_QnznMIDwV5k6POjOi",
-            "issuer_id": "ak:did_core:web:issuer.example",
-            "subject_id": "ak:did_core:web:subject.example",
-            "resource": "realm",
-            "actions": [CapabilityActionId::MESSAGE_CREATE],
-            "revoked": false,
-            "created_at": "2026-06-07T00:00:00.000Z"
-        }))
-        .expect("production-shaped grant summary should deserialize");
-
-        assert_eq!(summary.issuer_id.as_str(), "ak:did_core:web:issuer.example");
-        assert_eq!(
-            summary.actions_display(),
-            CapabilityActionId::MESSAGE_CREATE
-        );
-        assert_eq!(summary.resource_display(), "realm");
-        assert!(!summary.revoked);
+    fn issuer_display(&self) -> String {
+        arkret_canonical::canonical_json_string(&self.value.issuer_id)
+            .unwrap_or_else(|_| "unavailable".to_owned())
+    }
+    fn subject_display(&self) -> String {
+        arkret_canonical::canonical_json_string(&self.value.subject)
+            .unwrap_or_else(|_| "unavailable".to_owned())
+    }
+    fn expiry_display(&self) -> String {
+        self.value.constraints.iter()
+            .filter(|constraint| constraint.constraint_kind == arkret_models_collaboration::governance::grant_constraint::GrantConstraintKind::Temporal)
+            .filter_map(|constraint| constraint.expires_at).min()
+            .map(|at| at.to_rfc3339()).unwrap_or_else(|| "-".to_owned())
     }
 }
