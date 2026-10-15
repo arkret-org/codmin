@@ -57,7 +57,9 @@ impl std::fmt::Display for ConfigLoadError {
 }
 
 pub async fn load_runtime_config() -> Result<RuntimeConfig, ConfigLoadError> {
+    let deadline = super::deadline::RequestDeadline::new(5_000).map_err(ConfigLoadError::Fetch)?;
     let response = gloo_net::http::Request::get("/config.json")
+        .abort_signal(Some(&deadline.signal()))
         .send()
         .await
         .map_err(|e| ConfigLoadError::Fetch(e.to_string()))?;

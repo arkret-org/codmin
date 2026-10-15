@@ -1,5 +1,6 @@
 pub mod audit;
 pub mod config;
+pub(crate) mod deadline;
 pub mod error;
 pub mod perf;
 pub mod session;

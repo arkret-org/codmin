@@ -186,7 +186,9 @@ async fn read_text_response(response: gloo_net::http::Response) -> Result<TextRe
 }
 
 async fn send_form_post(url: &str, body: &str) -> Result<TextResponse, HttpError> {
+    let deadline = crate::utils::net::deadline::RequestDeadline::new(15_000).map_err(make_err)?;
     let builder = Request::post(url)
+        .abort_signal(Some(&deadline.signal()))
         .header("Content-Type", "application/x-www-form-urlencoded")
         .header("Accept", "application/json")
         // S5: every OAuth call must carry the httpOnly cookie so the
@@ -451,17 +453,24 @@ fn refresh_in_flight() -> bool {
     REFRESH_IN_FLIGHT.with(|flag| flag.get())
 }
 
-async fn wait_for_refresh() {
+async fn wait_for_refresh() -> bool {
+    let deadline = js_sys::Date::now() + 20_000.0;
     while refresh_in_flight() {
+        if js_sys::Date::now() >= deadline {
+            return false;
+        }
         TimeoutFuture::new(25).await;
     }
+    true
 }
 
 async fn refresh_oauth_token_singleflight() -> bool {
     if let Some(_guard) = RefreshFlightGuard::acquire() {
         return refresh_oauth_token().await;
     }
-    wait_for_refresh().await;
+    if !wait_for_refresh().await {
+        return false;
+    }
     is_authenticated() && !token_expires_soon()
 }
 
@@ -558,7 +567,9 @@ pub async fn refresh_if_expiring_soon() {
 }
 
 async fn send_credentialed_empty_post(path: &str) -> Result<TextResponse, HttpError> {
+    let deadline = crate::utils::net::deadline::RequestDeadline::new(15_000).map_err(make_err)?;
     let response = Request::post(path)
+        .abort_signal(Some(&deadline.signal()))
         .header("Accept", "application/json")
         .credentials(RequestCredentials::Include)
         .send()
