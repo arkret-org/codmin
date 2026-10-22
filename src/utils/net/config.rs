@@ -1,4 +1,10 @@
-/// Shape of `/config.json` served by the deployment. Only the coauth
+pub const DEFAULT_OAUTH_CLIENT_ID: &str = "01GFWR28C4KNE04WG3HKXB7C9R";
+
+fn default_oauth_client_id() -> String {
+    DEFAULT_OAUTH_CLIENT_ID.into()
+}
+
+/// Shape of `/config.json` served by the deployment. The coauth
 /// public URL is currently consumed; `pages::login` writes it into
 /// storage on app boot so `utils::net::session::coauth_public_url` can read
 /// it back from any layer.
@@ -7,6 +13,9 @@
 pub struct RuntimeConfig {
     #[serde(default)]
     pub coauth_public_url: String,
+    /// Public OAuth client registered at Coauth (a ULID, never a client name).
+    #[serde(default = "default_oauth_client_id")]
+    pub oauth_client_id: String,
     /// Optional opt-in browser-error telemetry endpoint. When set
     /// AND the operator has flipped `codmin_telemetry_opt_in` in
     /// localStorage, `utils::net::telemetry::report_http_error` posts
@@ -18,6 +27,19 @@ pub struct RuntimeConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn oauth_client_id_defaults_and_overrides_match_coauth_ulids() {
+        let cfg: RuntimeConfig = serde_json::from_value(serde_json::json!({})).unwrap();
+        assert_eq!(cfg.oauth_client_id, DEFAULT_OAUTH_CLIENT_ID);
+        assert!(valid_oauth_client_id(&cfg.oauth_client_id));
+        assert!(!valid_oauth_client_id("codmin"));
+        assert!(!valid_oauth_client_id("ZZZZZZZZZZZZZZZZZZZZZZZZZZ"));
+        let configured = "01KMQE9VZQ33VQT9GP1WA4265X";
+        let cfg: RuntimeConfig =
+            serde_json::from_value(serde_json::json!({"oauth_client_id": configured})).unwrap();
+        assert_eq!(cfg.oauth_client_id, configured);
+    }
 
     #[test]
     fn runtime_config_rejects_misspelled_security_relevant_keys() {
@@ -42,11 +64,15 @@ pub enum ConfigLoadError {
     Parse(String),
     /// The required `coauth_public_url` field was absent or empty.
     MissingCoauthUrl,
+    InvalidOAuthClientId,
 }
 
 impl std::fmt::Display for ConfigLoadError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::InvalidOAuthClientId => {
+                f.write_str("/config.json oauth_client_id must be a ULID")
+            }
             Self::Fetch(msg) => write!(f, "Failed to fetch /config.json: {msg}"),
             Self::Parse(msg) => write!(f, "Failed to parse /config.json: {msg}"),
             Self::MissingCoauthUrl => {
@@ -80,5 +106,17 @@ pub async fn load_runtime_config() -> Result<RuntimeConfig, ConfigLoadError> {
         return Err(ConfigLoadError::MissingCoauthUrl);
     }
 
+    if !valid_oauth_client_id(&cfg.oauth_client_id) {
+        return Err(ConfigLoadError::InvalidOAuthClientId);
+    }
+
     Ok(cfg)
+}
+
+fn valid_oauth_client_id(value: &str) -> bool {
+    value.len() == 26
+        && value.as_bytes()[0] <= b'7'
+        && value
+            .bytes()
+            .all(|b| b"0123456789ABCDEFGHJKMNPQRSTVWXYZ".contains(&b))
 }

@@ -16,6 +16,7 @@ pub fn LoginPage(logout_warning: Option<String>) -> Element {
         spawn(async move {
             match crate::utils::net::config::load_runtime_config().await {
                 Ok(cfg) => {
+                    crate::utils::storage::set_item("oauth_client_id", &cfg.oauth_client_id);
                     crate::utils::storage::set_item("coauth_public_url", &cfg.coauth_public_url);
                     // Propagate the optional telemetry endpoint
                     // into localStorage so `utils::net::telemetry` can pick
