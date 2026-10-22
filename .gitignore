@@ -1,5 +1,6 @@
 /target
 /target-*/
+/artifacts/
 /dist
 **/dist/
 *.swp
