@@ -15,9 +15,15 @@ the Gitea workflow.
 | `COAUTH_URL` | recommended | Internal URL for coauth admin/auth endpoints. Enables `/auth/`, `/_arkret/gate/`, the coauth `/_coauth/admin/*` resource roots, `/authorize`, `/oauth/`, and `/.well-known/` proxy locations. |
 | `COAUTH_PUBLIC_URL` | recommended | Browser-facing coauth origin written to `/config.json` for OAuth2 PKCE redirects. |
 | `CODMIN_PORT` | no | nginx listen port. Defaults to `80`. |
+| `CODMIN_OAUTH_CLIENT_ID` | no | Coauth's registered public client ID (ULID). Written as `oauth_client_id` in `/config.json`. Defaults to `01GFWR28C4KNE04WG3HKXB7C9R`. Register that same ID with the exact Codmin origin's `/oauth/callback` redirect URI. |
 | `CODMIN_TELEMETRY_ENDPOINT` | no | Opt-in browser-error telemetry sink. When set, `/config.json` exposes the URL and `utils::telemetry` POSTs structured (no-PII) error events. Operator must also flip `localStorage.codmin_telemetry_opt_in=1`. |
 
 ## Port / Path Routing Table
+
+Custom static hosts must serve the matching `oauth_client_id` in `/config.json`.
+Coauth uses ULID client IDs; the former hard-coded client name `codmin` is not a
+valid client ID. Authorization, code exchange, refresh and revoke all use the
+configured value. The client ID is public configuration, never a client secret.
 
 The codmin container is a single nginx instance serving a Dioxus/WASM SPA
 plus reverse-proxy locations for upstream services. Operators

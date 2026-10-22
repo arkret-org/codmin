@@ -6,6 +6,7 @@ COAUTH_URL="${COAUTH_URL:-}"
 COAUTH_PUBLIC_URL="${COAUTH_PUBLIC_URL:-}"
 CODMIN_TELEMETRY_ENDPOINT="${CODMIN_TELEMETRY_ENDPOINT:-}"
 CODMIN_PORT="${CODMIN_PORT:-80}"
+CODMIN_OAUTH_CLIENT_ID="${CODMIN_OAUTH_CLIENT_ID:-01GFWR28C4KNE04WG3HKXB7C9R}"
 CODMIN_UPSTREAM_CA_FILE="${CODMIN_UPSTREAM_CA_FILE:-/etc/ssl/certs/ca-certificates.crt}"
 
 RESOLVERS="$(awk '/^nameserver / { print $2 }' /etc/resolv.conf | paste -sd ' ' -)"
@@ -96,9 +97,10 @@ json_escape() {
     # Escape backslash first, then double-quote.
     printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
 }
-printf '{"coauth_public_url":"%s","telemetry_endpoint":"%s"}' \
+printf '{"coauth_public_url":"%s","telemetry_endpoint":"%s","oauth_client_id":"%s"}' \
     "$(json_escape "$COAUTH_PUBLIC_URL")" \
     "$(json_escape "$CODMIN_TELEMETRY_ENDPOINT")" \
+    "$(json_escape "$CODMIN_OAUTH_CLIENT_ID")" \
     > /runtime/config.json
 
 cat > /etc/nginx/conf.d/default.conf <<EOF

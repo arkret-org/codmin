@@ -37,7 +37,9 @@ use crate::utils::net::error::HttpError;
 use crate::utils::security::crypto::{base64url_encode, random_token};
 use crate::utils::storage;
 
-const OAUTH_CLIENT_ID: &str = "codmin";
+fn oauth_client_id() -> String {
+    urlencoding::encode(&crate::utils::net::session::oauth_client_id()).into_owned()
+}
 const COAUTH_ADMIN_SCOPE: &str = "urn:coauth:admin";
 const ARKRET_ADMIN_SCOPE: &str = "urn:arkret:admin:*";
 const PKCE_VERIFIER_KEY: &str = "pkce_code_verifier";
@@ -237,6 +239,7 @@ async fn compute_code_challenge(verifier: &str) -> Result<String, HttpError> {
 }
 
 pub async fn start_oauth_login() -> Result<(), HttpError> {
+    let oauth_client_id = oauth_client_id();
     let verifier = generate_code_verifier();
     let challenge = compute_code_challenge(&verifier).await?;
     let state = generate_code_verifier();
@@ -267,7 +270,7 @@ pub async fn start_oauth_login() -> Result<(), HttpError> {
 
     let auth_url = format!(
         "{coauth_base}/authorize?response_type=code\
-         &client_id={OAUTH_CLIENT_ID}\
+         &client_id={oauth_client_id}\
          &redirect_uri={}\
          &code_challenge={challenge}\
          &code_challenge_method=S256\
@@ -289,6 +292,7 @@ pub async fn start_oauth_login() -> Result<(), HttpError> {
 }
 
 pub async fn handle_oauth_callback(code: &str, state: Option<&str>) -> Result<(), HttpError> {
+    let oauth_client_id = oauth_client_id();
     let session = session_storage()?;
     let verifier = session
         .get_item(PKCE_VERIFIER_KEY)
@@ -321,7 +325,7 @@ pub async fn handle_oauth_callback(code: &str, state: Option<&str>) -> Result<()
         "grant_type=authorization_code\
          &code={}\
          &redirect_uri={}\
-         &client_id={OAUTH_CLIENT_ID}\
+         &client_id={oauth_client_id}\
          &code_verifier={}",
         urlencoding::encode(code),
         urlencoding::encode(&redirect_uri),
@@ -475,11 +479,12 @@ async fn refresh_oauth_token_singleflight() -> bool {
 }
 
 pub async fn refresh_oauth_token() -> bool {
+    let oauth_client_id = oauth_client_id();
     // S5: the refresh token is in the httpOnly cookie. Just hit
     // /oauth/token (refresh) with credentials: "include" — coauth pulls the
     // refresh token from the cookie, mints a new pair, and ships back
     // a new cookie. The JSON body carries no secrets.
-    let form_body = format!("grant_type=refresh_token&client_id={OAUTH_CLIENT_ID}");
+    let form_body = format!("grant_type=refresh_token&client_id={oauth_client_id}");
 
     let response = match send_oauth_form_request("/oauth/token", &form_body).await {
         Ok(r) => r,
@@ -636,6 +641,7 @@ fn classify_cookie_logout(response: Result<TextResponse, HttpError>) -> LogoutSt
 }
 
 pub async fn logout() -> LogoutReport {
+    let oauth_client_id = oauth_client_id();
     // The protocol hard-logout is authoritative for the account grant and
     // Principal-side device session. It runs before the standalone OAuth
     // revoke so token invalidation cannot prevent Principal-side cleanup.
@@ -645,7 +651,7 @@ pub async fn logout() -> LogoutReport {
 
     // OAuth revocation remains a separate result. RFC 7009 success is conveyed
     // by a 2xx response, including the already-revoked/unknown-token case.
-    let body = format!("client_id={OAUTH_CLIENT_ID}");
+    let body = format!("client_id={oauth_client_id}");
     let oauth_revoke = classify_oauth_revoke(send_oauth_form_request("/oauth/revoke", &body).await);
 
     // coauth owns the HttpOnly browser-session cookie. Always attempt this

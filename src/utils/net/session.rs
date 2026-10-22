@@ -65,3 +65,10 @@ pub fn has_coauth() -> bool {
 // gating here. The sidebar derives its visibility from the deployment
 // facts above (`has_coauth()`); server-side RBAC is the only
 // authorization authority (DEPLOYMENT.md).
+
+/// OAuth client ID is public deployment configuration, not a credential.
+pub fn oauth_client_id() -> String {
+    storage::get_item("oauth_client_id")
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| super::config::DEFAULT_OAUTH_CLIENT_ID.into())
+}
