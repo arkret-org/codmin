@@ -77,12 +77,11 @@ pub(crate) fn verify_page(
         if let Some(key) = key
             .strip_prefix("filter[")
             .and_then(|key| key.strip_suffix(']'))
+            && page.filters.get(key) != Some(&value)
         {
-            if page.filters.get(key) != Some(&value) {
-                return Err(format!(
-                    "Station did not confirm the requested {key} filter"
-                ));
-            }
+            return Err(format!(
+                "Station did not confirm the requested {key} filter"
+            ));
         }
     }
     if page.has_more
@@ -125,11 +124,10 @@ pub(crate) fn verify_page(
                 return Err("Station returned a grant outside the requested lifecycle".to_owned());
             }
         }
-        if let Some(actor) = &filters.subject_actor_id {
-            if !matches!(&row.value.subject, arkret_models_collaboration::governance::grant_constraint::CapabilitySubject::Actor(subject) if subject==actor)
-            {
-                return Err("Station returned a grant for another complete Actor".to_owned());
-            }
+        if let Some(actor) = &filters.subject_actor_id
+            && !matches!(&row.value.subject, arkret_models_collaboration::governance::grant_constraint::CapabilitySubject::Actor(subject) if subject==actor)
+        {
+            return Err("Station returned a grant for another complete Actor".to_owned());
         }
     }
     Ok(())

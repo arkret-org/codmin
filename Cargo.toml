@@ -138,3 +138,8 @@ wasm-bindgen-test = "0.3"
 
 [lints]
 workspace = true
+
+# dx 0.7.10 misses Cargo's implicit release debuginfo stripping. Keep the
+# standard behavior explicit before passing the module to wasm-opt.
+[profile.release]
+strip = "debuginfo"

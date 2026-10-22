@@ -6,6 +6,14 @@
 !coauth/**
 !coland
 !coland/**
+!floria
+!floria/**
+!garth
+!garth/**
+!bridges
+!bridges/**
+!arkret-spec
+!arkret-spec/**
 !codmin
 !codmin/**
 **/target

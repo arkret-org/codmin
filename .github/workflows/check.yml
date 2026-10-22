@@ -58,6 +58,12 @@ jobs:
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
+      - name: Complete Coland build dependency layout
+        working-directory: coland
+        env:
+          CI_REPO_TOKEN: ${{ secrets.CI_REPO_TOKEN || github.token }}
+        run: bash .ci/checkout-build-dependencies.sh
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
         with:
@@ -122,6 +128,12 @@ jobs:
           path: coland
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
+
+      - name: Complete Coland build dependency layout
+        working-directory: coland
+        env:
+          CI_REPO_TOKEN: ${{ secrets.CI_REPO_TOKEN || github.token }}
+        run: bash .ci/checkout-build-dependencies.sh
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master

@@ -1,4 +1,5 @@
 # codmin Dockerfile.
+# Build from the repository parent with --build-context savfox=../savfox-ai/savfox.
 #
 # Build context: the arkret umbrella directory (parent of codmin).
 # The Cargo workspace at codmin/Cargo.toml has path-deps on sibling
@@ -43,10 +44,15 @@ WORKDIR /workspace
 
 # Copy the sibling path-deps FIRST so cargo fetch / dx build can resolve
 # the workspace `path = "../<sibling>/..."` entries. Order matches the
-# umbrella layout: arkret/{arkret-rust-sdk,coauth,coland,codmin}/.
+# umbrella layout, including Coland's indirect build dependencies.
 COPY arkret-rust-sdk/ /workspace/arkret-rust-sdk
 COPY coauth/ /workspace/coauth
 COPY coland/ /workspace/coland
+COPY floria/ /workspace/floria
+COPY garth/ /workspace/garth
+COPY bridges/ /workspace/bridges
+COPY arkret-spec/ /workspace/arkret-spec
+COPY --from=savfox . /savfox-ai/savfox
 COPY codmin/ /workspace/codmin
 
 WORKDIR /workspace/codmin
