@@ -1,9 +1,10 @@
-name: Local bundle
+name: Release web bundle
 
 on:
   push:
     branches:
       - main
+    tags: ["v*"]
   pull_request:
     branches:
       - main
@@ -38,14 +39,13 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           path: codmin
-          submodules: recursive
 
       - name: Check out arkret-rust-sdk
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           repository: ${{ github.repository_owner }}/arkret-rust-sdk
           path: arkret-rust-sdk
-          ref: main
+          ref: db0f5b44dec117b6b316690650efd0adb3a0f990
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out coauth
@@ -53,7 +53,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coauth
           path: coauth
-          ref: main
+          ref: 4d6fd3937056e1ad17ce6ec4b7584f540ea6b19c
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out coland
@@ -61,14 +61,48 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coland
           path: coland
-          ref: main
+          ref: 4470e9ecc68df7b2be2340fb0304bb3e771e0e79
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
-      - name: Complete Coland build dependency layout
-        working-directory: coland
-        env:
-          CI_REPO_TOKEN: ${{ secrets.CI_REPO_TOKEN || github.token }}
-        run: bash .ci/checkout-build-dependencies.sh
+      - name: Checkout floria
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/floria
+          path: floria
+          ref: 9d9ee6e5ebfef35bae56d9d79a8a23157486bccb
+          token: ${{ secrets.CI_REPO_TOKEN || github.token }}
+
+      - name: Checkout garth
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/garth
+          path: garth
+          ref: 8cfc6775b84528ff75c1ce37e6f879bfb1bfaf33
+          token: ${{ secrets.CI_REPO_TOKEN || github.token }}
+
+      - name: Checkout bridges
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/bridges
+          path: bridges
+          ref: c3f9d8e51eddf63690fa083a493125dafdc86dae
+          token: ${{ secrets.CI_REPO_TOKEN || github.token }}
+
+      - name: Checkout arkret-spec
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ github.repository_owner }}/arkret-spec
+          path: arkret-spec
+          ref: 8ae6fd0f14c630310a524e38b950b191918295e3
+          token: ${{ secrets.CI_REPO_TOKEN || github.token }}
+
+      - name: Checkout savfox
+        uses: actions/checkout@v6
+        with:
+          repository: savfox-ai/savfox
+          path: savfox-ai/savfox
+          ref: 30718f036341f22acb7cca1e35accee069a5d74a
+          token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
@@ -91,7 +125,11 @@ jobs:
         run: cargo install dioxus-cli@0.7.10 --locked
 
       - name: dx build --release
-        run: dx build --release
+        run: dx build --release --locked
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
 
       - name: Locate build artifact
         id: artifact
@@ -165,3 +203,37 @@ jobs:
             codmin/codmin-rust.cdx.json
             codmin/codmin-npm.cdx.json
             codmin/cosign-evidence/
+
+      - name: Package universal web release
+        run: python .ci/package-release.py --target web --dx web --app codmin
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-web
+          path: codmin/release-assets/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release-assets
+      - name: Verify release checksums
+        working-directory: release-assets
+        run: sha256sum --check ./*.sha256
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          fail_on_unmatched_files: true
+          files: release-assets/*
