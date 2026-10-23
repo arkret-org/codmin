@@ -131,25 +131,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Locate build artifact
+      - name: Package the release artifact
         id: artifact
         run: |
           set -euo pipefail
-          target_dir=$(cargo metadata --format-version 1 --no-deps | python -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')
-          dist_dir="$(find "$target_dir/dx" -type d -path '*/release/web/public' | head -n 1)"
-          test -n "$dist_dir"
-          test -f "$dist_dir/index.html"
-          echo "dir=$dist_dir" >> "$GITHUB_OUTPUT"
-          ref_name="${GITHUB_REF_NAME:-local}"
-          ref_name="${ref_name//[^a-zA-Z0-9._-]/-}"
-          archive="codmin-${ref_name}-web-public.tar.gz"
-          tar -czf "$archive" -C "$dist_dir" .
-          echo "archive=codmin/$archive" >> "$GITHUB_OUTPUT"
-
-      - name: Compute sha256
-        run: |
-          set -euo pipefail
-          sha256sum "../${{ steps.artifact.outputs.archive }}" > "../${{ steps.artifact.outputs.archive }}.sha256"
+          archive=$(python .ci/package-release.py --target web --dx web --app codmin)
+          echo "archive=codmin/release-assets/$(basename "$archive")" >> "$GITHUB_OUTPUT"
 
       - name: Install CycloneDX generator
         run: cargo install cargo-cyclonedx@0.5.9 --locked
@@ -204,8 +191,10 @@ jobs:
             codmin/codmin-npm.cdx.json
             codmin/cosign-evidence/
 
-      - name: Package universal web release
-        run: python .ci/package-release.py --target web --dx web --app codmin
+      - name: Stage release SBOMs
+        run: |
+          cp codmin-rust.cdx.json codmin-npm.cdx.json release-assets/
+          (cd release-assets && sha256sum codmin-*.cdx.json > SBOM.sha256)
 
       - name: Upload release assets
         uses: actions/upload-artifact@v4
