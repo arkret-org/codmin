@@ -15,7 +15,7 @@ use crate::components::ui::card::*;
 use crate::components::ui::error_banner::ErrorBanner;
 use crate::components::ui::loading::PageSkeleton;
 use crate::components::ui::page_header::PageHeader;
-use crate::types::{RealmLinkDirection, RealmLinkEntry, RealmLinkKind, RealmLinkList};
+use crate::types::{RealmLinkDirection, RealmLinkKind, RealmLinkList, RealmLinkView};
 use crate::utils::fmt::date::format_iso_datetime;
 use crate::utils::i18n::t;
 
@@ -151,7 +151,7 @@ where
     }
 }
 
-fn render_link_row(row: &RealmLinkEntry, outbound: bool) -> Element {
+fn render_link_row(row: &RealmLinkView, outbound: bool) -> Element {
     let other_realm = if outbound {
         row.target_realm_id.to_string()
     } else {

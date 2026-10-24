@@ -68,7 +68,7 @@ pub fn SpaceList() -> Element {
                 Some(Ok(page)) => {
                     let next_cursor = page.next_cursor.clone();
                     let stack_depth = cursor_stack.read().len();
-                    let total_label = match page.total {
+                    let total_label = match page.total_count {
                         Some(n) => format!("{n}"),
                         None => "?".to_string(),
                     };
