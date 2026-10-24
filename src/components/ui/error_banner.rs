@@ -15,7 +15,7 @@ pub fn resource_error<T>(result: &Option<Result<T, HttpError>>) -> Element {
         Some(error) => rsx! {
             ErrorBanner {
                 message: error.message.clone(),
-                errcode: error.body.as_ref().map(|body| body.errcode.clone()),
+                errcode: error.body.as_ref().map(|body| body.code.clone()),
                 request_id: error.request_id.clone(),
                 retry_after_ms: error.retry_after_ms,
             }

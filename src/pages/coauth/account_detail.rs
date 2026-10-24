@@ -187,7 +187,7 @@ pub fn AccountDetailPage(account_id: String) -> Element {
                 Some(Err(e)) => rsx! {
                     ErrorBanner {
                         message: e.message.clone(),
-                        errcode: e.body.as_ref().map(|body| body.errcode.clone()),
+                        errcode: e.body.as_ref().map(|body| body.code.clone()),
                         request_id: e.request_id.clone(),
                         retry_after_ms: e.retry_after_ms,
                         on_retry: move |_| data.restart(),

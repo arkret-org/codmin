@@ -6,7 +6,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use web_sys::{AbortController, RequestCredentials};
 
-use crate::utils::net::error::{AdminErrorEnvelope, HttpError, display_error};
+use crate::utils::net::error::{AdminProblemView, HttpError, display_error};
 use crate::utils::net::perf;
 use crate::utils::security::crypto::random_token;
 
@@ -84,7 +84,7 @@ pub async fn raw_fetch<T, F>(
 ) -> Result<T, HttpError>
 where
     T: DeserializeOwned,
-    F: Fn(u16, &str, Option<u64>) -> (String, Option<AdminErrorEnvelope>),
+    F: Fn(u16, &str, Option<u64>) -> (String, Option<AdminProblemView>),
 {
     let start_time = js_sys::Date::now();
 
@@ -249,15 +249,15 @@ pub fn format_admin_error(
     status: u16,
     text: &str,
     retry_after_ms: Option<u64>,
-) -> (String, Option<AdminErrorEnvelope>) {
-    let mut error_body: Option<AdminErrorEnvelope> = AdminErrorEnvelope::from_wire(text);
+) -> (String, Option<AdminProblemView>) {
+    let mut error_body: Option<AdminProblemView> = AdminProblemView::from_wire(text);
     if let Some(ref mut body) = error_body
         && body.retry_after_ms.is_none()
     {
         body.retry_after_ms = retry_after_ms;
     }
     let mut message = if let Some(ref eb) = error_body {
-        display_error(&eb.errcode, status, eb.error.as_deref().unwrap_or(""))
+        display_error(&eb.code, status, eb.detail.as_deref().unwrap_or(""))
     } else {
         // Non-envelope body (opaque proxy error, HTML 5xx, etc.) — synthesize
         // a local, non-wire code so it is never mistaken for a registry code.
@@ -489,6 +489,6 @@ mod tests {
             r#"{"type":"https://arkret.org/problems/capability_denied","title":"Capability denied","status":403,"detail":"no","instance":"r"}"#,
             None,
         );
-        assert_eq!(body.unwrap().errcode, "capability_denied");
+        assert_eq!(body.unwrap().code, "capability_denied");
     }
 }

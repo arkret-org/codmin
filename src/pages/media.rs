@@ -45,7 +45,7 @@ pub fn MediaList() -> Element {
                 Some(Err(e)) => rsx! {
                     ErrorBanner {
                         message: e.message.clone(),
-                        errcode: e.body.as_ref().map(|body| body.errcode.clone()),
+                        errcode: e.body.as_ref().map(|body| body.code.clone()),
                         request_id: e.request_id.clone(),
                         retry_after_ms: e.retry_after_ms,
                         on_retry: move |_| stats_data.restart(),
@@ -65,7 +65,7 @@ pub fn MediaList() -> Element {
                 Some(Err(e)) => rsx! {
                     ErrorBanner {
                         message: e.message.clone(),
-                        errcode: e.body.as_ref().map(|body| body.errcode.clone()),
+                        errcode: e.body.as_ref().map(|body| body.code.clone()),
                         request_id: e.request_id.clone(),
                         retry_after_ms: e.retry_after_ms,
                         on_retry: move |_| actor_media_data.restart(),
@@ -154,7 +154,7 @@ pub fn MediaList() -> Element {
                 Some(Err(e)) => rsx! {
                     ErrorBanner {
                         message: e.message.clone(),
-                        errcode: e.body.as_ref().map(|body| body.errcode.clone()),
+                        errcode: e.body.as_ref().map(|body| body.code.clone()),
                         request_id: e.request_id.clone(),
                         retry_after_ms: e.retry_after_ms,
                         on_retry: move |_| media_data.restart(),
