@@ -148,7 +148,7 @@ pub fn report_http_error(path: &str, error: &HttpError) {
     let errcode = error
         .body
         .as_ref()
-        .map(|b| b.errcode.as_str())
+        .map(|b| b.code.as_str())
         .unwrap_or("codmin.http_status");
     let event = ErrorEvent {
         errcode,

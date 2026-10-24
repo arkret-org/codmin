@@ -133,7 +133,7 @@ pub fn resource_body<T: Clone + 'static>(
             let reload = source.clone();
             let mut message = error.message;
             if let Some(body) = error.body {
-                message.push_str(&format!(" · {}", body.errcode));
+                message.push_str(&format!(" · {}", body.code));
             }
             if let Some(id) = error.request_id {
                 message.push_str(&format!(" · request_id: {id}"));

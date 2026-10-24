@@ -305,7 +305,7 @@ fn error_text(error: &HttpError) -> String {
         parts.push(format!("HTTP {}", error.status));
     }
     if let Some(body) = error.body.as_ref() {
-        parts.push(body.errcode.clone());
+        parts.push(body.code.clone());
     }
     if let Some(id) = error.request_id.as_ref() {
         parts.push(format!("request_id: {id}"));

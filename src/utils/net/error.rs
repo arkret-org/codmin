@@ -1,29 +1,17 @@
-use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::OnceLock;
 
 use regex_lite::Regex;
-use serde::{Deserialize, Serialize};
-
-/// Admin-side projection of the spec/SDK canonical RFC 9457 Problem Details
-/// object (see `arkret_wire::Problem`). We keep a flattened local
-/// shape — the wire envelope is parsed in [`from_wire`] — so the existing
-/// call sites (`body.errcode`) keep working while the
-/// parse path reads the authoritative `error.code`.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct AdminErrorEnvelope {
-    /// The registry error code — sourced from `error.code` on the wire.
-    /// Field name is kept as `errcode` for the local consumers; it is
-    /// NOT a wire field name.
-    pub errcode: String,
-    pub error: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+/// Display-only projection parsed through the SDK canonical RFC 9457 Problem.
+/// This view has no protocol serializer or alternative wire representation.
+#[derive(Debug, Clone, Default)]
+pub struct AdminProblemView {
+    pub code: String,
+    pub detail: Option<String>,
     pub retry_after_ms: Option<u64>,
-    #[serde(flatten)]
-    pub extra: BTreeMap<String, serde_json::Value>,
 }
 
-impl AdminErrorEnvelope {
+impl AdminProblemView {
     /// Parse the canonical spec/SDK RFC 9457 Problem Details shape
     /// from an upstream (coland/coauth) error body. Returns `None` when the
     /// body is not a canonical envelope (e.g. an opaque HTML 502 from the
@@ -32,11 +20,10 @@ impl AdminErrorEnvelope {
         let env: arkret_wire::Problem = serde_json::from_str(text).ok()?;
         let errcode = env.code().to_owned();
         let retry_after_ms = env.retry_after_ms();
-        Some(AdminErrorEnvelope {
-            errcode,
-            error: Some(env.detail).filter(|m| !m.is_empty()),
+        Some(AdminProblemView {
+            code: errcode,
+            detail: Some(env.detail).filter(|m| !m.is_empty()),
             retry_after_ms,
-            extra: BTreeMap::new(),
         })
     }
 }
@@ -45,7 +32,7 @@ impl AdminErrorEnvelope {
 pub struct HttpError {
     pub message: String,
     pub status: u16,
-    pub body: Option<AdminErrorEnvelope>,
+    pub body: Option<AdminProblemView>,
     pub request_id: Option<String>,
     pub retry_after_ms: Option<u64>,
 }
@@ -244,25 +231,25 @@ mod tests {
 
     #[test]
     fn from_wire_reads_canonical_envelope_code_and_message() {
-        use super::AdminErrorEnvelope;
+        use super::AdminProblemView;
         let raw = r#"{"type":"https://arkret.org/problems/capability_denied","title":"Capability denied","status":403,"detail":"denied","instance":"req_1"}"#;
-        let env = AdminErrorEnvelope::from_wire(raw).expect("parse");
-        assert_eq!(env.errcode, "capability_denied");
-        assert_eq!(env.error.as_deref(), Some("denied"));
+        let env = AdminProblemView::from_wire(raw).expect("parse");
+        assert_eq!(env.code, "capability_denied");
+        assert_eq!(env.detail.as_deref(), Some("denied"));
     }
 
     #[test]
     fn from_wire_reads_retry_after() {
-        use super::AdminErrorEnvelope;
+        use super::AdminProblemView;
         let raw = r#"{"type":"https://arkret.org/problems/rate_limited","title":"Rate limited","status":429,"detail":"slow down","instance":"req_2","retry_after_ms":2000}"#;
-        let env = AdminErrorEnvelope::from_wire(raw).expect("parse");
-        assert_eq!(env.errcode, "rate_limited");
+        let env = AdminProblemView::from_wire(raw).expect("parse");
+        assert_eq!(env.code, "rate_limited");
         assert_eq!(env.retry_after_ms, Some(2000));
     }
 
     #[test]
     fn from_wire_returns_none_for_non_envelope_body() {
-        use super::AdminErrorEnvelope;
-        assert!(AdminErrorEnvelope::from_wire("<html>502</html>").is_none());
+        use super::AdminProblemView;
+        assert!(AdminProblemView::from_wire("<html>502</html>").is_none());
     }
 }
