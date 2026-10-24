@@ -13,17 +13,17 @@ use crate::types::spaces::{AdminSpaceView, SpaceHierarchy, SpaceHierarchyNode};
 use crate::utils::net::error::HttpError;
 
 #[derive(Debug, Clone, Default)]
-pub struct SpacePage {
+pub struct AdminSpacePage {
     pub data: Vec<AdminSpaceView>,
     pub next_cursor: Option<String>,
-    pub total: Option<u64>,
+    pub total_count: Option<u64>,
 }
 
 pub async fn list_spaces(
     cursor: Option<&str>,
     limit: u64,
     search: &str,
-) -> Result<SpacePage, HttpError> {
+) -> Result<AdminSpacePage, HttpError> {
     let limit_str = limit.max(1).to_string();
     let mut parameters: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
     if let Some(cursor) = cursor.filter(|c| !c.is_empty()) {
@@ -43,10 +43,10 @@ pub async fn list_spaces(
             })
             .collect()
     };
-    Ok(SpacePage {
+    Ok(AdminSpacePage {
         data,
         next_cursor: resp.next_cursor,
-        total: resp.total,
+        total_count: resp.total,
     })
 }
 

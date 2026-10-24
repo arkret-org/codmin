@@ -13,7 +13,7 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
         |q| async move {
             let response = crate::api::spaces::list_spaces(q.cursor(), 25, q.field(0)).await?;
             let rows = response.data.clone();
-            let total = response.total;
+            let total = response.total_count;
             Ok(Document::default()
                 .section("Spaces", &response.data)?
                 .next(response.next_cursor)

@@ -8,7 +8,7 @@ use crate::utils::net::error::HttpError;
 const CONNECTOR_HEALTH_PATH: &str = "/_coauth/admin/connector-health";
 
 pub async fn get_connector_health() -> Result<Vec<ConnectorHealthView>, HttpError> {
-    let resp: coauth_admin_types::ConnectorHealthOutcome =
+    let resp: coauth_admin_types::ConnectorHealthReport =
         api_client(CONNECTOR_HEALTH_PATH, "GET", NO_BODY).await?;
     Ok(resp.providers)
 }
