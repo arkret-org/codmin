@@ -1,12 +1,12 @@
 //! Space container admin surface — contract-authoritative row plus the
 //! SPA-local hierarchy aggregate.
 //!
-//! The row is the shared `coland_contracts::admin::AdminSpaceRow`
+//! The row is the shared `coland_contracts::admin::AdminSpaceView`
 //! (`GET /_coland/admin/spaces`). Per-space hierarchy is assembled
 //! client-side from the snapshot's `parent_space_id` fields; coland exposes
 //! no hierarchy endpoint, so [`SpaceHierarchy`] never appears on the wire.
 
-pub use coland_contracts::admin::{AdminSpaceRow, SpaceHealth};
+pub use coland_contracts::admin::{AdminSpaceView, SpaceHealth};
 use serde::{Deserialize, Serialize};
 
 /// Display helpers for the shared [`SpaceHealth`].
@@ -30,7 +30,7 @@ impl SpaceHealthExt for SpaceHealth {
 /// `parent` is at most one step up; `children` is the full set of
 /// immediate children found in the loaded snapshot.
 ///
-/// SPA-local aggregate: it is assembled from [`AdminSpaceRow`]s and never
+/// SPA-local aggregate: it is assembled from [`AdminSpaceView`]s and never
 /// crosses the wire.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SpaceHierarchy {
@@ -88,7 +88,7 @@ mod tests {
             "created_at": "2026-08-14T00:00:00.000Z",
             "parent_space_id": null,
         });
-        let row: AdminSpaceRow = serde_json::from_value(base.clone()).expect("row parses");
+        let row: AdminSpaceView = serde_json::from_value(base.clone()).expect("row parses");
         assert_eq!(row.health, SpaceHealth::Archived);
         assert_eq!(
             row.realm_id,
@@ -100,6 +100,6 @@ mod tests {
             .as_object_mut()
             .expect("fixture is an object")
             .remove("realm_id");
-        assert!(serde_json::from_value::<AdminSpaceRow>(missing).is_err());
+        assert!(serde_json::from_value::<AdminSpaceView>(missing).is_err());
     }
 }

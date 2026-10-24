@@ -9,12 +9,12 @@
 
 use crate::api::client::{NO_BODY, api_client, build_url};
 use crate::types::api::ListResponse;
-use crate::types::spaces::{AdminSpaceRow, SpaceHierarchy, SpaceHierarchyNode};
+use crate::types::spaces::{AdminSpaceView, SpaceHierarchy, SpaceHierarchyNode};
 use crate::utils::net::error::HttpError;
 
 #[derive(Debug, Clone, Default)]
 pub struct SpacePage {
-    pub data: Vec<AdminSpaceRow>,
+    pub data: Vec<AdminSpaceView>,
     pub next_cursor: Option<String>,
     pub total: Option<u64>,
 }
@@ -30,7 +30,7 @@ pub async fn list_spaces(
         parameters.push(("cursor", cursor));
     }
     let url = build_url("/_coland/admin/spaces", &parameters)?;
-    let resp: ListResponse<AdminSpaceRow> = api_client(&url, "GET", NO_BODY).await?;
+    let resp: ListResponse<AdminSpaceView> = api_client(&url, "GET", NO_BODY).await?;
     let needle = search.trim().to_ascii_lowercase();
     let data = if needle.is_empty() {
         resp.data
@@ -73,7 +73,7 @@ pub async fn get_space(space_id: &str) -> Result<SpaceHierarchy, HttpError> {
     })
 }
 
-async fn list_all_spaces() -> Result<Vec<AdminSpaceRow>, HttpError> {
+async fn list_all_spaces() -> Result<Vec<AdminSpaceView>, HttpError> {
     let mut cursor = None::<String>;
     let mut rows = Vec::new();
     loop {
@@ -89,7 +89,7 @@ async fn list_all_spaces() -> Result<Vec<AdminSpaceRow>, HttpError> {
     Ok(rows)
 }
 
-fn space_node(row: &AdminSpaceRow) -> SpaceHierarchyNode {
+fn space_node(row: &AdminSpaceView) -> SpaceHierarchyNode {
     SpaceHierarchyNode {
         space_id: row.id.clone(),
         name: row.name.clone(),
@@ -101,7 +101,7 @@ fn space_node(row: &AdminSpaceRow) -> SpaceHierarchyNode {
 mod tests {
     use super::*;
 
-    fn row(id: &str, parent: Option<&str>) -> AdminSpaceRow {
+    fn row(id: &str, parent: Option<&str>) -> AdminSpaceView {
         serde_json::from_value(serde_json::json!({
             "id": id,
             "name": format!("Space {id}"),

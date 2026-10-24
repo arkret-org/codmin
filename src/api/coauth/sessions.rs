@@ -24,7 +24,7 @@ pub struct CoauthOAuth2Session {
 
 #[derive(Debug, Clone, Serialize)]
 #[non_exhaustive]
-pub struct CoauthPersonalSessionRow {
+pub struct CoauthPersonalSessionView {
     pub id: String,
     pub user_id: Option<String>,
     pub name: Option<String>,
@@ -36,7 +36,7 @@ pub struct CoauthPersonalSessionRow {
 #[non_exhaustive]
 pub struct CoauthPersonalSessionOneShot {
     #[serde(flatten)]
-    pub session: CoauthPersonalSessionRow,
+    pub session: CoauthPersonalSessionView,
     pub access_token: Option<String>,
 }
 
@@ -58,7 +58,7 @@ pub async fn finish_oauth2_session(id: &str) -> Result<(), HttpError> {
 pub async fn list_personal_sessions(
     after: Option<&str>,
     per_page: u64,
-) -> Result<CursorPage<CoauthPersonalSessionRow>, HttpError> {
+) -> Result<CursorPage<CoauthPersonalSessionView>, HttpError> {
     get_jsonapi_cursor_page(
         PERSONAL_SESSIONS_PATH,
         after,
@@ -114,9 +114,9 @@ fn map_oauth2_session(
 
 fn map_personal_session(
     resource: coauth_admin_types::SingleResource<coauth_admin_types::PersonalSession>,
-) -> CoauthPersonalSessionRow {
+) -> CoauthPersonalSessionView {
     let attrs = resource.attributes;
-    CoauthPersonalSessionRow {
+    CoauthPersonalSessionView {
         id: resource.id,
         user_id: attrs
             .actor_user_id
@@ -142,11 +142,11 @@ fn map_personal_session_oneshot(
 
 #[cfg(test)]
 mod tests {
-    use super::{CoauthPersonalSessionOneShot, CoauthPersonalSessionRow};
+    use super::{CoauthPersonalSessionOneShot, CoauthPersonalSessionView};
 
     #[test]
     fn personal_session_row_drops_token_fields() {
-        let row = CoauthPersonalSessionRow {
+        let row = CoauthPersonalSessionView {
             id: "session-1".to_owned(),
             user_id: Some("user-1".to_owned()),
             name: Some("ops key".to_owned()),
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn personal_session_one_shot_uses_current_access_token_field() {
         let response = CoauthPersonalSessionOneShot {
-            session: CoauthPersonalSessionRow {
+            session: CoauthPersonalSessionView {
                 id: "session-1".to_owned(),
                 user_id: None,
                 name: Some("ops key".to_owned()),
