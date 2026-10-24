@@ -37,6 +37,7 @@ pub async fn revoke_account_device(
         reason: reason.to_owned(),
         approval_proof: None,
     };
-    let _: coauth_admin_types::DeviceRevokeOutcome = api_client(&url, "POST", Some(&body)).await?;
+    let _: coauth_admin_types::DeviceRevocationStatusView =
+        api_client(&url, "POST", Some(&body)).await?;
     Ok(())
 }

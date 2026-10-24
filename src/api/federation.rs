@@ -13,11 +13,11 @@ pub async fn list_federation_operations(
     search: &str,
 ) -> Result<ListResponse<AdminFederationOperation>, HttpError> {
     let limit_str = limit.max(1).to_string();
-    let mut params: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
+    let mut parameters: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
     if let Some(c) = cursor.filter(|c| !c.is_empty()) {
-        params.push(("cursor", c));
+        parameters.push(("cursor", c));
     }
-    let url = build_url("/_coland/admin/federation", &params)?;
+    let url = build_url("/_coland/admin/federation", &parameters)?;
     let mut resp: ListResponse<AdminFederationOperation> = api_client(&url, "GET", NO_BODY).await?;
     let needle = search.trim().to_ascii_lowercase();
     let data = resp

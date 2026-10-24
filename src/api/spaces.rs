@@ -25,11 +25,11 @@ pub async fn list_spaces(
     search: &str,
 ) -> Result<SpacePage, HttpError> {
     let limit_str = limit.max(1).to_string();
-    let mut params: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
+    let mut parameters: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
     if let Some(cursor) = cursor.filter(|c| !c.is_empty()) {
-        params.push(("cursor", cursor));
+        parameters.push(("cursor", cursor));
     }
-    let url = build_url("/_coland/admin/spaces", &params)?;
+    let url = build_url("/_coland/admin/spaces", &parameters)?;
     let resp: ListResponse<AdminSpaceRow> = api_client(&url, "GET", NO_BODY).await?;
     let needle = search.trim().to_ascii_lowercase();
     let data = if needle.is_empty() {

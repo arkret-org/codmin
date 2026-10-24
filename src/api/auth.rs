@@ -610,7 +610,7 @@ fn classify_principal_logout(response: Result<TextResponse, HttpError>) -> Logou
         Err(error) => return failed_request("Station logout", error),
     };
     let Ok(outcome) =
-        serde_json::from_str::<arkret_models_identity::AccountLogoutOutcome>(&response.text)
+        serde_json::from_str::<arkret_models_identity::AccountLogoutResponseBody>(&response.text)
     else {
         return LogoutStepStatus::Failed("Station logout returned an invalid response".to_owned());
     };

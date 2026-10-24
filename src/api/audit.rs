@@ -64,14 +64,14 @@ pub async fn list_audit_entries(
 ) -> Result<AdminAuditList, HttpError> {
     let limit_str = limit.max(1).to_string();
     let query = filter.into_query();
-    let mut params: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
+    let mut parameters: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
     if let Some(cursor) = cursor.filter(|cursor| !cursor.is_empty()) {
-        params.push(("cursor", cursor));
+        parameters.push(("cursor", cursor));
     }
     for (key, value) in &query {
-        params.push((key, value.as_str()));
+        parameters.push((key, value.as_str()));
     }
-    let url = build_url("/_coland/admin/audit", &params)?;
+    let url = build_url("/_coland/admin/audit", &parameters)?;
     api_client(&url, "GET", NO_BODY).await
 }
 
