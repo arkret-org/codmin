@@ -4,7 +4,7 @@
 //! The row is the shared `coland_contracts::admin::AdminRealmItem`; codmin
 //! keeps no wire mirror. The object carrying encryption / join-rule /
 //! history-access / realm-class boundary fields is a Realm. Space
-//! containers are represented separately by [`crate::types::spaces::AdminSpaceRow`].
+//! containers are represented separately by [`crate::types::spaces::AdminSpaceView`].
 
 pub use coland_contracts::admin::{AdminRealmItem, RealmClass};
 use serde::Serialize;

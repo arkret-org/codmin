@@ -2,7 +2,7 @@
 
 use arkret_models_collaboration::governance::realm_governance::{
     RealmOrganizationLifecyclePhase, RealmOrganizationRelationshipList,
-    RealmOrganizationRelationshipRow,
+    RealmOrganizationRelationshipView,
 };
 use arkret_models_collaboration::{
     RealmOrganizationControlScope, RealmOrganizationIssuerRole, RealmOrganizationRelationship,
@@ -138,7 +138,7 @@ fn verified_relationship_card(panel: &RealmOrganizationRelationshipList) -> Elem
     }
 }
 
-fn relationship_row(row: &RealmOrganizationRelationshipRow) -> Element {
+fn relationship_row(row: &RealmOrganizationRelationshipView) -> Element {
     let scopes = row
         .control_scopes
         .iter()

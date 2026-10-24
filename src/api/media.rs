@@ -8,7 +8,7 @@ pub async fn list_media(
     page: u64,
     per_page: u64,
     search: &str,
-) -> Result<ListResponse<AdminMediaRow>, HttpError> {
+) -> Result<ListResponse<AdminMediaView>, HttpError> {
     let needle = search.trim().to_ascii_lowercase();
     if !needle.is_empty() {
         return list_filtered_media(page, per_page.max(1), &needle).await;
@@ -21,7 +21,7 @@ pub async fn list_media(
 async fn fetch_media_page(
     cursor: Option<&str>,
     limit: u64,
-) -> Result<ListResponse<AdminMediaRow>, HttpError> {
+) -> Result<ListResponse<AdminMediaView>, HttpError> {
     let limit_str = limit.to_string();
     let mut parameters: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
     if let Some(cursor) = cursor.filter(|c| !c.is_empty()) {
@@ -35,7 +35,7 @@ async fn list_filtered_media(
     page: u64,
     per_page: u64,
     needle: &str,
-) -> Result<ListResponse<AdminMediaRow>, HttpError> {
+) -> Result<ListResponse<AdminMediaView>, HttpError> {
     let mut cursor = None::<String>;
     let mut matched = Vec::new();
 
@@ -56,7 +56,7 @@ async fn list_filtered_media(
 
     let total = matched.len() as u64;
     let start = page.saturating_sub(1).saturating_mul(per_page) as usize;
-    let data: Vec<AdminMediaRow> = matched
+    let data: Vec<AdminMediaView> = matched
         .into_iter()
         .skip(start)
         .take(per_page as usize)
@@ -73,7 +73,7 @@ async fn list_filtered_media(
     })
 }
 
-fn media_row_matches(row: &AdminMediaRow, needle: &str) -> bool {
+fn media_row_matches(row: &AdminMediaView, needle: &str) -> bool {
     [
         Some(row.sha256.as_str()),
         row.filename.as_deref(),
