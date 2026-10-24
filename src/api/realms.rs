@@ -8,11 +8,11 @@ pub async fn list_realms(
     limit: u64,
 ) -> Result<ListResponse<AdminRealmItem>, HttpError> {
     let limit_str = limit.max(1).to_string();
-    let mut params: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
+    let mut parameters: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
     if let Some(c) = cursor.filter(|c| !c.is_empty()) {
-        params.push(("cursor", c));
+        parameters.push(("cursor", c));
     }
-    let url = build_url("/_coland/admin/realms", &params)?;
+    let url = build_url("/_coland/admin/realms", &parameters)?;
     api_client(&url, "GET", NO_BODY).await
 }
 

@@ -51,7 +51,7 @@ const SENSITIVE_QUERY_KEYS: &[&str] = &[
     "refresh_token",
     "session",
     "session_token",
-    "sig",
+    "signature",
     "signature",
     "token",
 ];
@@ -340,15 +340,15 @@ pub async fn api_client<T: DeserializeOwned, B: Serialize>(
     api_client_raw(url, method, body).await
 }
 
-pub fn build_url(path: &str, params: &[(&str, &str)]) -> Result<String, HttpError> {
+pub fn build_url(path: &str, parameters: &[(&str, &str)]) -> Result<String, HttpError> {
     reject_query_credentials(path)?;
-    for (key, _) in params {
+    for (key, _) in parameters {
         reject_query_key(key)?;
     }
 
     let mut url = path.to_string();
 
-    let query_params: Vec<String> = params
+    let query_params: Vec<String> = parameters
         .iter()
         .filter(|(_, v)| !v.is_empty())
         .map(|(k, v)| format!("{}={}", urlencoding::encode(k), urlencoding::encode(v)))

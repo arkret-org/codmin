@@ -40,12 +40,12 @@ fn build_jsonapi_cursor_url(
     query: &[(&str, &str)],
 ) -> Result<String, HttpError> {
     let per_page = per_page.max(1).to_string();
-    let mut params = vec![("page[first]", per_page.as_str()), ("count", "true")];
+    let mut parameters = vec![("page[first]", per_page.as_str()), ("count", "true")];
     if let Some(after) = after.filter(|value| !value.is_empty()) {
-        params.push(("page[after]", after));
+        parameters.push(("page[after]", after));
     }
-    params.extend(query.iter().copied().filter(|(_, value)| !value.is_empty()));
-    build_url(path, &params)
+    parameters.extend(query.iter().copied().filter(|(_, value)| !value.is_empty()));
+    build_url(path, &parameters)
 }
 
 pub(crate) fn flatten_jsonapi_page<T, U, F>(

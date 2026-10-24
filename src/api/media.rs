@@ -23,11 +23,11 @@ async fn fetch_media_page(
     limit: u64,
 ) -> Result<ListResponse<AdminMediaRow>, HttpError> {
     let limit_str = limit.to_string();
-    let mut params: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
+    let mut parameters: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
     if let Some(cursor) = cursor.filter(|c| !c.is_empty()) {
-        params.push(("cursor", cursor));
+        parameters.push(("cursor", cursor));
     }
-    let url = build_url("/_coland/admin/media", &params)?;
+    let url = build_url("/_coland/admin/media", &parameters)?;
     api_client(&url, "GET", NO_BODY).await
 }
 

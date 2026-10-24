@@ -3,7 +3,7 @@
 //! Renders the effective `ak.component.realm.media_service.v1` cell for a
 //! single Realm: the media service DID plus each focus in `foci[]`
 //! (`focus_id`, `type`, `region`, `token_endpoint`, `connect_url`,
-//! `capabilities`, `health_endpoint`, `cascade_group`).
+//! `capabilities`, `health_url`, `cascade_group`).
 //!
 //! This view is **read-only** in codmin: mutating `media_service` is a
 //! general-management action that strands through events / inkson, not
@@ -134,10 +134,7 @@ fn render_focus_row(idx: usize, focus: &MediaServiceFocus) -> Element {
     // either one fails the shared contract's decode before it gets here.
     let token_endpoint = focus.token_endpoint.clone();
     let connect_url = focus.connect_url.clone();
-    let health_endpoint = focus
-        .health_endpoint
-        .clone()
-        .unwrap_or_else(|| "-".to_string());
+    let health_url = focus.health_url.clone().unwrap_or_else(|| "-".to_string());
     let cascade_group = focus
         .cascade_group
         .as_ref()
@@ -174,7 +171,7 @@ fn render_focus_row(idx: usize, focus: &MediaServiceFocus) -> Element {
                 }
                 div { class: "space-y-1 md:col-span-2",
                     p { class: "text-xs text-muted-foreground", {t("media_service.focus_health_endpoint")} }
-                    p { class: "text-sm font-mono break-all", "{health_endpoint}" }
+                    p { class: "text-sm font-mono break-all", "{health_url}" }
                 }
                 div { class: "space-y-1",
                     p { class: "text-xs text-muted-foreground", {t("media_service.focus_cascade_group")} }

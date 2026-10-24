@@ -42,7 +42,7 @@ routes, APIs and i18n keys.
 ## Protocol type ownership
 
 `src/api/authority.rs` and `src/pages/realms/authority.rs` use
-`arkret_wire::{AuthorityBundleRequest, RealmAuthorityBundle, RealmAuthorityTransition}`
+`arkret_wire::{RealmAuthorityBundleRequestBody, RealmAuthorityBundle, RealmAuthorityTransition}`
 directly. codmin defines no protocol type of its own; `src/types/seal.rs`, which
 re-exported the deleted `coland_contracts::admin::seal` DTOs, is gone.
 

@@ -50,23 +50,23 @@ pub(crate) fn query_params(
     cursor: Option<&str>,
     limit: u64,
 ) -> Result<Vec<(String, String)>, String> {
-    let mut params = vec![("limit".to_owned(), limit.max(1).to_string())];
+    let mut parameters = vec![("limit".to_owned(), limit.max(1).to_string())];
     if let Some(cursor) = cursor.filter(|value| !value.is_empty()) {
-        params.push(("cursor".to_owned(), cursor.to_owned()));
+        parameters.push(("cursor".to_owned(), cursor.to_owned()));
     }
     if let Some(realm) = &filters.realm_id {
-        params.push(("filter[realm_id]".to_owned(), realm.to_string()));
+        parameters.push(("filter[realm_id]".to_owned(), realm.to_string()));
     }
     if let Some(actor) = &filters.subject_actor_id {
-        params.push((
+        parameters.push((
             "filter[subject_actor_id]".to_owned(),
             arkret_canonical::canonical_json_string(actor).map_err(|error| error.to_string())?,
         ));
     }
     if let Some(state) = &filters.state {
-        params.push(("filter[state]".to_owned(), state.as_str().to_owned()));
+        parameters.push(("filter[state]".to_owned(), state.as_str().to_owned()));
     }
-    Ok(params)
+    Ok(parameters)
 }
 
 pub(crate) fn verify_page(
@@ -138,14 +138,14 @@ pub async fn list_capabilities(
     limit: u64,
     filters: &CapabilityFilters,
 ) -> Result<AdminCapabilityList, HttpError> {
-    let params = query_params(filters, cursor, limit).map_err(|message| HttpError {
+    let parameters = query_params(filters, cursor, limit).map_err(|message| HttpError {
         message,
         status: 400,
         body: None,
         request_id: None,
         retry_after_ms: None,
     })?;
-    let borrowed: Vec<_> = params
+    let borrowed: Vec<_> = parameters
         .iter()
         .map(|(key, value)| (key.as_str(), value.as_str()))
         .collect();
@@ -173,8 +173,8 @@ mod tests {
             r#"{"kind":"service","service_id":"ak:did_core:web:service.example"}"#,
         ] {
             let filters = CapabilityFilters::parse("", actor, "all").unwrap();
-            let params = query_params(&filters, Some("grant-cursor"), 25).unwrap();
-            let (_, encoded) = params
+            let parameters = query_params(&filters, Some("grant-cursor"), 25).unwrap();
+            let (_, encoded) = parameters
                 .iter()
                 .find(|(key, _)| key == "filter[subject_actor_id]")
                 .unwrap();
@@ -182,7 +182,7 @@ mod tests {
                 serde_json::from_str::<ActorId>(encoded).unwrap(),
                 filters.subject_actor_id.unwrap()
             );
-            assert!(!params.iter().any(|(key, _)| key == "filter[subject]"));
+            assert!(!parameters.iter().any(|(key, _)| key == "filter[subject]"));
         }
     }
 

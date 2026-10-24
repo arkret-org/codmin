@@ -15,15 +15,15 @@ pub async fn list_actors(
     search: &str,
 ) -> Result<AdminActorList, HttpError> {
     let limit_str = limit.max(1).to_string();
-    let mut params: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
+    let mut parameters: Vec<(&str, &str)> = vec![("limit", limit_str.as_str())];
     if let Some(cursor) = cursor.filter(|cursor| !cursor.is_empty()) {
-        params.push(("cursor", cursor));
+        parameters.push(("cursor", cursor));
     }
     let search = search.trim();
     if !search.is_empty() {
-        params.push(("filter[search]", search));
+        parameters.push(("filter[search]", search));
     }
-    let url = build_url("/_coland/admin/actors", &params)?;
+    let url = build_url("/_coland/admin/actors", &parameters)?;
     api_client(&url, "GET", NO_BODY).await
 }
 

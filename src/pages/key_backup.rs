@@ -4,7 +4,7 @@
 //!   1. Backup series list with series head status + per-series 3-class 409 counters
 //!      (`series_chain_broken` / `series_seq_not_monotonic` / `series_predecessor_not_found`).
 //!   2. Recovery policy history (read-only; spec `recovery_policy_summary` rows — policy publish
-//!      requires a principal-signed `auth_data` transcript the admin UI cannot mint).
+//!      requires a principal-signed `signature_proof` transcript the admin UI cannot mint).
 
 use arkret_models_crypto::recovery_policy::RecoveryMethod;
 use arkret_models_crypto::{KeyBackupSummary, RecoveryPolicySummary};

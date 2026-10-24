@@ -7,7 +7,9 @@
 //! (`sync/authority-commit-log.md` sections 7 and 8); codmin renders it and never
 //! re-derives authority locally.
 
-use arkret_wire::{AuthorityBundleRequest, Base64UrlString, RealmAuthorityBundle, RealmId};
+use arkret_wire::{
+    Base64UrlString, RealmAuthorityBundle, RealmAuthorityBundleRequestBody, RealmId,
+};
 
 use crate::api::client::api_client;
 use crate::utils::net::error::HttpError;
@@ -25,7 +27,7 @@ pub async fn get_realm_authority_bundle(realm_id: &str) -> Result<RealmAuthority
         .map_err(|error| HttpError::message(format!("invalid Realm id: {error}")))?;
     let nonce = Base64UrlString::new(random_token(24))
         .map_err(|error| HttpError::message(format!("could not build a bundle nonce: {error}")))?;
-    let request = AuthorityBundleRequest { realm_id, nonce };
+    let request = RealmAuthorityBundleRequestBody { realm_id, nonce };
     request.validate().map_err(|error| {
         HttpError::message(format!("invalid authority bundle request: {error}"))
     })?;
