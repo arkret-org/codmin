@@ -58,6 +58,10 @@ jobs:
           CI_REPO_TOKEN: ${{ secrets.CI_REPO_TOKEN || github.token }}
         run: bash .ci/checkout-build-dependencies.sh
 
+      - name: Check out Glory and Sapid
+        working-directory: codmin
+        run: bash .ci/checkout-ui-dependencies.sh
+
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -74,16 +78,11 @@ jobs:
           toolchain: stable
           targets: wasm32-unknown-unknown
 
-      - name: Install dioxus-cli
-        run: cargo install dioxus-cli --locked --version "0.7.10"
+      - name: Install wasm-bindgen CLI
+        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
 
       - name: Build SPA
-        run: |
-          dx build --release
-          target_dir=$(cargo metadata --format-version 1 --no-deps | python -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')
-          public_dir=$(find "$target_dir/dx" -type d -path '*/release/web/public' | head -n 1)
-          test -f "$public_dir/index.html"
-          cp -a "$public_dir" dist
+        run: python scripts/build-web.py --release --out-dir dist
 
       - name: Install Playwright
         run: npx playwright install --with-deps chromium

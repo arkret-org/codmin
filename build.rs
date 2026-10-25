@@ -10,29 +10,9 @@ fn main() {
         "cargo:rerun-if-changed={}",
         manifest_dir.join("Cargo.toml").display()
     );
-    check_dioxus_sources(&manifest_dir);
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     generate_i18n_tables(&manifest_dir, &out_dir);
-}
-
-fn check_dioxus_sources(manifest_dir: &Path) {
-    const DIOXUS_VERSION: &str = "=0.7.10";
-
-    let cargo_toml_path = manifest_dir.join("Cargo.toml");
-    let raw = fs::read_to_string(&cargo_toml_path)
-        .unwrap_or_else(|err| panic!("read {}: {}", cargo_toml_path.display(), err));
-
-    for crate_name in ["dioxus", "dioxus-logger"] {
-        let line = raw
-            .lines()
-            .find(|line| line.trim_start().starts_with(crate_name))
-            .unwrap_or_else(|| panic!("Cargo.toml Dioxus version drift: missing {crate_name}"));
-        assert!(
-            line.contains(DIOXUS_VERSION),
-            "Cargo.toml Dioxus version drift: {crate_name} must use {DIOXUS_VERSION}"
-        );
-    }
 }
 
 /// Reads the externalized flat-JSON translation files (`i18n/en.json`,

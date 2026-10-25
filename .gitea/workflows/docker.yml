@@ -158,6 +158,24 @@ jobs:
           ref: main
           token: ${{ secrets.CI_REPO_TOKEN }}
 
+      - name: Check out coland
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: ${{ gitea.repository_owner }}/coland
+          path: coland
+          ref: main
+          token: ${{ secrets.CI_REPO_TOKEN }}
+
+      - name: Complete Coland build dependency layout
+        working-directory: coland
+        env:
+          CI_REPO_TOKEN: ${{ secrets.GITHUB_COM_TOKEN }}
+        run: bash .ci/checkout-build-dependencies.sh
+
+      - name: Check out Glory and Sapid
+        working-directory: codmin
+        run: bash .ci/checkout-ui-dependencies.sh
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
@@ -204,11 +222,6 @@ jobs:
         shell: bash
         env:
           TAGS: ${{ steps.tags.outputs.tags }}
-          # Read inside the build by the Dockerfile's credential helper so
-          # cargo can fetch the private `yoface` git dependency. Must be a
-          # GitHub PAT with read access to arkret-org/yoface — the Gitea
-          # `CI_REPO_TOKEN` cannot authenticate against github.com.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_COM_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -222,7 +235,9 @@ jobs:
             --load \
             --platform linux/arm64 \
             --pull \
-            --secret id=github_token,env=GITHUB_TOKEN \
+            --build-context savfox=../savfox-ai/savfox \
+            --build-context glory=../glory-rs/glory \
+            --build-context sapid=../glory-rs/sapid \
             "${tag_args[@]}" \
             -f codmin/Dockerfile \
             .

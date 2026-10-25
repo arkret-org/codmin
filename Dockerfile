@@ -1,5 +1,5 @@
 # codmin Dockerfile.
-# Build from the repository parent with --build-context savfox=../savfox-ai/savfox.
+# Build from the repository parent with savfox, glory and sapid named contexts.
 #
 # Build context: the arkret umbrella directory (parent of codmin).
 # The Cargo workspace at codmin/Cargo.toml has path-deps on sibling
@@ -34,17 +34,16 @@ RUN --network=default \
         sleep 10; \
     done; exit 1
 # Build tools and Cargo metadata decoding.
-RUN apt-get update && apt-get install -y binaryen python3 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y python3 && rm -rf /var/lib/apt/lists/*
 
 RUN --mount=type=cache,id=codmin-cargo-registry,target=/usr/local/cargo/registry \
     --mount=type=cache,id=codmin-cargo-git,target=/usr/local/cargo/git \
-    cargo install dioxus-cli@0.7.10 --locked
+    cargo install wasm-bindgen-cli --version 0.2.129 --locked
 
 WORKDIR /workspace
 
-# Copy the sibling path-deps FIRST so cargo fetch / dx build can resolve
-# the workspace `path = "../<sibling>/..."` entries. Order matches the
-# umbrella layout, including Coland's indirect build dependencies.
+# Copy sibling path dependencies before fetching/building the browser library.
+# Preserve the umbrella layout, including Coland's indirect dependencies.
 COPY arkret-rust-sdk/ /workspace/arkret-rust-sdk
 COPY coauth/ /workspace/coauth
 COPY coland/ /workspace/coland
@@ -53,6 +52,11 @@ COPY garth/ /workspace/garth
 COPY bridges/ /workspace/bridges
 COPY arkret-spec/ /workspace/arkret-spec
 COPY --from=savfox . /savfox-ai/savfox
+COPY --from=glory Cargo.toml /glory-rs/glory/Cargo.toml
+COPY --from=glory crates /glory-rs/glory/crates
+COPY --from=sapid Cargo.toml README.md /glory-rs/sapid/
+COPY --from=sapid src /glory-rs/sapid/src
+COPY --from=sapid styles /glory-rs/sapid/styles
 COPY codmin/ /workspace/codmin
 
 WORKDIR /workspace/codmin
@@ -67,16 +71,7 @@ RUN --network=default \
     --mount=type=cache,id=codmin-cargo-registry,target=/usr/local/cargo/registry \
     --mount=type=cache,id=codmin-cargo-git,target=/usr/local/cargo/git \
     --mount=type=cache,id=codmin-target,target=/workspace/codmin/target \
-    built=false; \
-    for i in 1 2 3; do \
-        if dx build --release --debug-symbols false; then built=true; break; fi; \
-        echo "Retry $i..."; sleep 10; \
-    done; \
-    test "$built" = true && \
-    target_dir="$(cargo metadata --format-version 1 --no-deps | python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')" && \
-    dist_dir="$(find "$target_dir/dx" -type d -path '*/release/web/public' | head -n 1)" && \
-    test -f "$dist_dir/index.html" && \
-    cp -r "$dist_dir" /workspace/dist
+    python3 scripts/build-web.py --release --out-dir /workspace/dist
 
 FROM nginx:alpine
 

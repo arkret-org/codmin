@@ -1,226 +1,229 @@
-use dioxus::prelude::*;
+use glory::prelude::*;
 
+use super::common;
 use crate::api::coauth;
-use crate::components::claims_panel::ClaimsPanel;
-use crate::components::did_binding_panel::DidBindingPanel;
-use crate::components::risk_action_panel;
-use crate::components::ui::error_banner::ErrorBanner;
-use crate::components::ui::loading::PageSkeleton;
-use crate::components::ui::page_header::PageHeader;
-use crate::router::Route;
+use crate::components::ui::{self, Danger, Field, View};
 use crate::utils::i18n::t;
-
-#[component]
-pub fn AccountDetailPage(account_id: String) -> Element {
-    let account_id_for_resource = account_id.clone();
-    let mut data = use_resource(move || {
-        let account_id_for_resource = account_id_for_resource.clone();
-        async move { coauth::get_account_detail(&account_id_for_resource).await }
+use crate::utils::net::error::HttpError;
+pub fn page(scope: &Scope, theme: sapid::Theme, account_id: String) -> impl Widget + use<> {
+    let mutations = ui::MutationController::new(scope);
+    let account = account_id.clone();
+    let data = ui::resource(scope, move || {
+        let account = account.clone();
+        async move { coauth::get_account_detail(&account).await }
     });
-    // Mutation panels (DID binding add/remove, claim revoke) need to
-    // restart this resource on success; clone the signal so each panel
-    // gets its own owned handle.
-    let mut data_for_dids = data;
-    let mut data_for_claims = data;
-    let mut data_for_risk = data;
-
-    rsx! {
-        div { class: "space-y-6",
-            PageHeader {
-                title: t("coauth_account_detail.title"),
-                description: t("coauth_account_detail.description"),
-                Link {
-                    to: Route::CoauthAccountList {},
-                    class: "inline-flex h-10 items-center rounded-md border px-4 text-sm font-medium transition-colors hover:bg-accent".to_string(),
-                    {t("coauth_account_detail.back")}
-                }
+    let mutation = data.clone();
+    let row_theme = theme.clone();
+    let body = ui::resource_view(scope, theme.clone(), data, move |scope, detail| {
+        let mut children: Vec<View> = vec![
+            Box::new(
+                sapid::card()
+                    .theme(row_theme.clone())
+                    .title(t("coauth_account_detail.account_summary"))
+                    .fill(common::record(&detail.account)),
+            ),
+            Box::new(
+                link()
+                    .target(format!(
+                        "/coauth/accounts/{}/devices",
+                        urlencoding::encode(&account_id)
+                    ))
+                    .label(t("coauth_devices.title")),
+            ),
+            ui::heading(t("did_binding_panel.title")),
+        ];
+        if detail.managed_dids.is_empty() {
+            children.push(Box::new(text().content(t("did_binding_panel.empty"))));
+        }
+        for binding in detail.managed_dids {
+            let did = binding.did.clone();
+            let account = account_id.clone();
+            let changed = mutation.clone();
+            let remove = ui::action_form_controlled(
+                scope,
+                &mutations,
+                format!("did:{}", binding.did),
+                row_theme.clone(),
+                t("did_binding_panel.remove"),
+                vec![],
+                Some(Danger::new(common::suffix(&did)).without_reason()),
+                move |_| {
+                    let did = did.clone();
+                    let account = account.clone();
+                    async move { coauth::remove_account_did_binding(&account, &did).await }
+                },
+                move || changed.reload(),
+            );
+            children.push(Box::new(
+                sapid::card()
+                    .theme(row_theme.clone())
+                    .title(binding.did.clone())
+                    .fill((common::record(&binding), remove)),
+            ));
+        }
+        children.push(ui::heading(t("claims_panel.title")));
+        if detail.claims.is_empty() {
+            children.push(Box::new(text().content(t("claims_panel.empty"))));
+        }
+        for claim in detail.claims {
+            if claim
+                .state
+                .as_deref()
+                .is_some_and(|state| state.contains("revoked"))
+            {
+                children.push(Box::new(
+                    sapid::card()
+                        .theme(row_theme.clone())
+                        .title(claim.claim_kind.clone())
+                        .fill((
+                            common::record(&claim),
+                            text().content(t("claims_panel.already_revoked")),
+                        )),
+                ));
+                continue;
             }
-
-            match &*data.read() {
-                Some(Ok(detail)) => {
-                    let summary = &detail.account;
-                    let display_name = summary.display_name.clone().unwrap_or_else(|| summary.id.clone());
-                    let handle = summary.username.clone().unwrap_or_else(|| "-".to_string());
-                    let created_at = summary.created_at.clone().unwrap_or_else(|| "-".to_string());
-                    let updated_at = summary.updated_at.clone().unwrap_or_else(|| "-".to_string());
-                    let primary_principal_id = summary
-                        .primary_principal_id
-                        .as_ref()
-                        .map_or("-", arkret_identifiers::DidCoreId::as_str);
-                    let lifecycle = summary.lifecycle_label();
-                    let integration_dependencies = if detail.integration_manifest.dependencies.is_empty() {
-                        t("coauth_account_detail.none")
-                    } else {
-                        detail
-                            .integration_manifest
-                            .dependencies
-                            .iter()
-                            .map(|dependency| {
-                                format!(
-                                    "{}:{}@{}",
-                                    dependency.service, dependency.purpose, dependency.discovery_path
-                                )
-                            })
-                            .collect::<Vec<_>>()
-                            .join(" | ")
-                    };
-                    let integration_surfaces = if detail.integration_manifest.surfaces.is_empty() {
-                        t("coauth_account_detail.none")
-                    } else {
-                        detail
-                            .integration_manifest
-                            .surfaces
-                            .iter()
-                            .map(|surface| {
-                                format!("{} {} {}", surface.method, surface.path, surface.contract)
-                            })
-                            .collect::<Vec<_>>()
-                            .join(" | ")
-                    };
-                    rsx! {
-                        div { class: "rounded-lg border p-4 space-y-2",
-                            div { class: "text-lg font-semibold", "{display_name}" }
-                            div { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.bridge_description")}
+            let id = claim.id.clone();
+            let changed = mutation.clone();
+            let remove = ui::action_form_controlled(
+                scope,
+                &mutations,
+                format!("claim:{}", claim.id),
+                row_theme.clone(),
+                t("common.revoke"),
+                vec![],
+                Some(Danger::new(common::suffix(&id)).without_reason()),
+                move |_| {
+                    let id = id.clone();
+                    async move { coauth::revoke_account_claim(&id).await }
+                },
+                move || changed.reload(),
+            );
+            children.push(Box::new(
+                sapid::card()
+                    .theme(row_theme.clone())
+                    .title(claim.claim_kind.clone())
+                    .fill((common::record(&claim), remove)),
+            ));
+        }
+        children.push(ui::heading(t("risk_action_panel.current_state_title")));
+        children.push(common::record(&detail.risk_action_current));
+        children.push(ui::heading(t("risk_action_panel.history_title")));
+        children.push(common::record(&detail.risk_action_history));
+        children.push(ui::heading(t("risk_action_panel.hook_title")));
+        children.push(common::record(&detail.risk_action_hook));
+        let current = &detail.risk_action_current;
+        let allowed = |name: &str| {
+            current
+                .allowed_next_transitions
+                .iter()
+                .any(|v| v.eq_ignore_ascii_case(name))
+        };
+        if current.lifecycle_state.is_empty()
+            || current.lifecycle_state == "idle"
+            || allowed("submit")
+            || allowed("propose")
+            || allowed("queue")
+        {
+            for action in ["lock", "disable", "reset_recovery", "erase"] {
+                let account = account_id.clone();
+                let changed = mutation.clone();
+                children.push(ui::action_form_controlled(
+                    scope,
+                    &mutations,
+                    format!("risk:{}", account_id),
+                    row_theme.clone(),
+                    t(&format!("risk_action_panel.queue_{action}")),
+                    vec![Field::new(t("risk_action_panel.ticket_label"), "")],
+                    Some(Danger::new(format!("QUEUE {}", action.to_uppercase()))),
+                    move |values| {
+                        let account = account.clone();
+                        async move {
+                            if values[0].trim().is_empty() {
+                                return Err(HttpError::message("A ticket reference is required"));
                             }
-                        }
-
-                        div { class: "grid gap-4 md:grid-cols-2",
-                            {section_block(
-                                t("coauth_account_detail.account_summary"),
-                                rsx! {
-                                    {detail_row(t("coauth_account_detail.account_id"), &summary.id)}
-                                    {detail_row(t("coauth_account_detail.handle"), &handle)}
-                                    {detail_row(
-                                        t("coauth_account_detail.primary_principal_id"),
-                                        primary_principal_id,
-                                    )}
+                            coauth::submit_account_risk_action(
+                                &account,
+                                &coauth::AccountRiskActionProposalRequestBody {
+                                    action: action.into(),
+                                    reason: Some(values[1].clone()),
+                                    ticket: Some(values[0].trim().into()),
+                                    approved_by: None,
                                 },
-                            )}
-                            {section_block(
-                                t("coauth_account_detail.lifecycle"),
-                                rsx! {
-                                    {detail_row(t("coauth_account_detail.status"), lifecycle)}
-                                    {detail_row(t("coauth_account_detail.locked"), &bool_label(summary.is_locked))}
-                                    {detail_row(t("coauth_account_detail.deactivated"), &bool_label(summary.is_deactivated))}
-                                    {detail_row(t("coauth_account_detail.created_at"), &created_at)}
-                                    {detail_row(t("coauth_account_detail.updated_at"), &updated_at)}
-                                },
-                            )}
+                            )
+                            .await
+                            .map(|_| ())
                         }
-
-                        DidBindingPanel {
-                            account_id: account_id.clone(),
-                            bindings: detail.managed_dids.clone(),
-                            on_mutated: move |_| data_for_dids.restart(),
-                        }
-
-                        ClaimsPanel {
-                            account_id: account_id.clone(),
-                            claims: detail.claims.clone(),
-                            on_mutated: move |_| data_for_claims.restart(),
-                        }
-
-                        {risk_action_panel::risk_action_panel(
-                            &account_id,
-                            &detail.risk_action_current,
-                            &detail.risk_action_history,
-                            &detail.risk_action_hook,
-                            &detail.admin_bridge,
-                            move || data_for_risk.restart(),
-                        )}
-
-                        div { class: "rounded-lg border p-4 space-y-4",
-                            h2 { class: "text-base font-semibold", {t("coauth_account_detail.integration_manifest")} }
-                            p { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.contract")}
-                                span { class: "font-mono", "{detail.integration_manifest.contract}" }
-                            }
-                            p { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.service")}
-                                span { class: "font-mono", "{detail.integration_manifest.service}" }
-                            }
-                            p { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.kind")}
-                                span { class: "font-mono", "{detail.integration_manifest.service_kind}" }
-                            }
-                            p { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.describe_path")}
-                                span { class: "font-mono", "{detail.integration_manifest.describe_path}" }
-                            }
-                            p { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.dependencies")}
-                                span { class: "font-mono", "{integration_dependencies}" }
-                            }
-                            p { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.surfaces")}
-                                span { class: "font-mono", "{integration_surfaces}" }
-                            }
-                            h2 { class: "text-base font-semibold", {t("coauth_account_detail.admin_bridge_contract")} }
-                            p { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.contract")}
-                                span { class: "font-mono", "{detail.admin_bridge.contract}" }
-                            }
-                            p { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.api_base")}
-                                span { class: "font-mono", "{detail.admin_bridge.api_base_path}" }
-                            }
-                            p { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.accounts")}
-                                span { class: "font-mono", "{detail.admin_bridge.accounts_path}" }
-                            }
-                            p { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.account_detail_template")}
-                                span { class: "font-mono", "{detail.admin_bridge.account_detail_path_template}" }
-                            }
-                            p { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.did_bindings_template")}
-                                span { class: "font-mono", "{detail.admin_bridge.account_dids_path_template}" }
-                            }
-                            p { class: "text-sm text-muted-foreground",
-                                {t("coauth_account_detail.claims_template")}
-                                span { class: "font-mono", "{detail.admin_bridge.account_claims_path_template}" }
-                            }
-                        }
-                    }
-                }
-                Some(Err(e)) => rsx! {
-                    ErrorBanner {
-                        message: e.message.clone(),
-                        errcode: e.body.as_ref().map(|body| body.errcode.clone()),
-                        request_id: e.request_id.clone(),
-                        retry_after_ms: e.retry_after_ms,
-                        on_retry: move |_| data.restart(),
+                    },
+                    move || changed.reload(),
+                ));
+            }
+        }
+        if allowed("approve") {
+            children.push(Box::new(
+                text().content(t("risk_action_panel.signing_unavailable")),
+            ));
+            children.push(Box::new(
+                sapid::button()
+                    .theme(row_theme.clone())
+                    .label(t("risk_action_panel.approve_last"))
+                    .enabled(false),
+            ));
+        }
+        if allowed("execute")
+            && let (Some(proposal), Some(action)) =
+                (current.proposal_id.clone(), current.action.clone())
+        {
+            let account = account_id.clone();
+            let changed = mutation.clone();
+            let ticket = current.ticket.clone();
+            children.push(ui::action_form_controlled(
+                scope,
+                &mutations,
+                format!("risk:{}", account_id),
+                row_theme.clone(),
+                t("risk_action_panel.execute_approved"),
+                vec![],
+                Some(Danger::new(format!("EXECUTE {}", action.to_uppercase()))),
+                move |values| {
+                    let account = account.clone();
+                    let proposal = proposal.clone();
+                    let action = action.clone();
+                    let ticket = ticket.clone();
+                    async move {
+                        coauth::execute_account_risk_action(
+                            &account,
+                            &proposal,
+                            &coauth::AccountRiskActionExecuteRequestBody {
+                                action,
+                                ticket,
+                                execution_note: Some(values[0].clone()),
+                            },
+                        )
+                        .await
+                        .map(|_| ())
                     }
                 },
-                None => rsx! { PageSkeleton {} },
-            }
+                move || changed.reload(),
+            ));
         }
-    }
-}
-
-fn section_block(title: String, content: Element) -> Element {
-    rsx! {
-        div { class: "rounded-lg border p-4 space-y-3",
-            h2 { class: "text-base font-semibold", "{title}" }
-            {content}
-        }
-    }
-}
-
-fn detail_row(label: String, value: &str) -> Element {
-    rsx! {
-        div { class: "flex items-start justify-between gap-4 border-b pb-2 last:border-b-0 last:pb-0",
-            span { class: "text-sm text-muted-foreground", "{label}" }
-            span { class: "text-sm text-right break-all", "{value}" }
-        }
-    }
-}
-
-fn bool_label(value: bool) -> String {
-    if value {
-        t("common.yes")
-    } else {
-        t("common.no")
-    }
+        children.push(ui::heading(t("coauth_account_detail.integration_manifest")));
+        children.push(common::record(&detail.integration_manifest));
+        children.push(ui::heading(t(
+            "coauth_account_detail.admin_bridge_contract",
+        )));
+        children.push(common::record(&detail.admin_bridge));
+        common::stack(row_theme.clone(), children)
+    });
+    common::stack(
+        theme,
+        vec![
+            common::heading("coauth_account_detail.title"),
+            Box::new(
+                link()
+                    .target("/coauth/accounts")
+                    .label(t("coauth_account_detail.back")),
+            ),
+            body,
+        ],
+    )
 }

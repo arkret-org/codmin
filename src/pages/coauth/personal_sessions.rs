@@ -1,294 +1,135 @@
-use dioxus::prelude::*;
+use glory::prelude::*;
 
+use super::common;
 use crate::api::coauth;
-use crate::components::dangerous_action_dialog::{DangerousActionDialog, confirmation_suffix};
-use crate::components::ui::button::{Button, ButtonVariant};
-use crate::components::ui::error_banner::ErrorBanner;
-use crate::components::ui::input::{Input, LabelFor};
-use crate::components::ui::loading::PageSkeleton;
-use crate::components::ui::modal::{DialogActions, Modal};
-use crate::components::ui::page_header::PageHeader;
-use crate::components::ui::pagination::CursorPagination;
-use crate::components::ui::table::*;
-use crate::components::ui::toast::{ToastVariant, show_toast};
+use crate::components::ui::{self, Danger, Field};
 use crate::utils::i18n::t;
-
-const PAGE_SIZE: u64 = 25;
-
-#[component]
-pub fn PersonalSessionsPage() -> Element {
-    let mut cursor_stack = use_signal(|| vec![None::<String>]);
-    let mut show_create = use_signal(|| false);
-    let mut show_revoke = use_signal(|| None::<String>);
-    let mut show_regenerate = use_signal(|| None::<String>);
-    let mut new_name = use_signal(String::new);
-    let mut create_loading = use_signal(|| false);
-    // One-shot access token captured from create/regenerate. The token is
-    // only returned once by coauth; surface it in a copy-once modal and
-    // drop it from memory when the modal closes (never persisted).
-    let mut revealed_token = use_signal(|| None::<String>);
-
-    let cursor_snapshot = cursor_stack.read().last().cloned().unwrap_or(None);
-    let mut data = use_resource(move || {
-        let cursor = cursor_snapshot.clone();
-        async move { coauth::list_personal_sessions(cursor.as_deref(), PAGE_SIZE).await }
-    });
-
-    rsx! {
-        div { class: "space-y-6",
-            PageHeader {
-                title: t("coauth.personal_sessions.title"),
-                description: t("coauth.personal_sessions.subtitle"),
-                Button {
-                    variant: ButtonVariant::Default,
-                    onclick: move |_| show_create.set(true),
-                    {t("common.create")}
-                }
+pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
+    let reveal = scope.cage(String::new());
+    let row_theme = theme.clone();
+    let (body, data) = common::cursor(
+        scope,
+        theme.clone(),
+        |cursor| async move { coauth::list_personal_sessions(cursor.as_deref(), 25).await },
+        move |scope, row, data, mutations| {
+            let id = row.id.clone();
+            let revoke_data = data.clone();
+            let revoke = ui::action_form_controlled(
+                scope,
+                &mutations,
+                row.id.clone(),
+                row_theme.clone(),
+                t("common.revoke"),
+                vec![],
+                Some(Danger::new(common::suffix(&id)).without_reason()),
+                move |_| {
+                    let id = id.clone();
+                    async move { coauth::revoke_personal_session(&id).await }
+                },
+                move || revoke_data.reload(),
+            );
+            let id = row.id.clone();
+            let regenerate = ui::action_form_controlled(
+                scope,
+                &mutations,
+                row.id.clone(),
+                row_theme.clone(),
+                t("coauth.personal_sessions.regenerate"),
+                vec![],
+                Some(Danger::new(common::suffix(&id)).without_reason()),
+                move |_| {
+                    let id = id.clone();
+                    async move {
+                        let response = coauth::regenerate_personal_session(&id).await?;
+                        reveal.revise(|v| *v = response.access_token.unwrap_or_default());
+                        Ok(())
+                    }
+                },
+                move || data.reload(),
+            );
+            Box::new(
+                sapid::card()
+                    .theme(row_theme.clone())
+                    .title(row.id.clone())
+                    .fill((common::record(&row), revoke, regenerate)),
+            )
+        },
+    );
+    let create = ui::action_form(
+        scope,
+        theme.clone(),
+        t("common.create"),
+        vec![Field::new(t("coauth.personal_sessions.name"), "")],
+        None,
+        move |values| async move {
+            if values[0].trim().is_empty() {
+                return Err(crate::utils::net::error::HttpError::message(
+                    "Session name is required",
+                ));
             }
-
-            match &*data.read() {
-                Some(Ok(resp)) => {
-                    let next_cursor = resp.next_cursor.clone();
-                    let stack_depth = cursor_stack.read().len();
-                    rsx! {
-                    div { class: "rounded-md border",
-                        Table {
-                            TableHeader {
-                                TableRow {
-                                    TableHead { {t("coauth.personal_sessions.id")} }
-                                    TableHead { {t("coauth.personal_sessions.user_id")} }
-                                    TableHead { {t("coauth.personal_sessions.name")} }
-                                    TableHead { {t("coauth.personal_sessions.created_at")} }
-                                    TableHead { {t("coauth.personal_sessions.last_active")} }
-                                    TableHead { class: "text-right".to_string(), {t("common.actions")} }
-                                }
-                            }
-                            TableBody {
-                                if resp.data.is_empty() {
-                                    TableRow {
-                                        TableCell { class: "text-center text-muted-foreground py-8".to_string(), colspan: 99,
-                                            {t("coauth.personal_sessions.no_sessions")}
-                                        }
-                                    }
+            let response = coauth::create_personal_session(values[0].trim()).await?;
+            reveal.revise(|v| *v = response.access_token.unwrap_or_default());
+            Ok(())
+        },
+        move || data.reload(),
+    );
+    common::stack(
+        theme.clone(),
+        vec![
+            common::heading("coauth.personal_sessions.title"),
+            create,
+            token_reveal(scope, theme, reveal),
+            body,
+        ],
+    )
+}
+fn token_reveal(_scope: &Scope, theme: sapid::Theme, reveal: Cage<String>) -> ui::View {
+    ui::reactive(reveal, move |scope, token| {
+        if token.is_empty() {
+            return Box::new(group());
+        }
+        let status = scope.cage(String::new());
+        let weak = scope.downgrade();
+        Box::new(
+            sapid::card()
+                .theme(theme.clone())
+                .title(t("coauth.personal_sessions.token_reveal_title"))
+                .fill((
+                    text().content(t("coauth.personal_sessions.token_reveal_warning")),
+                    text().class("one-shot-token").content(token.clone()),
+                    sapid::button()
+                        .theme(theme.clone())
+                        .label(t("common.copy"))
+                        .on_press(move || {
+                            let Some(scope) = weak.upgrade() else {
+                                return;
+                            };
+                            let token = token.clone();
+                            let _ = scope.owner().spawn(async move {
+                                let result = if let Some(window) = web_sys::window() {
+                                    wasm_bindgen_futures::JsFuture::from(
+                                        window.navigator().clipboard().write_text(&token),
+                                    )
+                                    .await
+                                    .map(|_| ())
+                                    .map_err(|_| "Failed to copy token")
                                 } else {
-                                    for session in resp.data.iter() {
-                                        {
-                                            let id = session.id.clone();
-                                            let user_id = session.user_id.clone().unwrap_or_else(|| "-".to_string());
-                                            let name = session.name.clone().unwrap_or_else(|| "-".to_string());
-                                            let created = session.created_at.clone().unwrap_or_else(|| "-".to_string());
-                                            let last_active = session.last_active_at.clone().unwrap_or_else(|| "-".to_string());
-
-                                            let id_for_revoke = id.clone();
-                                            let id_for_regen = id.clone();
-
-                                            rsx! {
-                                                TableRow {
-                                                    key: "{id}",
-                                                    TableCell { class: "font-medium".to_string(), "{id}" }
-                                                    TableCell { class: "max-w-[150px] truncate".to_string(), "{user_id}" }
-                                                    TableCell { "{name}" }
-                                                    TableCell { class: "text-muted-foreground".to_string(), "{created}" }
-                                                    TableCell { class: "text-muted-foreground".to_string(), "{last_active}" }
-                                                    TableCell { class: "text-right".to_string(),
-                                                        div { class: "flex items-center justify-end gap-1",
-                                                            Button {
-                                                                variant: ButtonVariant::Ghost,
-                                                                onclick: {
-                                                                    let id = id_for_regen.clone();
-                                                                    move |_| show_regenerate.set(Some(id.clone()))
-                                                                },
-                                                                {t("coauth.personal_sessions.regenerate")}
-                                                            }
-                                                            Button {
-                                                                variant: ButtonVariant::Ghost,
-                                                                onclick: {
-                                                                    let id = id_for_revoke.clone();
-                                                                    move |_| show_revoke.set(Some(id.clone()))
-                                                                },
-                                                                {t("coauth.personal_sessions.revoke")}
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
+                                    Err("Clipboard is unavailable")
+                                };
+                                status.revise(|v| {
+                                    *v = match result {
+                                        Ok(()) => t("coauth.personal_sessions.token_copied"),
+                                        Err(e) => e.into(),
                                     }
-                                }
-                            }
-                        }
-                    }
-
-                    CursorPagination {
-                        depth: stack_depth,
-                        has_next: next_cursor.is_some(),
-                        on_prev: move |_| {
-                            let mut new_stack = cursor_stack.read().clone();
-                            if new_stack.len() > 1 {
-                                new_stack.pop();
-                                cursor_stack.set(new_stack);
-                            }
-                        },
-                        on_next: move |_| {
-                            if let Some(cursor) = next_cursor.clone() {
-                                let mut new_stack = cursor_stack.read().clone();
-                                new_stack.push(Some(cursor));
-                                cursor_stack.set(new_stack);
-                            }
-                        },
-                    }
-                    }
-                },
-                Some(Err(e)) => rsx! {
-                    ErrorBanner {
-                        message: e.message.clone(),
-                        on_retry: move |_| data.restart(),
-                    }
-                },
-                None => rsx! { PageSkeleton {} },
-            }
-        }
-
-        Modal {
-            open: *show_create.read(),
-            title: t("coauth.personal_sessions.create"),
-            on_close: move |_| show_create.set(false),
-            div { class: "space-y-1",
-                LabelFor { r#for: "ps-name".to_string(), {t("coauth.personal_sessions.name")} }
-                Input {
-                    value: new_name.read().clone(),
-                    oninput: move |evt: FormEvent| new_name.set(evt.value()),
-                }
-            }
-            DialogActions {
-                confirm_text: t("common.create"),
-                cancel_text: t("common.cancel"),
-                confirm_loading: *create_loading.read(),
-                on_cancel: move |_| show_create.set(false),
-                on_confirm: move |_| {
-                    create_loading.set(true);
-                    let name = new_name.read().clone();
-                    spawn(async move {
-                        match coauth::create_personal_session(&name).await {
-                            Ok(oneshot) => {
-                                show_create.set(false);
-                                new_name.set(String::new());
-                                match oneshot.access_token {
-                                    Some(tok) if !tok.is_empty() => {
-                                        revealed_token.set(Some(tok));
-                                    }
-                                    _ => show_toast(&t("coauth.personal_sessions.toast_created"), ToastVariant::Success),
-                                }
-                                data.restart();
-                            }
-                            Err(e) => show_toast(&format!("Failed: {}", e.message), ToastVariant::Error),
-                        }
-                        create_loading.set(false);
-                    });
-                },
-            }
-        }
-
-        DangerousActionDialog {
-            open: show_revoke.read().is_some(),
-            title: t("coauth.personal_sessions.revoke"),
-            description: t("coauth.personal_sessions.revoke_confirm"),
-            confirmation_phrase: confirmation_suffix(show_revoke.read().as_deref().unwrap_or(""), 4),
-            confirm_text: t("coauth.personal_sessions.revoke"),
-            cancel_text: t("common.cancel"),
-            on_confirm: move |_| {
-                if let Some(id) = show_revoke.read().clone() {
-                    let id = id.clone();
-                    spawn(async move {
-                        match coauth::revoke_personal_session(&id).await {
-                            Ok(_) => {
-                                show_toast(&t("coauth.personal_sessions.toast_revoked"), ToastVariant::Success);
-                                data.restart();
-                            }
-                            Err(e) => show_toast(&format!("Failed: {}", e.message), ToastVariant::Error),
-                        }
-                    });
-                }
-                show_revoke.set(None);
-            },
-            on_cancel: move |_| show_revoke.set(None),
-        }
-
-        DangerousActionDialog {
-            open: show_regenerate.read().is_some(),
-            title: t("coauth.personal_sessions.regenerate"),
-            description: t("coauth.personal_sessions.regenerate_confirm"),
-            confirmation_phrase: confirmation_suffix(show_regenerate.read().as_deref().unwrap_or(""), 4),
-            confirm_text: t("coauth.personal_sessions.regenerate"),
-            cancel_text: t("common.cancel"),
-            on_confirm: move |_| {
-                if let Some(id) = show_regenerate.read().clone() {
-                    let id = id.clone();
-                    spawn(async move {
-                        match coauth::regenerate_personal_session(&id).await {
-                            Ok(oneshot) => {
-                                match oneshot.access_token {
-                                    Some(tok) if !tok.is_empty() => {
-                                        revealed_token.set(Some(tok));
-                                    }
-                                    _ => show_toast(&t("coauth.personal_sessions.toast_regenerated"), ToastVariant::Success),
-                                }
-                                data.restart();
-                            }
-                            Err(e) => show_toast(&format!("Failed: {}", e.message), ToastVariant::Error),
-                        }
-                    });
-                }
-                show_regenerate.set(None);
-            },
-            on_cancel: move |_| show_regenerate.set(None),
-        }
-
-        // One-shot token reveal. coauth returns the access token exactly
-        // once on create/regenerate; show it with a copy button and a
-        // "won't be shown again" warning, then drop it on close.
-        {
-            let token = revealed_token.read().clone();
-            rsx! {
-                Modal {
-                    open: token.is_some(),
-                    title: t("coauth.personal_sessions.token_reveal_title"),
-                    on_close: move |_| revealed_token.set(None),
-                    div { class: "space-y-3",
-                        p { class: "text-sm text-amber-700 dark:text-amber-300",
-                            {t("coauth.personal_sessions.token_reveal_warning")}
-                        }
-                        if let Some(tok) = token.clone() {
-                            div { class: "rounded-md border bg-muted/40 px-3 py-2 font-mono text-xs break-all",
-                                "{tok}"
-                            }
-                            Button {
-                                variant: ButtonVariant::Default,
-                                onclick: move |_| {
-                                    let tok = tok.clone();
-                                    spawn(async move {
-                                        if let Some(clipboard) = web_sys::window().map(|w| w.navigator().clipboard()) {
-                                            match wasm_bindgen_futures::JsFuture::from(clipboard.write_text(&tok)).await {
-                                                Ok(_) => show_toast(&t("coauth.personal_sessions.token_copied"), ToastVariant::Success),
-                                                Err(_) => show_toast("Failed to copy token", ToastVariant::Error),
-                                            }
-                                        } else {
-                                            show_toast("Clipboard is unavailable", ToastVariant::Error);
-                                        }
-                                    });
-                                },
-                                {t("common.copy")}
-                            }
-                        }
-                    }
-                    DialogActions {
-                        confirm_text: t("common.close"),
-                        cancel_text: t("common.close"),
-                        on_cancel: move |_| revealed_token.set(None),
-                        on_confirm: move |_| revealed_token.set(None),
-                    }
-                }
-            }
-        }
-    }
+                                });
+                            });
+                        }),
+                    text().content(status),
+                    sapid::button()
+                        .theme(theme.clone())
+                        .label(t("common.close"))
+                        .on_press(move || reveal.revise(String::clear)),
+                )),
+        )
+    })
 }

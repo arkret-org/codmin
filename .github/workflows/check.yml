@@ -16,7 +16,6 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
-  RUSTFLAGS: "-D warnings"
 
 defaults:
   run:
@@ -64,6 +63,10 @@ jobs:
           CI_REPO_TOKEN: ${{ secrets.CI_REPO_TOKEN || github.token }}
         run: bash .ci/checkout-build-dependencies.sh
 
+      - name: Check out Glory and Sapid
+        working-directory: codmin
+        run: bash .ci/checkout-ui-dependencies.sh
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
         with:
@@ -95,7 +98,7 @@ jobs:
         run: cargo +stable clippy --workspace --all-targets --locked -- -D warnings
 
   wasm-build:
-    name: dx build (release)
+    name: Glory WASM build (release)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -135,16 +138,15 @@ jobs:
           CI_REPO_TOKEN: ${{ secrets.CI_REPO_TOKEN || github.token }}
         run: bash .ci/checkout-build-dependencies.sh
 
+      - name: Check out Glory and Sapid
+        working-directory: codmin
+        run: bash .ci/checkout-ui-dependencies.sh
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
-
-      - name: Install binaryen
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y binaryen
 
       - name: Cache cargo registry, git, and target
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
@@ -152,21 +154,20 @@ jobs:
           workspaces: codmin
           shared-key: wasm
 
-      - name: Install dioxus-cli
-        run: cargo install dioxus-cli@0.7.10 --locked
+      - name: Install wasm-bindgen CLI
+        run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
 
-      - name: dx build --release
-        run: dx build --release
+      - name: Build Glory web bundle
+        run: python scripts/build-web.py --release --out-dir dist
+
+      - name: Check browser application lints
+        run: cargo clippy --lib --target wasm32-unknown-unknown --release --locked -- -D warnings
 
       - name: Locate build artifact
         id: dist
         run: |
-          set -euo pipefail
-          dist_dir="$(find "$(cargo metadata --format-version 1 --no-deps | python -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')/dx" -type d -path '*/release/web/public' | head -n 1)"
-          test -n "$dist_dir"
-          test -f "$dist_dir/index.html"
-          echo "build artifact at: $dist_dir"
-          echo "dir=$dist_dir" >> "$GITHUB_OUTPUT"
+          test -f dist/index.html
+          echo "dir=codmin/dist" >> "$GITHUB_OUTPUT"
 
       - name: Upload web artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -206,6 +207,12 @@ jobs:
           node scripts/serve-spa.mjs dist 4173 > serve.log 2>&1 &
           echo $! > serve.pid
           sleep 2
+      - name: Run Glory migration regressions
+        env:
+          CODMIN_E2E_BASE_URL: http://127.0.0.1:4173
+          CODMIN_E2E_OUTPUT_DIR: ${{ runner.temp }}/codmin-migration
+        run: npm run test:migration -- --reporter=line
+
       - name: Run Playwright smoke
         env:
           CODMIN_E2E_BASE_URL: http://127.0.0.1:4173

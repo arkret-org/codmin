@@ -46,6 +46,10 @@ jobs:
           CI_REPO_TOKEN: ${{ secrets.CI_REPO_TOKEN || github.token }}
         run: bash .ci/checkout-build-dependencies.sh
 
+      - name: Check out Glory and Sapid
+        working-directory: codmin
+        run: bash .ci/checkout-ui-dependencies.sh
+
       - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
         with:
           manifest-path: codmin/Cargo.toml

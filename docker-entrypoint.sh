@@ -89,7 +89,7 @@ cat >> /etc/nginx/conf.d/default.conf <<EOF
 EOF
 }
 
-# Emit /config.json consumed by the Dioxus runtime. The value is
+# Emit /config.json consumed by the Glory application. The value is
 # JSON-escaped (backslash + double-quote) so an operator-supplied URL with
 # a quote/backslash can't produce invalid JSON that wedges the SPA into the
 # config-error panel.
@@ -121,7 +121,7 @@ server {
     gzip_types application/wasm application/javascript text/css application/json image/svg+xml;
 
     # Hardening headers. CSP intentionally omits 'unsafe-inline' on
-    # script-src; 'wasm-unsafe-eval' is required for the Dioxus WASM
+    # script-src; 'wasm-unsafe-eval' is required for the Glory WASM
     # bundle. Adjust connect-src if the deployment fronts additional
     # services beyond the same-origin proxy paths below.
     add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests" always;

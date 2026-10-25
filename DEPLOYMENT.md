@@ -5,7 +5,7 @@ the Gitea workflow.
 
 ## Runtime Model
 
-`codmin` is a static Dioxus/WASM bundle served by nginx. At container start, `docker-entrypoint.sh` writes `/usr/share/nginx/html/config.json` and renders nginx upstream proxy settings from environment variables.
+`codmin` is a static Glory/Sapid WASM bundle served by nginx. At container start, `docker-entrypoint.sh` writes `/usr/share/nginx/html/config.json` and renders nginx upstream proxy settings from environment variables.
 
 ## Environment Variables
 
@@ -25,7 +25,7 @@ Coauth uses ULID client IDs; the former hard-coded client name `codmin` is not a
 valid client ID. Authorization, code exchange, refresh and revoke all use the
 configured value. The client ID is public configuration, never a client secret.
 
-The codmin container is a single nginx instance serving a Dioxus/WASM SPA
+The codmin container is a single nginx instance serving a Glory/Sapid WASM SPA
 plus reverse-proxy locations for upstream services. Operators
 fronting additional services should update both `connect-src` in the
 CSP header and the routing table below.
@@ -87,9 +87,9 @@ image by digest in production.
 The nginx template sets CSP, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, and a restrictive `Permissions-Policy`. If an operator fronts additional origins, update `connect-src` in `docker-entrypoint.sh` and keep the change local to that deployment.
 
 The CSP `script-src` directive includes `'wasm-unsafe-eval'` (required
-by the Dioxus WASM bundle) but intentionally OMITS `'unsafe-eval'` and
+by the Glory WASM bundle) but intentionally OMITS `'unsafe-eval'` and
 `'unsafe-inline'`. New agent-UI dialogs use the existing
-`ConfirmDialog` / `DangerousActionDialog` Dioxus primitives and do not
+Glory/Sapid controls with explicit confirmation phrases and do not
 introduce any inline-script or eval-based dialog framework; the strict
 CSP is preserved.
 

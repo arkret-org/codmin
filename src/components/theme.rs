@@ -18,13 +18,18 @@ impl Theme {
 }
 
 fn get_system_theme() -> &'static str {
-    let window = web_sys::window().unwrap();
-    let matches = window
-        .match_media("(prefers-color-scheme: dark)")
-        .ok()
-        .flatten()
+    #[cfg(target_arch = "wasm32")]
+    let matches = web_sys::window()
+        .and_then(|window| {
+            window
+                .match_media("(prefers-color-scheme: dark)")
+                .ok()
+                .flatten()
+        })
         .map(|m| m.matches())
         .unwrap_or(false);
+    #[cfg(not(target_arch = "wasm32"))]
+    let matches = false;
     if matches { "dark" } else { "light" }
 }
 

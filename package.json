@@ -15,7 +15,8 @@
     "test:a11y": "npx playwright test -c tests/e2e/playwright.config.ts tests/e2e/a11y.spec.ts",
     "test:keyboard": "npx playwright test -c tests/e2e/playwright.config.ts tests/e2e/keyboard-strands.spec.ts",
     "test:rtl": "npx playwright test -c tests/e2e/playwright.config.ts tests/e2e/rtl.spec.ts",
-    "lhci": "lhci autorun --config=./lighthouserc.json"
+    "lhci": "lhci autorun --config=./lighthouserc.json",
+    "test:migration": "node scripts/test-migration.cjs"
   },
   "repository": {
     "type": "git",

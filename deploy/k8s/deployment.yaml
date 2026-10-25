@@ -28,7 +28,7 @@ spec:
         kubernetes.io/arch: arm64
       containers:
         - name: nginx
-          # The codmin container is a single nginx serving the Dioxus / WASM
+          # The codmin container is a single nginx serving the Glory / WASM
           # SPA plus reverse-proxy locations for coland + coauth. The current
           # Gitea workflow publishes architecture-suffixed ARM64 tags only;
           # replace the repository with your configured registry and pin a

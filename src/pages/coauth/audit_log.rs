@@ -1,176 +1,89 @@
-use dioxus::prelude::*;
+use glory::prelude::*;
 
+use super::common;
 use crate::api::coauth;
-use crate::components::ui::button::{Button, ButtonVariant};
-use crate::components::ui::error_banner::ErrorBanner;
-use crate::components::ui::input::{Input, LabelFor};
-use crate::components::ui::loading::PageSkeleton;
-use crate::components::ui::page_header::PageHeader;
-use crate::components::ui::table::*;
+use crate::components::ui;
 use crate::utils::i18n::t;
-
-const AUDIT_FEED_LIMIT: u64 = 25;
-
-#[derive(Debug, Clone, Default, PartialEq)]
-struct DraftFilter {
-    actor_user_id: String,
-    target_type: String,
-}
-
-impl DraftFilter {
-    fn to_query(&self) -> coauth::AuditFeedFilter {
-        coauth::AuditFeedFilter {
-            actor_user_id: trim_to_option(&self.actor_user_id),
-            target_type: trim_to_option(&self.target_type),
-        }
-    }
-
-    fn is_empty(&self) -> bool {
-        self.actor_user_id.trim().is_empty() && self.target_type.trim().is_empty()
-    }
-}
-
-fn trim_to_option(s: &str) -> Option<String> {
-    let trimmed = s.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed.to_string())
-    }
-}
-
-#[component]
-pub fn AuditLogPage() -> Element {
-    let mut draft = use_signal(DraftFilter::default);
-    let mut applied = use_signal(DraftFilter::default);
-
-    let mut data = use_resource(move || {
-        let filter = applied.read().clone();
-        async move { coauth::list_audit_feed(AUDIT_FEED_LIMIT, filter.to_query()).await }
+pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
+    let filter = scope.cage((String::new(), String::new()));
+    let data = ui::resource(scope, move || {
+        let (actor, target) = filter.get();
+        coauth::list_audit_feed(
+            25,
+            coauth::AuditFeedFilter {
+                actor_user_id: (!actor.trim().is_empty()).then(|| actor.trim().to_owned()),
+                target_type: (!target.trim().is_empty()).then(|| target.trim().to_owned()),
+            },
+        )
     });
-
-    rsx! {
-        div { class: "space-y-6",
-            PageHeader {
-                title: t("coauth.audit_log.title"),
-                description: t("coauth.audit_log.subtitle"),
-            }
-
-            div { class: "rounded-md border bg-card p-4",
-                div { class: "grid gap-3 md:grid-cols-2",
-                    div { class: "space-y-1",
-                        LabelFor { class: "text-xs text-muted-foreground".to_string(), {t("coauth.audit_log.filter_actor")} }
-                        Input {
-                            placeholder: t("coauth.audit_log.filter_actor_placeholder"),
-                            value: draft.read().actor_user_id.clone(),
-                            oninput: move |evt: FormEvent| {
-                                draft.write().actor_user_id = evt.value();
-                            },
-                        }
-                    }
-                    div { class: "space-y-1",
-                        LabelFor { class: "text-xs text-muted-foreground".to_string(), {t("coauth.audit_log.filter_target_type")} }
-                        Input {
-                            placeholder: t("coauth.audit_log.filter_target_type_placeholder"),
-                            value: draft.read().target_type.clone(),
-                            oninput: move |evt: FormEvent| {
-                                draft.write().target_type = evt.value();
-                            },
-                        }
-                    }
-                }
-                div { class: "mt-4 flex flex-wrap items-center gap-2",
-                    Button {
-                        onclick: move |_| {
-                            applied.set(draft.read().clone());
-                        },
-                        {t("coauth.audit_log.filter_apply")}
-                    }
-                    Button {
-                        variant: ButtonVariant::Outline,
-                        disabled: draft.read().is_empty() && applied.read().is_empty(),
-                        onclick: move |_| {
-                            draft.set(DraftFilter::default());
-                            applied.set(DraftFilter::default());
-                        },
-                        {t("coauth.audit_log.filter_reset")}
-                    }
-                }
-            }
-
-            match &*data.read() {
-                Some(Ok(resp)) => rsx! {
-                    div { class: "rounded-md border",
-                        Table {
-                            TableHeader {
-                                TableRow {
-                                    TableHead { {t("coauth.audit_log.id")} }
-                                    TableHead { {t("coauth.audit_log.operation")} }
-                                    TableHead { {t("coauth.audit_log.actor")} }
-                                    TableHead { {t("coauth.audit_log.target_type")} }
-                                    TableHead { {t("coauth.audit_log.target_id")} }
-                                    TableHead { {t("coauth.audit_log.col_detail")} }
-                                    TableHead { {t("coauth.audit_log.timestamp")} }
-                                    TableHead { {t("coauth.audit_log.signature_status")} }
-                                }
-                            }
-                            TableBody {
-                                if resp.is_empty() {
-                                    TableRow {
-                                        TableCell { class: "text-center text-muted-foreground py-8".to_string(), colspan: 99,
-                                            {t("coauth.audit_log.no_entries")}
-                                        }
-                                    }
-                                } else {
-                                    for entry in resp.iter() {
-                                        {
-                                            let id = entry.id.clone();
-                                            let op = entry.operation.clone();
-                                            let actor = entry.admin_user_id.clone().unwrap_or_else(|| "-".to_string());
-                                            let target_type = entry.resource_kind.clone();
-                                            let target_id = entry.resource_id.clone();
-                                            let details = audit_details_text(&entry.details);
-                                            let ts = entry.created_at.to_rfc3339();
-                                            let signature_status = format!("{:?}", entry.signature_status);
-
-                                            rsx! {
-                                                TableRow {
-                                                    key: "{id}",
-                                                    TableCell { class: "font-medium".to_string(), "{id}" }
-                                                    TableCell { "{op}" }
-                                                    TableCell { class: "max-w-[150px] truncate".to_string(), "{actor}" }
-                                                    TableCell { "{target_type}" }
-                                                    TableCell { class: "max-w-[150px] truncate".to_string(), "{target_id}" }
-                                                    TableCell { class: "max-w-[280px] whitespace-pre-wrap break-all text-xs text-muted-foreground".to_string(), "{details}" }
-                                                    TableCell { class: "text-muted-foreground".to_string(), "{ts}" }
-                                                    TableCell { "{signature_status}" }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                },
-                Some(Err(e)) => rsx! {
-                    ErrorBanner {
-                        message: e.message.clone(),
-                        on_retry: move |_| data.restart(),
-                    }
-                },
-                None => rsx! { PageSkeleton {} },
-            }
-        }
-    }
-}
-
-fn audit_details_text(details: &Option<serde_json::Value>) -> String {
-    match details {
-        Some(value) if !value.is_null() => {
-            serde_json::to_string(value).unwrap_or_else(|_| "-".to_string())
-        }
-        _ => "-".to_string(),
-    }
+    let actor = scope.cage(String::new());
+    let target = scope.cage(String::new());
+    let actor_label = t("coauth.audit_log.filter_actor");
+    let target_label = t("coauth.audit_log.filter_target_type");
+    let form = Box::new(
+        sapid::stack().theme(theme.clone()).fill((
+            text().content(actor_label.clone()),
+            sapid::text_field()
+                .theme(theme.clone())
+                .name(actor_label)
+                .value(actor)
+                .on_value_change(move |value| actor.revise(|old| *old = value)),
+            text().content(target_label.clone()),
+            sapid::text_field()
+                .theme(theme.clone())
+                .name(target_label)
+                .value(target)
+                .on_value_change(move |value| target.revise(|old| *old = value)),
+            sapid::button()
+                .theme(theme.clone())
+                .label(t("coauth.audit_log.filter_apply"))
+                .on_press(move || {
+                    filter.revise(|value| *value = (actor.get_untracked(), target.get_untracked()))
+                }),
+        )),
+    );
+    let reset = Box::new(
+        sapid::button()
+            .theme(theme.clone())
+            .label(t("coauth.audit_log.filter_reset"))
+            .on_press(move || {
+                actor.revise(String::clear);
+                target.revise(String::clear);
+                filter.revise(|value| *value = (String::new(), String::new()));
+            }),
+    );
+    let outer = theme.clone();
+    let body = ui::resource_view(scope, theme.clone(), data, move |_, rows| {
+        ui::table(
+            theme.clone(),
+            vec![
+                "ID".into(),
+                "Operation".into(),
+                "Actor".into(),
+                "Target type".into(),
+                "Target ID".into(),
+                "Details".into(),
+                "Timestamp".into(),
+                "Signature status".into(),
+            ],
+            rows.into_iter()
+                .map(|r| {
+                    vec![
+                        r.id,
+                        r.operation,
+                        r.admin_user_id.unwrap_or_default(),
+                        r.resource_kind,
+                        r.resource_id,
+                        r.details.map(|v| v.to_string()).unwrap_or_default(),
+                        r.created_at.to_rfc3339(),
+                        format!("{:?}", r.signature_status),
+                    ]
+                })
+                .collect(),
+        )
+    });
+    common::stack(
+        outer,
+        vec![common::heading("coauth.audit_log.title"), form, reset, body],
+    )
 }

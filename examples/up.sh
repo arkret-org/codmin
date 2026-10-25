@@ -74,6 +74,10 @@ for sibling in arkret-rust-sdk arkret-spec coauth coland floria codmin cotest ga
 done
 
 if (( NO_BUILD == 0 )); then
+    bash "${EXAMPLES_DIR}/../.ci/checkout-ui-dependencies.sh"
+fi
+
+if (( NO_BUILD == 0 )); then
     echo "[example-stack/up] building coauth image first (needed for config gen)"
     docker compose -f "${COMPOSE_FILE}" build coauth || {
         echo "[example-stack/up] coauth build failed" >&2
@@ -179,7 +183,7 @@ else
 fi
 
 if (( NO_BUILD == 0 )); then
-    # Each Rust/Dioxus image can use the full compiler budget. Avoid running
+    # Each Rust/WASM image can use the full compiler budget. Avoid running
     # several independent release builds at once on a cold CI runner.
     for service in coland floria codmin; do
         echo "[example-stack/up] building ${service} image"

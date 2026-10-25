@@ -167,6 +167,10 @@ services:
     build:
       context: ../..
       dockerfile: codmin/Dockerfile
+      additional_contexts:
+        savfox: ../../../savfox-ai/savfox
+        glory: ../../../glory-rs/glory
+        sapid: ../../../glory-rs/sapid
     container_name: arkret-example-codmin
     depends_on:
       coauth:

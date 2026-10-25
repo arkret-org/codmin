@@ -20,14 +20,9 @@ mod upstream;
 mod viewer;
 
 pub use accounts::{
-    AccountRiskActionApprovalOutcome, AccountRiskActionApprovalRequestBody,
-    AccountRiskActionCurrentOutcome, AccountRiskActionExecuteRequestBody,
-    AccountRiskActionProposalOutcome, AccountRiskActionProposalRequestBody,
-    AccountRiskActionTransitionRecord, AdminBridgeDescribe, CoauthAccountClaim,
-    CoauthAccountRiskActionExecute, CoauthManagedDidBinding, CoauthRiskActionHook,
-    approve_account_risk_action, execute_account_risk_action, get_account_detail,
-    list_accounts_cursor, remove_account_did_binding, revoke_account_claim,
-    submit_account_risk_action,
+    AccountRiskActionExecuteRequestBody, AccountRiskActionProposalRequestBody,
+    execute_account_risk_action, get_account_detail, list_accounts_cursor,
+    remove_account_did_binding, revoke_account_claim, submit_account_risk_action,
 };
 pub use audit_feed::{AuditFeedFilter, list_audit_feed};
 pub use connector_health::get_connector_health;

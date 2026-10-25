@@ -1,4 +1,4 @@
-# Top-level build artefacts (cargo + dx). The `**/target/` glob is
+# Top-level build artefacts (Cargo + web). The `**/target/` glob is
 # critical: a workspace-member or claude-worktree `target/` deeper in
 # the tree would otherwise pour 5+ GB into the build context (C36.5
 # lesson).

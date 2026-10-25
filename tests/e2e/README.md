@@ -88,3 +88,14 @@ Required env vars (in addition to the shared trio):
   that account
 
 If unset, the spec self-skips.
+
+## Glory migration checks
+
+Build with `python scripts/build-web.py --release`, serve the reported web directory,
+and run `npm run test:migration`. This separate suite drives the real WASM app
+with mocked HTTP contracts. It covers authorization, forms, cursors, token
+regeneration during refresh, mobile navigation, sign-out, every admin route
+and the public accessibility surface. It does not require seeded backend data
+and does not prove live OAuth or backend authorization. On Windows the wrapper
+keeps transform caches, browser profiles and artifacts under D:/BuildCache/codmin-glory.
+Set `CODMIN_E2E_CHANNEL=msedge` or `chrome` to reuse an installed browser.

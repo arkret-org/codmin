@@ -1,11 +1,11 @@
-// Build the actual WASM app first; pass the public directory reported by dx.
+// Build the actual WASM app first; pass the public directory reported by scripts/build-web.py.
 // NODE_PATH must include a Playwright installation. No live accounts are used.
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const http = require('node:http');
 const path = require('node:path');
 const { chromium } = require('playwright');
-assert.ok(process.argv[2], 'pass the dx public directory (derive target_directory with cargo metadata)');
+assert.ok(process.argv[2], 'pass the static web directory reported by scripts/build-web.py');
 const assets = path.resolve(process.argv[2]);
 let active;
 let origin;

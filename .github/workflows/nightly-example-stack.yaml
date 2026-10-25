@@ -30,7 +30,7 @@ jobs:
   example-stack:
     name: Bring up + smoke
     runs-on: ubuntu-latest
-    # Four cold Rust/Dioxus images are built in sequence to bound memory.
+    # Four cold Rust/WASM images are built in sequence to bound memory.
     timeout-minutes: 120
     steps:
       - name: Check out codmin
@@ -63,6 +63,10 @@ jobs:
         env:
           CI_REPO_TOKEN: ${{ secrets.CI_REPO_TOKEN || github.token }}
         run: bash .ci/checkout-build-dependencies.sh
+
+      - name: Check out Glory and Sapid
+        working-directory: codmin
+        run: bash .ci/checkout-ui-dependencies.sh
 
       - name: Check out floria
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4

@@ -1,6 +1,6 @@
 # codmin
 
-Arkret administrator web UI for Station and coauth deployments. The app is built with Dioxus and compiled to WebAssembly.
+Arkret administrator web UI for Station and coauth deployments. The app is built with Glory and Sapid and compiled to WebAssembly.
 
 ## Pre-commit hook setup
 
@@ -51,7 +51,7 @@ governing Station.
 
 ```mermaid
 flowchart LR
-  Browser["Admin browser"] --> Codmin["codmin Dioxus/WASM"]
+  Browser["Admin browser"] --> Codmin["codmin Glory/Sapid/WASM"]
   Codmin --> Nginx["nginx static host + proxy"]
   Nginx --> Coland["coland Station admin API"]
   Nginx --> Coauth["coauth auth/account admin API"]
@@ -101,12 +101,28 @@ normative source:
 ## Development
 
 ```bash
-cargo check
-cargo test
-dx serve --platform web
+cargo test --lib --locked
+python scripts/build-web.py
+node scripts/serve-spa.mjs D:/BuildCache/codmin-glory/target/web 4173
 ```
 
-The UI reads `/config.json` at startup. A typical local config is:
+The UI uses local path dependencies at `../../glory-rs/glory/crates/glory` and
+`../../glory-rs/sapid`, resolving to `D:/Works/glory-rs` in this workspace.
+Keep those sibling checkouts present. CI prepares them through
+`.ci/checkout-ui-dependencies.sh`. The build uses Cargo and wasm-bindgen.
+
+On Windows set `CARGO_TARGET_DIR=D:/BuildCache/codmin-glory/target`,
+`CARGO_HOME=D:/BuildCache/cargo`, and `TEMP`/`TMP=D:/BuildCache/codmin-glory/tmp`
+before Cargo commands, and verify `cargo metadata --no-deps --format-version 1`.
+The web build script applies these locations by default and emits the bundle to
+Cargo's reported target directory under `web/`. Set `WASM_BINDGEN` to an existing
+0.2.129 executable if it is not on PATH. Install tool binaries with a D-drive
+`--root` on Windows. Linux CI may use `--out-dir dist`.
+
+Theme and language selections are persisted using the existing settings keys
+and take effect through a page reload; finish in-progress forms before switching.
+
+The UI reads `/config.json` on the sign-in page. A typical local config is:
 
 ```json
 {
@@ -117,8 +133,8 @@ The UI reads `/config.json` at startup. A typical local config is:
 ## Build
 
 ```bash
-cargo build --release
-dx build --platform web --release
+cargo install wasm-bindgen-cli --version 0.2.129 --locked
+python scripts/build-web.py --release
 ```
 
 ## Container
@@ -139,7 +155,7 @@ docker run -p 9090:80 \
 
 ## Deployment
 
-The local image bundles a static Dioxus/WASM build behind nginx. At
+The local image bundles a static Glory/WASM build behind nginx. At
 container start, `docker-entrypoint.sh` reads the runtime environment
 and emits `/usr/share/nginx/html/config.json` plus an nginx vhost
 configured with sane security headers.

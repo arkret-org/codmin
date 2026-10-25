@@ -22,6 +22,10 @@ for the full mapping.
 ### Repository layout assumption
 
 The compose file references sibling repos via relative build contexts.
+Codmin additionally uses the adjacent `glory-rs/glory` and `glory-rs/sapid`
+repositories as named build contexts. `.ci/checkout-ui-dependencies.sh` pins
+published UI revisions on a fresh checkout and preserves existing local sources.
+
 Coauth + codmin both use an **umbrella build context** (`../..` →
 `arkret/`) so the workspace `Cargo.toml` path-deps
 `../arkret-rust-sdk/...` and `../coauth/crates/admin-types` resolve
@@ -85,14 +89,14 @@ cargo build --release --bin coland
 # floria — single-binary release; default features
 cargo build --release --bin floria
 
-# codmin — Dioxus WASM SPA; uses dx, not cargo
-cargo install dioxus-cli@0.7.10 --locked
-dx build --release
-# Query cargo metadata --format-version 1 --no-deps for target_directory.
-# Web output is under its dx/codmin/release/web/public directory.
+# codmin — Glory/Sapid WASM SPA
+bash .ci/checkout-ui-dependencies.sh
+cargo install wasm-bindgen-cli --version 0.2.129 --locked
+python scripts/build-web.py --release --out-dir dist
+# The static bundle is written to dist/.
 ```
 
-Smoke binary (Rust-side): `cargo build --bin codmin-smoke` builds the
+Smoke binary (Rust-side): `cargo build --features smoke --bin codmin-smoke` builds the
 post-deploy probe shipped in the codmin repo (`src/bin/codmin_smoke.rs`).
 
 ### Quickstart
@@ -210,7 +214,7 @@ regression doesn't require local docker reproduction.
 | `coauth config generate failed`         | `coauth:dev` image not built — run `up.sh` without `--no-build`, or pre-pull `COAUTH_IMAGE`. |
 | `port 55432 already bound`              | Local postgres on host. Stop it or change the host port in the compose file. |
 | `coauth` healthcheck flaps              | Postgres still migrating. The `start_period: 20s` should cover it; bump if your machine is slow. |
-| `codmin: never returned 200`            | The Dioxus build inside the image is large. Re-run `smoke.sh` with `SMOKE_ATTEMPT_BUDGET=120`. |
+| `codmin: never returned 200`            | The Rust/WASM build inside the image is large. Re-run `smoke.sh` with `SMOKE_ATTEMPT_BUDGET=120`. |
 | Build context error: `../../coauth` not found | Sibling repos aren't checked out. Either clone them next to `codmin/` or override every `*_IMAGE` env var. |
 | `502 Bad Gateway` during apt-get      | Docker Desktop proxy or upstream Debian mirror flake. Floria/coauth wrap apt in a 5-attempt retry loop (added C37.3); just re-run `up.sh` if it surfaces. |
 | `cargo chef cook: failed to read /arkret-rust-sdk/...` | Sibling `arkret-rust-sdk` missing from umbrella checkout. Confirm the sibling checkout exists before rerunning. |

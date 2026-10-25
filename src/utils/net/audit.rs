@@ -21,7 +21,7 @@
 //! codmin.admin.action target=account id=… action=deactivate outcome=accepted note=…
 //! ```
 //!
-//! The format is stable so a downstream `dioxus-logger` sink can parse
+//! The format is stable so a downstream structured log sink can parse
 //! it without re-deriving the schema.
 
 /// Outcome of an admin click — the toast variant on the page mirrors

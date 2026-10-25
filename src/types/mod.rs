@@ -8,15 +8,12 @@ pub mod actors;
 pub use actors::*;
 
 pub mod audit;
-pub use audit::*;
 
 pub mod capabilities;
-pub use capabilities::*;
 
 pub mod coauth_devices;
 
 pub mod devices;
-pub use devices::*;
 
 pub mod federation;
 pub use federation::*;

@@ -19,3 +19,5 @@ pub mod realms;
 pub mod server_status;
 pub mod service_routes;
 pub mod spaces;
+
+pub(crate) mod station;

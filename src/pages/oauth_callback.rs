@@ -1,57 +1,43 @@
-use dioxus::prelude::*;
+use glory::prelude::*;
 
 use crate::api::auth;
-use crate::components::ui::loading::Spinner;
+use crate::components::ui;
 use crate::utils::i18n::t;
+use crate::utils::net::error::HttpError;
 
-#[component]
-pub fn OAuthCallback(
-    code: Option<String>,
-    state: Option<String>,
-    error: Option<String>,
-    error_description: Option<String>,
-) -> Element {
-    let nav = use_navigator();
-
-    use_effect(move || {
-        let code = code.clone();
-        let state = state.clone();
-        let error = error.clone();
-        let error_description = error_description.clone();
-        spawn(async move {
-            if let Some(err) = error.as_ref() {
-                log::error!("OAuth error: {} - {:?}", err, error_description);
-                nav.replace(crate::router::Route::LoginPage {
-                    logout_warning: None,
-                });
-                return;
-            }
-            if let Some(code) = code.as_ref() {
-                match auth::handle_oauth_callback(code, state.as_deref()).await {
-                    Ok(()) => {
-                        nav.replace(crate::router::Route::Dashboard {});
-                    }
-                    Err(e) => {
-                        log::error!("OAuth callback failed: {}", e.message);
-                        nav.replace(crate::router::Route::LoginPage {
-                            logout_warning: None,
-                        });
-                    }
-                }
-            } else {
-                nav.replace(crate::router::Route::LoginPage {
-                    logout_warning: None,
-                });
-            }
-        });
-    });
-
-    rsx! {
-        div { class: "flex min-h-screen items-center justify-center",
-            div { class: "text-center space-y-4",
-                Spinner { class: String::new() }
-                p { class: "text-muted-foreground", {t("auth.completing_login")} }
-            }
+pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
+    let status = ui::resource(scope, || async {
+        if let Some(error) = super::login::query("error") {
+            return Err(HttpError::message(format!(
+                "OAuth authorization failed: {error}"
+            )));
         }
-    }
+        let code = super::login::query("code")
+            .ok_or_else(|| HttpError::message("Missing OAuth authorization code"))?;
+        let state = super::login::query("state");
+        auth::handle_oauth_callback(&code, state.as_deref()).await?;
+        if let Some(window) = web_sys::window() {
+            window
+                .location()
+                .replace("/")
+                .map_err(|_| HttpError::message("Could not open the dashboard"))?;
+        }
+        Ok(())
+    });
+    col().role(Role::Main).class("auth-page").fill((
+        ui::heading(t("auth.completing_login")),
+        ui::reactive(status.data, move |_scope, status| match status {
+            None => Box::new(text().content(t("common.loading"))),
+            Some(Ok(())) => Box::new(text().content("Opening dashboard…")),
+            Some(Err(error)) => Box::new(
+                col().fill((
+                    sapid::alert("oauth-error")
+                        .theme(theme.clone())
+                        .severity(sapid::AlertSeverity::Danger)
+                        .content(error.message),
+                    link().target("/login").label(t("auth.sign_in")),
+                )),
+            ),
+        }),
+    ))
 }

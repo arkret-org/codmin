@@ -1,0 +1,36 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; color: #212529; background: #f8f9fa; }
+html.dark body { color: #dee2e6; background: #141517; }
+button, input, textarea, select { font: inherit; }
+button, a, input, textarea, select { touch-action: manipulation; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid #74c0fc; outline-offset: 3px; }
+.codmin-shell { min-height: 100dvh; }
+.codmin-navigation { gap: 4px; padding: 16px; overflow-y: auto; }
+.codmin-navigation a { padding: 8px 12px; border-radius: 6px; text-decoration: none; }
+.codmin-navigation a[aria-current="page"] { background: var(--sp-accent-soft); color: var(--sp-accent-text); font-weight: 600; }
+.codmin-header { gap: 12px; flex-wrap: wrap; align-items: center; padding: 12px 20px; }
+.codmin-header h1 { margin: 0; font-size: 1.2rem; }
+.sapid-shell-main { padding: clamp(12px, 3vw, 32px); min-width: 0; }
+.session-check, .login-page, .oauth-callback, .not-authorized { max-width: 720px; margin: 10vh auto; padding: 24px; gap: 16px; }
+.codmin-page, .station-page { gap: 20px; padding: 20px; min-width: 0; }
+.codmin-panel { gap: 12px; padding: 16px; border: 1px solid var(--sp-border, #ced4da); border-radius: 8px; }
+.codmin-form { gap: 12px; max-width: 920px; }
+.codmin-form textarea { min-height: 100px; }
+.codmin-table { overflow-x: auto; max-width: 100%; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px; border-bottom: 1px solid var(--sp-border, #ced4da); text-align: start; overflow-wrap: anywhere; }
+@media (max-width: 767px) { .codmin-header { gap: 8px; padding: 12px; } .codmin-page, .station-page { padding: 12px; } }
+
+.auth-page { max-width: 720px; margin: 8vh auto; padding: 24px; gap: 20px; }
+.auth-page h1 { margin: 0; }
+.resource-panel, .resource-error, .admin-action-form { gap: 12px; }
+.admin-action-form { padding: 16px; border: 1px solid var(--sp-border, #ced4da); border-radius: 8px; margin-block: 8px; }
+.admin-field { gap: 6px; }
+.admin-details { gap: 8px; min-width: 0; }
+.admin-detail { gap: 16px; flex-wrap: wrap; overflow-wrap: anywhere; }
+.detail-label { font-weight: 600; min-width: 140px; }
+.admin-table { max-width: 100%; overflow-x: auto; }
+.action-message, .reason-error { overflow-wrap: anywhere; }
+.reason-error { color: var(--sp-danger, #c92a2a); }
+.one-shot-token { overflow-wrap: anywhere; user-select: all; }
