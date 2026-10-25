@@ -18,42 +18,116 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
     let warning = query("logout_warning")
         .as_deref()
         .and_then(logout_warning_message);
-    let mut children: Vec<View> = vec![
-        ui::heading("Arkret Admin"),
-        Box::new(text().content(t("auth.sign_in_subtitle"))),
-    ];
-    if let Some(warning) = warning {
-        children.push(Box::new(
-            sapid::alert("logout-warning")
+    let reload = config.clone();
+    ui::reactive(config.data, move |scope, result| {
+        if let Some(Err(error)) = result.as_ref() {
+            let reload = reload.clone();
+            return ui::auth_frame(
+                512.0,
+                vec![
+                    ui::auth_brand(
+                        theme.clone(),
+                        t("config.error.title"),
+                        t("config.error.subtitle"),
+                        true,
+                    ),
+                    Box::new(
+                        sapid::alert("config-error")
+                            .theme(theme.clone())
+                            .severity(sapid::AlertSeverity::Danger)
+                            .class("auth-error-card")
+                            .content(error.message.clone()),
+                    ),
+                    Box::new(
+                        sapid::card()
+                            .theme(theme.clone())
+                            .class("auth-checklist")
+                            .style(Style::new().padding(Edges::all(16.0)))
+                            .fill((
+                                sapid::text()
+                                    .theme(theme.clone())
+                                    .weight(500.0)
+                                    .content(t("config.error.hint_title")),
+                                text().content(t("config.error.hint_serve_path")),
+                                text().content(t("config.error.hint_required_fields")),
+                                text().content(t("config.error.hint_check_proxy")),
+                            )),
+                    ),
+                    Box::new(
+                        sapid::button()
+                            .theme(theme.clone())
+                            .label(t("common.retry"))
+                            .on_press(move || reload.reload()),
+                    ),
+                ],
+            );
+        }
+        let mut card: Vec<View> = Vec::new();
+        if let Some(warning) = warning.as_ref() {
+            card.push(Box::new(
+                sapid::alert("logout-warning")
+                    .theme(theme.clone())
+                    .severity(sapid::AlertSeverity::Warning)
+                    .content(warning.clone()),
+            ));
+        }
+        card.push(Box::new(
+            sapid::text()
                 .theme(theme.clone())
-                .severity(sapid::AlertSeverity::Warning)
-                .content(warning),
+                .class("auth-oauth-hint")
+                .variant(sapid::TextVariant::Muted)
+                .font_size(14.0)
+                .content(t("auth.oauth_hint")),
         ));
-    }
-    let form_theme = theme.clone();
-    children.push(ui::resource_view(
-        scope,
-        theme,
-        config,
-        move |scope, _config| {
-            Box::new(col().class("login-panel").fill((
-                text().content(t("auth.oauth_hint")),
-                ui::action_form(
-                    scope,
-                    form_theme.clone(),
-                    t("auth.sign_in"),
-                    vec![],
-                    None,
-                    |_| async { auth::start_oauth_login().await },
-                    || {},
+        if result.is_some() {
+            card.push(ui::action_form(
+                scope,
+                theme.clone(),
+                t("auth.sign_in"),
+                vec![],
+                None,
+                |_| async { auth::start_oauth_login().await },
+                || {},
+            ));
+        } else {
+            card.push(Box::new(
+                sapid::button()
+                    .theme(theme.clone())
+                    .label(t("auth.sign_in"))
+                    .loading(true)
+                    .enabled(false),
+            ));
+        }
+        ui::auth_frame(
+            448.0,
+            vec![
+                ui::auth_brand(
+                    theme.clone(),
+                    "Arkret Admin".into(),
+                    t("auth.sign_in_subtitle"),
+                    false,
                 ),
-            )))
-        },
-    ));
-    children.push(Box::new(text().content(t("auth.footer"))));
-    col().role(Role::Main).class("auth-page").fill(children)
+                Box::new(
+                    sapid::card()
+                        .theme(theme.clone())
+                        .class("auth-login-card")
+                        .shadow(sapid::ShadowSize::Small)
+                        .style(Style::new().padding(Edges::all(24.0)).gap(16.0))
+                        .fill(card),
+                ),
+                Box::new(
+                    sapid::text()
+                        .theme(theme.clone())
+                        .class("auth-footer")
+                        .variant(sapid::TextVariant::Muted)
+                        .font_size(12.0)
+                        .line_height(16.0)
+                        .content(t("auth.footer")),
+                ),
+            ],
+        )
+    })
 }
-
 pub(super) fn query(name: &str) -> Option<String> {
     let search = web_sys::window()?.location().search().ok()?;
     web_sys::UrlSearchParams::new_with_str(&search)

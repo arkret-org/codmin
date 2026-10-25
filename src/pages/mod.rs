@@ -15,6 +15,7 @@ pub mod media;
 pub mod not_authorized;
 pub mod oauth_callback;
 pub mod policy;
+pub(crate) mod presentation;
 pub mod realms;
 pub mod server_status;
 pub mod service_routes;

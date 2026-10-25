@@ -1,7 +1,7 @@
 use glory::prelude::*;
 
 use crate::components::ui::{self, Danger, Field, Resource, View};
-use crate::pages::station;
+use crate::pages::{presentation as p, station};
 use crate::types::policy::{AdminPolicy, AdminPolicyListOutcome, CreatePolicyRequest};
 use crate::utils::i18n::t;
 use crate::utils::net::error::HttpError;
@@ -17,6 +17,7 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
     let body_theme = theme.clone();
     col().class("station-page").fill((
         ui::heading(t("policy.title")),
+        p::description("policy.subtitle"),
         ui::action_form(
             scope,
             theme.clone(),
@@ -43,60 +44,117 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
             },
             move || filter_reload.reload(),
         ),
-        editor(scope, theme.clone(), None, data.clone()),
+        ui::compact_action(
+            theme.clone(),
+            t("common.create"),
+            editor(scope, theme.clone(), None, data.clone()),
+        ),
         ui::resource_view(scope, theme, data, move |scope, response| {
-            let mut children: Vec<View> = Vec::new();
-            if response.data.is_empty() {
-                children.push(Box::new(text().content(t("common.no_results"))));
-            }
-            for policy in response.data {
-                let mut parts: Vec<View> = vec![
-                    station::value_view(
-                        body_theme.clone(),
-                        serde_json::to_value(&policy).unwrap_or_default(),
-                    ),
-                    Box::new(text().content(t("policy.typed_evidence_unavailable"))),
-                ];
-                if policy.safety.read_only {
-                    parts.push(Box::new(
-                        text().content(
-                            policy
-                                .safety
-                                .read_only_reason
-                                .clone()
-                                .unwrap_or_else(|| t("policy.read_only")),
+            let rows = response
+                .data
+                .into_iter()
+                .map(|policy| {
+                    let guardrails = p::stack(vec![
+                        p::badge(
+                            body_theme.clone(),
+                            format!(
+                                "{} {}",
+                                policy.guardrails.obligations.len(),
+                                t("policy.obligations")
+                            ),
+                            "neutral",
                         ),
-                    ));
-                } else {
-                    parts.push(editor(
-                        scope,
-                        body_theme.clone(),
-                        Some(policy.clone()),
-                        edit_reload.clone(),
-                    ));
-                    let id = policy.id.clone();
-                    let reload = edit_reload.clone();
-                    parts.push(ui::action_form(
-                        scope,
-                        body_theme.clone(),
-                        t("common.delete"),
-                        vec![],
-                        Some(Danger::new(station::suffix(&id)).without_reason()),
-                        move |_| {
-                            let id = id.clone();
-                            async move { crate::api::policy::delete_policy(&id).await }
+                        if policy.safety.read_only {
+                            p::badge(body_theme.clone(), t("policy.read_only"), "neutral")
+                        } else {
+                            p::plain(t("policy.guardrails_none"))
                         },
-                        move || reload.reload(),
-                    ));
-                }
-                children.push(Box::new(
-                    sapid::card()
-                        .theme(body_theme.clone())
-                        .title(policy.name)
-                        .fill(parts),
-                ));
-            }
-            Box::new(col().fill(children))
+                    ]);
+                    let mut actions = Vec::<View>::new();
+                    if policy.safety.read_only {
+                        actions.push(ui::compact_action(
+                            body_theme.clone(),
+                            t("common.view"),
+                            p::stack(vec![
+                                p::plain(
+                                    policy
+                                        .safety
+                                        .read_only_reason
+                                        .clone()
+                                        .unwrap_or_else(|| t("policy.read_only")),
+                                ),
+                                p::plain(t("policy.typed_evidence_unavailable")),
+                            ]),
+                        ));
+                    } else {
+                        actions.push(ui::compact_action(
+                            body_theme.clone(),
+                            t("common.edit"),
+                            editor(
+                                scope,
+                                body_theme.clone(),
+                                Some(policy.clone()),
+                                edit_reload.clone(),
+                            ),
+                        ));
+                        let id = policy.id.clone();
+                        let reload = edit_reload.clone();
+                        actions.push(ui::compact_action(
+                            body_theme.clone(),
+                            t("common.delete"),
+                            ui::action_form(
+                                scope,
+                                body_theme.clone(),
+                                t("common.delete"),
+                                vec![],
+                                Some(Danger::new(station::suffix(&id)).without_reason()),
+                                move |_| {
+                                    let id = id.clone();
+                                    async move { crate::api::policy::delete_policy(&id).await }
+                                },
+                                move || reload.reload(),
+                            ),
+                        ));
+                    }
+                    vec![
+                        p::plain(&policy.id),
+                        p::plain(&policy.name),
+                        p::plain(p::optional(policy.policy_kind.as_ref())),
+                        p::plain(p::optional(policy.scope.as_ref())),
+                        p::mono(p::optional(policy.subject_ref.as_ref())),
+                        p::badge(
+                            body_theme.clone(),
+                            p::yes(policy.is_enabled),
+                            if policy.is_enabled {
+                                "success"
+                            } else {
+                                "neutral"
+                            },
+                        ),
+                        p::plain(policy.priority),
+                        guardrails,
+                        p::plain(p::optional(policy.updated_at.as_ref())),
+                        p::stack(actions),
+                    ]
+                })
+                .collect();
+            p::table(
+                body_theme.clone(),
+                &[
+                    "policy.id",
+                    "policy.name",
+                    "policy.policy_kind",
+                    "policy.scope",
+                    "Subject",
+                    "policy.enabled",
+                    "policy.priority",
+                    "policy.guardrails",
+                    "policy.updated_at",
+                    "common.actions",
+                ],
+                rows,
+                "policy.no_policies",
+            )
         }),
     ))
 }

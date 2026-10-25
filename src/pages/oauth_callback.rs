@@ -24,20 +24,28 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
         }
         Ok(())
     });
-    col().role(Role::Main).class("auth-page").fill((
-        ui::heading(t("auth.completing_login")),
-        ui::reactive(status.data, move |_scope, status| match status {
-            None => Box::new(text().content(t("common.loading"))),
-            Some(Ok(())) => Box::new(text().content("Opening dashboard…")),
-            Some(Err(error)) => Box::new(
-                col().fill((
-                    sapid::alert("oauth-error")
-                        .theme(theme.clone())
-                        .severity(sapid::AlertSeverity::Danger)
-                        .content(error.message),
-                    link().target("/login").label(t("auth.sign_in")),
-                )),
+    ui::auth_frame(
+        448.0,
+        vec![
+            ui::auth_brand(
+                theme.clone(),
+                "Arkret Admin".into(),
+                t("auth.completing_login"),
+                false,
             ),
-        }),
-    ))
+            ui::reactive(status.data, move |_scope, status| match status {
+                None => Box::new(text().content(t("common.loading"))),
+                Some(Ok(())) => Box::new(text().content("Opening dashboard…")),
+                Some(Err(error)) => Box::new(
+                    col().fill((
+                        sapid::alert("oauth-error")
+                            .theme(theme.clone())
+                            .severity(sapid::AlertSeverity::Danger)
+                            .content(error.message),
+                        link().target("/login").label(t("auth.sign_in")),
+                    )),
+                ),
+            }),
+        ],
+    )
 }

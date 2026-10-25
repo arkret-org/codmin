@@ -1,7 +1,7 @@
 use glory::prelude::*;
 
 use crate::components::ui;
-use crate::pages::station;
+use crate::pages::{presentation as p, station};
 use crate::types::{RealmLinkDirection, RealmLinkList};
 use crate::utils::i18n::t;
 use crate::utils::net::error::HttpError;
@@ -99,16 +99,14 @@ pub fn page(scope: &Scope, theme: sapid::Theme, realm_id: String) -> impl Widget
         ));
     Box::new(col().class("station-page").fill((
         ui::heading(t("realm_links.title")),
-        graph,
+        p::plain(format!("{}: {}", t("realm_links.realm"), realm_id)),
         ui::resource_view(scope, theme.clone(), outbound, move |_, list| {
             Box::new(
                 sapid::card()
                     .theme(out_theme.clone())
                     .title(t("realm_links.outbound_title"))
-                    .fill(station::value_view(
-                        out_theme.clone(),
-                        serde_json::to_value(list).unwrap_or_default(),
-                    )),
+                    .description(t("realm_links.outbound_subtitle"))
+                    .fill(link_rows(out_theme.clone(), &list, true)),
             )
         }),
         ui::resource_view(scope, theme, inbound, move |_, list| {
@@ -116,12 +114,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme, realm_id: String) -> impl Widget
                 sapid::card()
                     .theme(in_theme.clone())
                     .title(t("realm_links.inbound_title"))
-                    .fill(station::value_view(
-                        in_theme.clone(),
-                        serde_json::to_value(list).unwrap_or_default(),
-                    )),
+                    .description(t("realm_links.inbound_subtitle"))
+                    .fill(link_rows(in_theme.clone(), &list, false)),
             )
         }),
+        graph,
     )))
 }
 
@@ -173,4 +170,56 @@ fn edge_rows(
             }
         })
         .collect()
+}
+
+fn link_rows(
+    theme: sapid::Theme,
+    list: &RealmLinkList,
+    outbound: bool,
+) -> crate::components::ui::View {
+    if list.links.is_empty() {
+        return p::plain(t(if outbound {
+            "realm_links.outbound_empty"
+        } else {
+            "realm_links.inbound_empty"
+        }));
+    }
+    p::stack(
+        list.links
+            .iter()
+            .map(|row| {
+                let other = if outbound {
+                    row.target_realm_id.to_string()
+                } else {
+                    row.realm_id.to_string()
+                };
+                let key = format!("realm_links.kind.{}", row.link_kind.as_str());
+                let translated = t(&key);
+                let label = if translated == key {
+                    row.link_kind.as_str().into()
+                } else {
+                    translated
+                };
+                Box::new(
+                    sapid::group()
+                        .theme(theme.clone())
+                        .class("realm-link-row")
+                        .fill((
+                            p::badge(theme.clone(), label, "neutral"),
+                            p::mono(other),
+                            p::plain(
+                                row.label
+                                    .as_ref()
+                                    .map(|v| format!("({v})"))
+                                    .unwrap_or_default(),
+                            ),
+                            p::plain(row.status.as_str()),
+                            p::plain(crate::utils::fmt::date::format_iso_datetime(
+                                &row.updated_at.to_rfc3339(),
+                            )),
+                        )),
+                ) as crate::components::ui::View
+            })
+            .collect(),
+    )
 }

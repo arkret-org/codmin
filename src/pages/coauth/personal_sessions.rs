@@ -4,29 +4,39 @@ use super::common;
 use crate::api::coauth;
 use crate::components::ui::{self, Danger, Field};
 use crate::utils::i18n::t;
+const HEADERS: &[&str] = &[
+    "coauth.personal_sessions.id",
+    "coauth.personal_sessions.user_id",
+    "coauth.personal_sessions.name",
+    "coauth.personal_sessions.created_at",
+    "coauth.personal_sessions.last_active",
+    "common.actions",
+];
 pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
     let reveal = scope.cage(String::new());
     let row_theme = theme.clone();
     let (body, data) = common::cursor(
         scope,
         theme.clone(),
+        HEADERS,
+        "coauth.personal_sessions.no_sessions",
         |cursor| async move { coauth::list_personal_sessions(cursor.as_deref(), 25).await },
         move |scope, row, data, mutations| {
             let id = row.id.clone();
-            let revoke_data = data.clone();
+            let changed = data.clone();
             let revoke = ui::action_form_controlled(
                 scope,
                 &mutations,
                 row.id.clone(),
                 row_theme.clone(),
-                t("common.revoke"),
+                t("coauth.personal_sessions.revoke"),
                 vec![],
                 Some(Danger::new(common::suffix(&id)).without_reason()),
                 move |_| {
                     let id = id.clone();
                     async move { coauth::revoke_personal_session(&id).await }
                 },
-                move || revoke_data.reload(),
+                move || changed.reload(),
             );
             let id = row.id.clone();
             let regenerate = ui::action_form_controlled(
@@ -41,20 +51,46 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                     let id = id.clone();
                     async move {
                         let response = coauth::regenerate_personal_session(&id).await?;
-                        reveal.revise(|v| *v = response.access_token.unwrap_or_default());
+                        reveal.revise(|value| *value = response.access_token.unwrap_or_default());
                         Ok(())
                     }
                 },
                 move || data.reload(),
             );
-            Box::new(
-                sapid::card()
-                    .theme(row_theme.clone())
-                    .title(row.id.clone())
-                    .fill((common::record(&row), revoke, regenerate)),
-            )
+            vec![
+                common::mono(row.id),
+                common::mono(common::optional(row.user_id)),
+                common::cell(common::optional(row.name)),
+                common::muted(common::optional(row.created_at)),
+                common::muted(common::optional(row.last_active_at)),
+                common::group(vec![
+                    ui::compact_action(
+                        row_theme.clone(),
+                        t("coauth.personal_sessions.regenerate"),
+                        common::stack(
+                            row_theme.clone(),
+                            vec![
+                                common::muted(t("coauth.personal_sessions.regenerate_confirm")),
+                                regenerate,
+                            ],
+                        ),
+                    ),
+                    ui::compact_action(
+                        row_theme.clone(),
+                        t("coauth.personal_sessions.revoke"),
+                        common::stack(
+                            row_theme.clone(),
+                            vec![
+                                common::muted(t("coauth.personal_sessions.revoke_confirm")),
+                                revoke,
+                            ],
+                        ),
+                    ),
+                ]),
+            ]
         },
     );
+    let changed = data.clone();
     let create = ui::action_form(
         scope,
         theme.clone(),
@@ -68,19 +104,19 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                 ));
             }
             let response = coauth::create_personal_session(values[0].trim()).await?;
-            reveal.revise(|v| *v = response.access_token.unwrap_or_default());
+            reveal.revise(|value| *value = response.access_token.unwrap_or_default());
             Ok(())
         },
-        move || data.reload(),
+        move || changed.reload(),
     );
-    common::stack(
-        theme.clone(),
+    common::page(
+        "coauth.personal_sessions.title",
+        "coauth.personal_sessions.subtitle",
         vec![
-            common::heading("coauth.personal_sessions.title"),
-            create,
-            token_reveal(scope, theme, reveal),
-            body,
+            common::refresh(theme.clone(), data),
+            ui::compact_action(theme.clone(), t("coauth.personal_sessions.create"), create),
         ],
+        vec![token_reveal(scope, theme, reveal), body],
     )
 }
 fn token_reveal(_scope: &Scope, theme: sapid::Theme, reveal: Cage<String>) -> ui::View {

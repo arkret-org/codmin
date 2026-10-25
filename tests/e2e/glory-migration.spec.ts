@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, Page } from '@playwright/test';
 
+test.use({ channel: 'msedge', trace: 'off' });
+
 const accountId = '01JZ9PK6HKFY0MM7C0TMZ1X8N7';
 const deviceId = 'device-1234';
 const timestamp = '2026-10-25T00:00:00.000Z';
@@ -10,6 +12,9 @@ const device = { id: deviceId, account_id: accountId, display_name: 'Operator la
 async function setup(page: Page, admin = true) {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => {
+    if (message.type() === 'error' && /^Glory\b/.test(message.text())) errors.push(message.text());
+  });
   await page.addInitScript(() => {
     if (sessionStorage.getItem('glory_fixture_seeded')) return;
     sessionStorage.setItem('glory_fixture_seeded', '1');
@@ -50,6 +55,16 @@ async function mockAccounts(page: Page) {
   return requests;
 }
 
+async function openAction(page: Page, label: string) {
+  const trigger = page.getByRole('button', { name: label, exact: true }).and(page.locator('[aria-expanded]'));
+  await expect(trigger).toHaveCount(1);
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await trigger.click();
+  const form = page.locator('.admin-compact-action').filter({ has: trigger }).locator('.admin-action-form');
+  await expect(form).toBeVisible();
+  return form;
+}
+
 test('login loads deployment configuration, exposes a recoverable error, and retries', async ({ page }) => {
   const errors = await setup(page);
   let loads = 0;
@@ -77,7 +92,7 @@ test('the Glory shell renders typed server data and opens another admin route', 
   await mockAccounts(page);
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
-  await expect(page.getByText('glory-fixture', { exact: true })).toBeVisible();
+  await expect(page.getByText('glory-fixture', { exact: true }).first()).toBeVisible();
   await page.locator('a[href="/coauth/accounts"]').click();
   await expect(page).toHaveURL(/\/coauth\/accounts$/);
   await expect(page.getByRole('heading', { name: 'coauth Accounts', exact: true })).toBeVisible();
@@ -94,7 +109,6 @@ test('account search resets the cursor and pagination keeps the selected filter'
   await expect(page.getByText('Second operator', { exact: true }).first()).toBeVisible();
   expect(requests.at(-1)!.searchParams.get('page[after]')).toBe('next-page');
   await page.getByRole('textbox', { name: 'Search (any field)', exact: true }).fill('operator');
-  await page.getByRole('button', { name: 'Search (any field)', exact: true }).click();
   await expect(page.getByText('Filtered operator', { exact: true }).first()).toBeVisible();
   expect(requests.at(-1)!.searchParams.get('filter[search]')).toBe('operator');
   expect(requests.at(-1)!.searchParams.has('page[after]')).toBe(false);
@@ -123,17 +137,18 @@ test('device revocation requires the phrase and a safe audit reason, prevents du
   });
   try {
     await page.goto(`/coauth/accounts/${accountId}/devices`);
-    const submit = page.getByRole('button', { name: 'Revoke', exact: true });
+    const form = await openAction(page, 'Revoke');
+    const submit = form.getByRole('button', { name: 'Revoke', exact: true });
     await expect(submit).toBeDisabled();
-    await page.getByRole('textbox', { name: 'Confirmation phrase', exact: true }).fill('wrong');
-    await page.getByRole('textbox', { name: 'Reason / ticket', exact: true }).fill('SEC-1234 recovery');
+    await form.getByRole('textbox', { name: 'Confirmation phrase', exact: true }).fill('wrong');
+    await form.getByRole('textbox', { name: 'Reason / ticket', exact: true }).fill('SEC-1234 recovery');
     await expect(submit).toBeDisabled();
-    await page.getByRole('textbox', { name: 'Confirmation phrase', exact: true }).fill('1234');
-    await page.getByRole('textbox', { name: 'Reason / ticket', exact: true }).fill('password=secret');
+    await form.getByRole('textbox', { name: 'Confirmation phrase', exact: true }).fill('1234');
+    await form.getByRole('textbox', { name: 'Reason / ticket', exact: true }).fill('password=secret');
     await expect(page.getByText('The reason appears to contain credential material. Remove secrets before continuing.')).toBeVisible();
     await expect(submit).toBeDisabled();
     expect(mutations).toBe(0);
-    await page.getByRole('textbox', { name: 'Reason / ticket', exact: true }).fill('SEC-1234 recovery');
+    await form.getByRole('textbox', { name: 'Reason / ticket', exact: true }).fill('SEC-1234 recovery');
     await submit.click();
     await expect.poll(() => mutations).toBe(1);
     await expect(submit).toBeDisabled();
@@ -141,8 +156,8 @@ test('device revocation requires the phrase and a safe audit reason, prevents du
     expect(mutations).toBe(1);
     completeFirst!();
     await expect(page.getByText(/Retry device revocation/).last()).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Confirmation phrase', exact: true })).toHaveValue('1234');
-    await expect(page.getByRole('textbox', { name: 'Reason / ticket', exact: true })).toHaveValue('SEC-1234 recovery');
+    await expect(form.getByRole('textbox', { name: 'Confirmation phrase', exact: true })).toHaveValue('1234');
+    await expect(form.getByRole('textbox', { name: 'Reason / ticket', exact: true })).toHaveValue('SEC-1234 recovery');
     await expect(submit).toBeEnabled();
     await submit.click();
     await expect.poll(() => mutations).toBe(2);
@@ -158,7 +173,7 @@ test('the mobile menu opens the sidebar and follows an admin link', async ({ pag
   await mockAccounts(page);
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  await page.getByRole('button', { name: 'Open navigation', exact: true }).click();
   await expect(page.locator('.sapid-sidebar-drawer')).toBeVisible();
   await page.locator('.sapid-sidebar-drawer a[href="/coauth/accounts"]').click();
   await expect(page.getByRole('heading', { name: 'coauth Accounts', exact: true })).toBeVisible();
@@ -209,14 +224,15 @@ test('a pending token regeneration survives list refresh and a remounted row can
   });
   try {
     await page.goto('/coauth/personal-sessions');
-    const regenerate = page.getByRole('button', { name: 'Regenerate', exact: true });
-    const form = page.locator('.admin-action-form').filter({ has: regenerate });
+    const form = await openAction(page, 'Regenerate');
+    const regenerate = form.getByRole('button', { name: 'Regenerate', exact: true });
     await expect(regenerate).toBeDisabled();
     await form.getByRole('textbox', { name: 'Confirmation phrase', exact: true }).fill('1234');
     await regenerate.click();
     await expect.poll(() => regenerations).toBe(1);
     await page.getByRole('button', { name: 'Refresh', exact: true }).click();
     await expect.poll(() => reads).toBe(2);
+    await openAction(page, 'Regenerate');
     await expect(regenerate).toBeVisible();
     await form.getByRole('textbox', { name: 'Confirmation phrase', exact: true }).fill('1234');
     await expect(regenerate).toBeDisabled();
@@ -255,6 +271,7 @@ test('all administrative routes mount their real Glory widgets and show recovera
     await expect(page.getByRole('navigation')).toBeVisible();
     await expect(page.getByRole('main')).toBeVisible();
     await expect(page.getByRole('main')).not.toBeEmpty();
+    await expect(page.getByRole('main').getByRole('button', { name: 'Retry', exact: true }).first()).toBeVisible();
     expect(errors, route).toEqual([]);
   }
 });
@@ -294,11 +311,13 @@ test('keyboard navigation ignores form editing and confirmed logout in another t
   await expect(page.getByRole('heading', { name: 'Keyboard Shortcuts', exact: true })).toHaveCount(0);
   const second = await context.newPage();
   try {
+    const secondErrors = await setup(second);
     await second.goto('/login');
     await expect(second.getByRole('button', { name: 'Sign In', exact: true })).toBeEnabled();
     await second.evaluate(() => localStorage.removeItem('session_active'));
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole('button', { name: 'Sign In', exact: true })).toBeEnabled();
+    expect(secondErrors).toEqual([]);
   } finally { await second.close(); }
   expect(errors).toEqual([]);
 });

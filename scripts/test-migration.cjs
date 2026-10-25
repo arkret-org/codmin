@@ -11,7 +11,8 @@ if (process.platform === 'win32') {
   for (const directory of [env.TEMP, env.CODMIN_E2E_OUTPUT_DIR, env.PWTEST_CACHE_DIR]) mkdirSync(directory, { recursive: true });
 }
 const root = resolve(__dirname, '..');
+const layout = process.argv[2] === '--layout';
 const result = spawnSync(process.execPath, [join(root, 'node_modules/@playwright/test/cli.js'),
-  'test', '-c', 'tests/e2e/glory-migration.config.ts', ...process.argv.slice(2)], { cwd: root, env, stdio: 'inherit' });
+  'test', '-c', layout ? 'tests/e2e/glory-layout.config.ts' : 'tests/e2e/glory-migration.config.ts', ...process.argv.slice(layout ? 3 : 2)], { cwd: root, env, stdio: 'inherit' });
 if (result.error) console.error(result.error);
 process.exit(result.status ?? 1);

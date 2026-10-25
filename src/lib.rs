@@ -1,6 +1,7 @@
 #![allow(clippy::result_large_err)]
 #![allow(dead_code)]
 mod api;
+mod appearance;
 mod browser;
 mod components;
 mod logging;
@@ -24,13 +25,16 @@ pub fn start() -> Result<(), wasm_bindgen::JsValue> {
     let root = document
         .get_element_by_id("app")
         .ok_or("missing app root")?;
-    let theme = if components::theme::get_resolved_theme() == "dark" {
-        sapid::Theme::dark()
-    } else {
-        sapid::Theme::light()
-    };
+    appearance::install_styles(&document)?;
+    let theme = appearance::theme(components::theme::get_resolved_theme() == "dark");
     let app = glory::web::launch_with(root, move |scope| router::app(scope, theme))
         .map_err(|err| wasm_bindgen::JsValue::from_str(&err.to_string()))?;
+    // Keep application rules after the host's semantic reset in the cascade.
+    if let Some(stylesheet) = document.query_selector("link[href='/app.css']")?
+        && let Some(parent) = stylesheet.parent_node()
+    {
+        parent.append_child(&stylesheet)?;
+    }
     APP.with(|slot| *slot.borrow_mut() = Some(app));
     Ok(())
 }

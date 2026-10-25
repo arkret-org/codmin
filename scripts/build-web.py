@@ -56,6 +56,8 @@ def main():
     for source in (ROOT / "web").iterdir():
         if source.is_file():
             shutil.copy2(source, output / source.name)
+        elif source.is_dir():
+            shutil.copytree(source, output / source.name, dirs_exist_ok=True)
     sapid = ROOT.parent.parent / "glory-rs" / "sapid" / "styles" / "sapid.css"
     shutil.copy2(sapid, output / "sapid.css")
     print(f"Static web bundle: {output}")

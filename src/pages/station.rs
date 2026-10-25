@@ -1,6 +1,7 @@
 //! Shared presentation for the Station's typed administrative reads.
 use std::collections::BTreeSet;
 use std::future::Future;
+use std::rc::Rc;
 use std::result::Result;
 
 use glory::prelude::*;
@@ -26,12 +27,15 @@ impl Query {
     }
 }
 
+type DocumentView = Rc<dyn Fn(&Scope, sapid::Theme) -> View>;
+
 #[derive(Clone, Default)]
 pub struct Document {
     pub sections: Vec<(String, Value)>,
     pub next_cursor: Option<String>,
     pub links: Vec<(String, String)>,
     pub numeric: Option<NumericPagination>,
+    pub view: Option<DocumentView>,
 }
 #[derive(Clone, Copy)]
 pub struct NumericPagination {
@@ -46,6 +50,10 @@ impl NumericPagination {
     }
 }
 impl Document {
+    pub fn view(mut self, render: impl Fn(&Scope, sapid::Theme) -> View + 'static) -> Self {
+        self.view = Some(Rc::new(render));
+        self
+    }
     pub fn section(
         mut self,
         title: impl Into<String>,
@@ -210,6 +218,12 @@ fn scalar(value: &Value) -> String {
 }
 
 pub fn render(theme: sapid::Theme, document: Document) -> View {
+    if let Some(render) = document.view.as_ref() {
+        let render = render.clone();
+        return Box::new(widget(move |scope| {
+            render(scope, theme.clone()).show_in(scope)
+        }));
+    }
     let mut document = Some(document);
     Box::new(widget(move |scope| {
         let document = document.take().ok_or(glory::ui::Error::Gone)?;
@@ -237,12 +251,15 @@ where
     let body_theme = theme.clone();
     Box::new(
         col().class("station-page").fill((
-            ui::heading(title),
-            sapid::button()
-                .theme(theme.clone())
-                .label(t("common.refresh"))
-                .on_press(move || reload.reload()),
-            ui::resource_view(scope, theme, data, move |_, document| {
+            row().class("page-header").fill((
+                ui::heading(title),
+                sapid::button()
+                    .theme(theme.clone())
+                    .variant(sapid::ButtonVariant::Secondary)
+                    .label(t("common.refresh"))
+                    .on_press(move || reload.reload()),
+            )),
+            ui::resource_content(scope, theme, data, move |_, document| {
                 render(body_theme.clone(), document)
             }),
         )),
@@ -260,6 +277,23 @@ where
     F: Fn(Query) -> Fut + 'static,
     Fut: Future<Output = Result<Document, HttpError>> + 'static,
 {
+    let page_description = description(&title);
+    browse_with_description(scope, theme, title, page_description, filters, loader)
+}
+
+pub fn browse_with_description<F, Fut>(
+    scope: &Scope,
+    theme: sapid::Theme,
+    title: String,
+    page_description: String,
+    filters: Vec<(&str, &str)>,
+    loader: F,
+) -> View
+where
+    F: Fn(Query) -> Fut + 'static,
+    Fut: Future<Output = Result<Document, HttpError>> + 'static,
+{
+    let has_filters = !filters.is_empty();
     let storage_key = if title == t("nav.realms") {
         Some("codmin.realms.autorefresh")
     } else if title == t("nav.devices") {
@@ -298,10 +332,10 @@ where
         .zip(drafts.iter().copied())
         .map(|((label, _), value)| {
             col().fill((
-                text().content(label.to_owned()),
+                text().class("field-label").content(t(label)),
                 sapid::text_field()
                     .theme(theme.clone())
-                    .name(label.to_owned())
+                    .name(t(label))
                     .value(value)
                     .on_value_change(move |next| value.revise(|value| *value = next)),
             ))
@@ -396,7 +430,7 @@ where
     });
     let jump_theme = theme.clone();
     let numeric_controls = when(numeric_available, move || {
-        col().class("numeric-pagination").fill((
+        row().class("numeric-pagination").fill((
             text().content(numeric_status),
             sapid::text_field()
                 .theme(jump_theme.clone())
@@ -416,10 +450,8 @@ where
             text().content(jump_error),
         ))
     });
-    Box::new(
-        col().class("station-page").fill((
-            ui::heading(title),
-            col().fill(fields),
+    let filter_action: View = if has_filters {
+        Box::new(
             sapid::button()
                 .theme(theme.clone())
                 .label("Apply filters")
@@ -430,101 +462,158 @@ where
                         query.cursors = vec![None];
                     });
                 }),
-            sapid::button()
-                .theme(theme.clone())
-                .label(t("common.refresh"))
-                .on_press(move || refresh.reload()),
-            sapid::button()
-                .theme(theme.clone())
-                .label(t("common.export_csv"))
-                .on_press(move || {
-                    if let Some(Ok(document)) = export_data.data.get_untracked() {
-                        for (name, section) in document.sections {
-                            export_section(&name, section);
-                        }
-                    }
-                }),
-            sapid::native_select(refresh_key)
-                .theme(theme.clone())
-                .label(t("common.auto_refresh"))
-                .value(refresh_interval)
-                .options([
-                    sapid::select_option("off", "Off"),
-                    sapid::select_option("30s", "30s"),
-                    sapid::select_option("1m", "1m"),
-                    sapid::select_option("5m", "5m"),
-                ])
-                .on_value_change(move |value| {
-                    let value = value
-                        .filter(|value| matches!(value.as_str(), "off" | "30s" | "1m" | "5m"))
-                        .unwrap_or_else(|| "off".into());
-                    if let Some(key) = storage_key {
-                        crate::utils::storage::set_item(key, &value);
-                    }
-                    refresh_interval.revise(|current| *current = Some(value));
-                }),
-            ui::resource_view(scope, theme.clone(), data.clone(), move |_, document| {
+        )
+    } else {
+        Box::new(group())
+    };
+    Box::new(
+        col().class("station-page").fill((
+            col().class("page-header").fill((
+                ui::heading(title),
+                text().class("page-description").content(page_description),
+            )),
+            row().class("list-toolbar").fill((
+                row().class("filter-fields").fill(fields),
+                row().class("toolbar-actions").fill((
+                    filter_action,
+                    sapid::button()
+                        .theme(theme.clone())
+                        .variant(sapid::ButtonVariant::Secondary)
+                        .label(t("common.refresh"))
+                        .on_press(move || refresh.reload()),
+                    sapid::button()
+                        .theme(theme.clone())
+                        .variant(sapid::ButtonVariant::Secondary)
+                        .label(t("common.export_csv"))
+                        .on_press(move || {
+                            if let Some(Ok(document)) = export_data.data.get_untracked() {
+                                for (name, section) in document.sections {
+                                    export_section(&name, section);
+                                }
+                            }
+                        }),
+                    sapid::native_select(refresh_key)
+                        .theme(theme.clone())
+                        .label(t("common.auto_refresh"))
+                        .value(refresh_interval)
+                        .options([
+                            sapid::select_option("off", "Off"),
+                            sapid::select_option("30s", "30s"),
+                            sapid::select_option("1m", "1m"),
+                            sapid::select_option("5m", "5m"),
+                        ])
+                        .on_value_change(move |value| {
+                            let value = value
+                                .filter(|value| {
+                                    matches!(value.as_str(), "off" | "30s" | "1m" | "5m")
+                                })
+                                .unwrap_or_else(|| "off".into());
+                            if let Some(key) = storage_key {
+                                crate::utils::storage::set_item(key, &value);
+                            }
+                            refresh_interval.revise(|current| *current = Some(value));
+                        }),
+                )),
+            )),
+            ui::resource_content(scope, theme.clone(), data.clone(), move |_, document| {
                 render(render_theme.clone(), document)
             }),
-            numeric_controls,
-            row().fill((
-                sapid::button()
-                    .theme(theme.clone())
-                    .label(t("common.previous"))
-                    .enabled(previous_enabled)
-                    .on_press(move || {
-                        if query.with_untracked(|query| query.page <= 1)
-                            || !previous_data.data.with_untracked(Option::is_some)
-                        {
-                            return;
-                        }
-                        previous_data.data.revise(|value| *value = None);
-                        query.revise(|query| {
-                            query.page -= 1;
-                            if query.cursors.len() > 1 {
-                                query.cursors.pop();
+            row().class("table-pagination").fill((
+                numeric_controls,
+                row().class("pagination-actions").fill((
+                    sapid::button()
+                        .theme(theme.clone())
+                        .variant(sapid::ButtonVariant::Secondary)
+                        .label(t("common.previous"))
+                        .enabled(previous_enabled)
+                        .on_press(move || {
+                            if query.with_untracked(|query| query.page <= 1)
+                                || !previous_data.data.with_untracked(Option::is_some)
+                            {
+                                return;
                             }
-                        });
-                    }),
-                text().content(query.map(|query| format!("Page {}", query.page))),
-                sapid::button()
-                    .theme(theme)
-                    .label(t("common.next"))
-                    .enabled(next_enabled)
-                    .on_press(move || {
-                        let next = next_data.data.with_untracked(|value| {
-                            let document = value.as_ref()?.as_ref().ok()?;
-                            if let Some(numeric) = document.numeric {
-                                if numeric.last_page().is_some_and(|last| numeric.page >= last) {
-                                    return None;
-                                }
-                                if numeric.last_page().is_none() && document.next_cursor.is_none() {
-                                    return None;
-                                }
-                                Some((None, true))
-                            } else {
-                                document.next_cursor.clone().map(|next| (Some(next), false))
-                            }
-                        });
-                        if let Some((next, numeric)) = next {
-                            next_data.data.revise(|value| *value = None);
+                            previous_data.data.revise(|value| *value = None);
                             query.revise(|query| {
-                                query.page += 1;
-                                if numeric {
-                                    query.cursors = vec![None];
-                                } else {
-                                    query.cursors.push(next);
+                                query.page -= 1;
+                                if query.cursors.len() > 1 {
+                                    query.cursors.pop();
                                 }
                             });
-                        }
-                    }),
+                        }),
+                    text().content(query.map(|query| format!("Page {}", query.page))),
+                    sapid::button()
+                        .theme(theme)
+                        .variant(sapid::ButtonVariant::Secondary)
+                        .label(t("common.next"))
+                        .enabled(next_enabled)
+                        .on_press(move || {
+                            let next = next_data.data.with_untracked(|value| {
+                                let document = value.as_ref()?.as_ref().ok()?;
+                                if let Some(numeric) = document.numeric {
+                                    if numeric.last_page().is_some_and(|last| numeric.page >= last)
+                                    {
+                                        return None;
+                                    }
+                                    if numeric.last_page().is_none()
+                                        && document.next_cursor.is_none()
+                                    {
+                                        return None;
+                                    }
+                                    Some((None, true))
+                                } else {
+                                    document.next_cursor.clone().map(|next| (Some(next), false))
+                                }
+                            });
+                            if let Some((next, numeric)) = next {
+                                next_data.data.revise(|value| *value = None);
+                                query.revise(|query| {
+                                    query.page += 1;
+                                    if numeric {
+                                        query.cursors = vec![None];
+                                    } else {
+                                        query.cursors.push(next);
+                                    }
+                                });
+                            }
+                        }),
+                )),
             )),
         )),
     )
 }
 
+fn description(title: &str) -> String {
+    for (key, description) in [
+        ("nav.actors", "actors.description"),
+        ("nav.devices", "devices.subtitle"),
+        ("nav.realms", "realms.description"),
+        ("nav.spaces", "spaces.description"),
+        ("nav.federation", "federation.subtitle"),
+        ("federation.title", "federation.subtitle"),
+        ("handles.title", "handles.description"),
+        ("nav.invite_tokens", "invite_tokens.description"),
+    ] {
+        if title == t(key) {
+            let value = t(description);
+            return if value == description {
+                String::new()
+            } else {
+                value
+            };
+        }
+    }
+    String::new()
+}
 pub fn selection(title: &str) -> View {
-    Box::new(text().content(format!("Select a {title} from its inventory first.")))
+    Box::new(
+        col().class("selection-required").fill((
+            crate::appearance::icon("layers"),
+            ui::heading(t("selection_required.title").replace("{kind}", title)),
+            text()
+                .class("page-description")
+                .content(t("selection_required.description").replace("{kind}", title)),
+        )),
+    )
 }
 pub fn placeholder(id: &str) -> bool {
     id.trim().is_empty() || matches!(id, "selected" | "select" | "_" | ":realm_id")

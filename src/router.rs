@@ -224,331 +224,328 @@ fn probe(scope: &Scope, verdict: Cage<Option<bool>>, message: Cage<String>, busy
 }
 
 fn shell(theme: sapid::Theme, route: Route) -> impl Widget {
-    let nav_theme = theme.clone();
-    let header_theme = theme.clone();
-    let main_theme = theme.clone();
-    sapid::app_shell("codmin")
-        .theme(theme.clone())
-        .class("codmin-shell")
-        .sidebar(
-            sapid::sidebar("primary")
-                .name(t("nav.dashboard"))
-                .content(move |_| navigation(nav_theme.clone(), route.page)),
-        )
-        .header(move |context| {
-            widget({
-                let theme = header_theme.clone();
-                move |scope| {
-                    let sidebar = context.sidebar.clone();
-                    let show_help = scope.cage(false);
-                    crate::browser::session_sync(scope)?;
-                    crate::browser::keyboard_shortcuts(scope, show_help)?;
-                    let describe = crate::components::ui::resource(scope, || async { Ok(crate::api::server::get_server_describe().await.ok()) });
-                    let dev_mode = describe.data.map(|value| value.as_ref().is_some_and(|v| v.as_ref().is_ok_and(|describe| describe.as_ref().is_some_and(|d| d.development_mode))));
-                    let error = scope.cage(String::new());
-                    let busy = scope.cage(false);
-                    let weak = scope.downgrade();
-                    let user = crate::utils::net::session::current_user();
-                    let controls = row()
-                        .class("codmin-header")
-                        .fill((
-                            sapid::button().theme(theme.clone()).label(t("nav.menu")).on_press(
-                                move || {
-                                    if let Some(handle) = &sidebar {
-                                        let _ = handle.toggle();
-                                    }
-                                },
-                            ),
-                            sapid::title(1).theme(theme.clone()).content("Arkret Admin"),
-                            sapid::text()
-                                .theme(theme.clone())
-                                .content(user.display_name.or(user.id).unwrap_or_default()),
-                            sapid::button()
-                                .theme(theme.clone())
-                                .label(t("auth.sign_out"))
-                                .loading(busy)
-                                .on_press(move || {
-                                    if busy.get_untracked() {
-                                        return;
-                                    }
-                                    busy.revise(|v| *v = true);
-                                    if let Some(scope) = weak.upgrade() {
-                                        let _ = scope.owner().spawn(async move {
-                                            let report = auth::logout().await;
-                                            if report.local_cookie_cleared() {
-                                                let path = report
-                                                    .login_warning_code()
-                                                    .map(|s| {
-                                                        format!(
-                                                            "/login?logout_warning={}",
-                                                            urlencoding::encode(&s)
-                                                        )
-                                                    })
-                                                    .unwrap_or_else(|| "/login".into());
-                                                navigate(&path);
-                                            } else {
-                                                error.revise(|v| *v = report.retry_message());
-                                            }
-                                            busy.revise(|v| *v = false);
-                                        });
-                                    }
-                                }),
-                            sapid::button()
-                                .theme(theme.clone())
-                                .label("EN / 中文")
-                                .on_press(|| {
-                                    use crate::utils::i18n::*;
-                                    set_language(if current_language() == Language::En {
-                                        Language::ZhCn
-                                    } else {
-                                        Language::En
-                                    });
-                                    navigate(&current_path());
-                                }),
-                            sapid::button()
-                                .theme(theme.clone())
-                                .label(t("nav.theme"))
-                                .on_press(|| {
-                                    let next = if crate::components::theme::get_resolved_theme()
-                                        == "dark"
-                                    {
-                                        "light"
-                                    } else {
-                                        "dark"
-                                    };
-                                    crate::components::theme::set_theme(next);
-                                    navigate(&current_path());
-                                }),
-                            sapid::button().theme(theme.clone()).label(t("keyboard_shortcuts.title")).on_press(move || show_help.revise(|v| *v = !*v)),
-                            sapid::text().theme(theme.clone()).content(error),
-                        ));
-                    let help_theme=theme.clone();
-                    let warning_theme=theme.clone();
-                    col().fill((
-                        when(dev_mode,move || sapid::alert("development-mode").theme(warning_theme.clone()).severity(sapid::AlertSeverity::Danger).content(t("server_status.dev_banner"))),
-                        controls,
-                        when(show_help,move || sapid::card().theme(help_theme.clone()).title(t("keyboard_shortcuts.title")).fill((
-                            text().content("g d: Dashboard · g a: Actors · g s: Spaces · g f: Federation · g v: Devices · g c: Accounts · g l: Audit · g p: Policy · g t: Server Status · g e: Capabilities"),
-                            sapid::button().theme(help_theme.clone()).label(t("common.close")).on_press(move || show_help.revise(|v|*v=false)),
-                        ))),
-                    )).show_in(scope)
-                }
-            })
-        })
-        .main(move |_| content(main_theme.clone(), route.clone()))
-}
-fn navigation(theme: sapid::Theme, current: Page) -> impl Widget {
     widget(move |scope| {
-        let theme = theme.clone();
-        let nav = col().class("codmin-navigation").fill(widget(move |scope| {
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/")
-                .label(t("nav.dashboard"))
-                .current((current == Page::Dashboard).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/actors")
-                .label(t("nav.actors"))
-                .current((current == Page::ActorList).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/realms")
-                .label(t("nav.realms"))
-                .current((current == Page::RealmList).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/spaces")
-                .label(t("nav.spaces"))
-                .current((current == Page::SpaceList).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/media")
-                .label(t("nav.media"))
-                .current((current == Page::MediaList).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/federation")
-                .label(t("nav.federation"))
-                .current((current == Page::FederationList).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/devices")
-                .label(t("nav.devices"))
-                .current((current == Page::DeviceList).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/capabilities")
-                .label(t("nav.capabilities"))
-                .current((current == Page::CapabilityList).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/handles")
-                .label(t("nav.handles"))
-                .current((current == Page::HandleList).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/key-backup")
-                .label("Key backup")
-                .current((current == Page::KeyBackupList).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/audit")
-                .label(t("nav.audit"))
-                .current((current == Page::AuditLog).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/invite-tokens")
-                .label(t("nav.invite_tokens"))
-                .current((current == Page::InviteTokenList).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/policy")
-                .label(t("nav.policy"))
-                .current((current == Page::PolicyList).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/server-status")
-                .label(t("nav.server_status"))
-                .current((current == Page::ServerStatus).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/service-routes")
-                .label(t("nav.service_routes"))
-                .current((current == Page::ServiceRouteList).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/hardening")
-                .label("Hardening")
-                .current((current == Page::HardeningDashboard).then_some(Current::Page))
-                .show_in(scope)?;
-            if crate::utils::net::session::has_coauth() {
-                sapid::anchor()
-                    .theme(theme.clone())
-                    .href("/coauth/audit-log")
-                    .label(t("nav.audit_log"))
-                    .current((current == Page::CoauthAuditLog).then_some(Current::Page))
-                    .show_in(scope)?;
+        let collapsed = scope.cage(false);
+        let shell_class = scope.bond(move || {
+            if collapsed.get() {
+                "codmin-shell sidebar-collapsed".to_owned()
+            } else {
+                "codmin-shell".to_owned()
             }
-            if crate::utils::net::session::has_coauth() {
-                sapid::anchor()
-                    .theme(theme.clone())
-                    .href("/coauth/accounts")
-                    .label(t("nav.coauth_accounts"))
-                    .current((current == Page::CoauthAccountList).then_some(Current::Page))
-                    .show_in(scope)?;
-            }
-            if crate::utils::net::session::has_coauth() {
-                sapid::anchor()
-                    .theme(theme.clone())
-                    .href("/coauth/capabilities")
-                    .label(t("nav.coauth_capabilities"))
-                    .current((current == Page::CoauthCapabilities).then_some(Current::Page))
-                    .show_in(scope)?;
-            }
-            if crate::utils::net::session::has_coauth() {
-                sapid::anchor()
-                    .theme(theme.clone())
-                    .href("/coauth/oauth2-sessions")
-                    .label(t("nav.oauth2_sessions"))
-                    .current((current == Page::CoauthOAuth2Sessions).then_some(Current::Page))
-                    .show_in(scope)?;
-            }
-            if crate::utils::net::session::has_coauth() {
-                sapid::anchor()
-                    .theme(theme.clone())
-                    .href("/coauth/personal-sessions")
-                    .label(t("nav.personal_tokens"))
-                    .current((current == Page::CoauthPersonalSessions).then_some(Current::Page))
-                    .show_in(scope)?;
-            }
-            if crate::utils::net::session::has_coauth() {
-                sapid::anchor()
-                    .theme(theme.clone())
-                    .href("/coauth/upstream-providers")
-                    .label(t("nav.upstream_providers"))
-                    .current((current == Page::CoauthUpstreamProviders).then_some(Current::Page))
-                    .show_in(scope)?;
-            }
-            if crate::utils::net::session::has_coauth() {
-                sapid::anchor()
-                    .theme(theme.clone())
-                    .href("/coauth/upstream-links")
-                    .label(t("nav.upstream_links"))
-                    .current((current == Page::CoauthUpstreamLinks).then_some(Current::Page))
-                    .show_in(scope)?;
-            }
-            if crate::utils::net::session::has_coauth() {
-                sapid::anchor()
-                    .theme(theme.clone())
-                    .href("/coauth/registration-tokens")
-                    .label(t("nav.registration_tokens"))
-                    .current((current == Page::CoauthRegistrationTokens).then_some(Current::Page))
-                    .show_in(scope)?;
-            }
-            if crate::utils::net::session::has_coauth() {
-                sapid::anchor()
-                    .theme(theme.clone())
-                    .href("/coauth/notification-channels")
-                    .label(t("nav.notification_channels"))
-                    .current((current == Page::CoauthNotificationChannels).then_some(Current::Page))
-                    .show_in(scope)?;
-            }
-            if crate::utils::net::session::has_coauth() {
-                sapid::anchor()
-                    .theme(theme.clone())
-                    .href("/coauth/notification-templates")
-                    .label(t("nav.notification_templates"))
-                    .current(
-                        (current == Page::CoauthNotificationTemplates).then_some(Current::Page),
-                    )
-                    .show_in(scope)?;
-            }
-            if crate::utils::net::session::has_coauth() {
-                sapid::anchor()
-                    .theme(theme.clone())
-                    .href("/coauth/connector-health")
-                    .label(t("nav.connector_health"))
-                    .current((current == Page::CoauthConnectorHealth).then_some(Current::Page))
-                    .show_in(scope)?;
-            }
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/realms/_/links")
-                .label(t("nav.realm_links"))
-                .current((current == Page::RealmLinks).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/realms/_/media-service")
-                .label(t("media_service.title"))
-                .current((current == Page::RealmMediaService).then_some(Current::Page))
-                .show_in(scope)?;
-            sapid::anchor()
-                .theme(theme.clone())
-                .href("/realms/_/organization")
-                .label(t("realm_organization.title"))
-                .current((current == Page::RealmOrganization).then_some(Current::Page))
-                .show_in(scope)?;
-            Ok(())
-        }));
-        nav.show_in(scope)
+        });
+        let nav_theme = theme.clone();
+        let header_theme = theme.clone();
+        let main_theme = theme.clone();
+        let route = route.clone();
+        sapid::app_shell("codmin")
+            .theme(theme.clone())
+            .class(shell_class)
+            .sidebar(
+                sapid::sidebar("primary")
+                    .name(t("nav.dashboard"))
+                    .width(256.)
+                    .rail_width(64.)
+                    .collapsed(collapsed)
+                    .on_collapsed_change(move |value| collapsed.revise(|v| *v = value))
+                    .content(move |context| {
+                        navigation(
+                            nav_theme.clone(),
+                            route.page,
+                            collapsed,
+                            context.layout.mobile(),
+                        )
+                    }),
+            )
+            .header(move |_| header(header_theme.clone()))
+            .main(move |_| content(main_theme.clone(), route.clone()))
+            .show_in(scope)
     })
+}
+fn header(theme: sapid::Theme) -> impl Widget {
+    widget(move |scope| {
+        let show_help = scope.cage(false);
+        crate::browser::session_sync(scope)?;
+        crate::browser::keyboard_shortcuts(scope, show_help)?;
+        let describe = crate::components::ui::resource(scope, || async {
+            Ok(crate::api::server::get_server_describe().await.ok())
+        });
+        let warning = describe.data.map(|value| {
+            value.as_ref().is_some_and(|value| {
+                value.as_ref().is_ok_and(|description| {
+                    description.as_ref().is_some_and(|d| d.development_mode)
+                })
+            })
+        });
+        let error = scope.cage(String::new());
+        let busy = scope.cage(false);
+        let weak = scope.downgrade();
+        let user = crate::utils::net::session::current_user();
+        let identity = user
+            .display_name
+            .clone()
+            .or(user.id.clone())
+            .unwrap_or_default();
+        let initial = identity
+            .trim_start_matches('@')
+            .chars()
+            .next()
+            .map(|c| c.to_uppercase().to_string())
+            .unwrap_or_else(|| "A".into());
+        let expiry = crate::api::auth::token_expiry_ms()
+            .map(crate::utils::fmt::date::format_timestamp)
+            .unwrap_or_else(|| "session expiry unknown".into());
+        let language = scope.cage(Some(
+            crate::utils::i18n::current_language().code().to_owned(),
+        ));
+        let help_theme = theme.clone();
+        let warning_theme = theme.clone();
+        let controls = row().class("app-header-controls").fill((
+            sapid::native_select("header-language")
+                .theme(theme.clone())
+                .class("app-header-language")
+                .label("Language")
+                .value(language)
+                .options([
+                    sapid::select_option("en", "English"),
+                    sapid::select_option("zh-CN", "中文"),
+                ])
+                .on_value_change(move |value| {
+                    if let Some(lang) = value
+                        .as_deref()
+                        .and_then(crate::utils::i18n::Language::from_code)
+                    {
+                        crate::utils::i18n::set_language(lang);
+                        navigate(&current_path());
+                    }
+                }),
+            sapid::button()
+                .theme(theme.clone())
+                .unstyled()
+                .name(t("nav.theme"))
+                .label(t("nav.theme"))
+                .class("header-icon theme-toggle")
+                .fill(crate::appearance::icon(
+                    if crate::components::theme::get_resolved_theme() == "dark" {
+                        "sun"
+                    } else {
+                        "moon"
+                    },
+                ))
+                .on_press(|| {
+                    crate::components::theme::set_theme(
+                        if crate::components::theme::get_resolved_theme() == "dark" {
+                            "light"
+                        } else {
+                            "dark"
+                        },
+                    );
+                    navigate(&current_path());
+                }),
+            sapid::button()
+                .theme(theme.clone())
+                .unstyled()
+                .name(t("keyboard_shortcuts.title"))
+                .label(t("keyboard_shortcuts.title"))
+                .class("header-icon help-toggle")
+                .fill(crate::appearance::icon("help"))
+                .on_press(move || show_help.revise(|v| *v = !*v)),
+            row().class("app-header-user").fill((
+                text().class("user-avatar").content(initial),
+                col().class("user-identity").fill((
+                    text().class("user-name").content(identity),
+                    text()
+                        .class("user-expiry")
+                        .content(format!("token: {expiry}")),
+                )),
+            )),
+            sapid::button()
+                .theme(theme.clone())
+                .size(sapid::Size::Small)
+                .variant(sapid::ButtonVariant::Secondary)
+                .class("app-header-logout")
+                .label(t("auth.sign_out"))
+                .loading(busy)
+                .on_press(move || {
+                    if busy.get_untracked() {
+                        return;
+                    }
+                    let Some(scope) = weak.upgrade() else {
+                        return;
+                    };
+                    busy.revise(|v| *v = true);
+                    error.revise(String::clear);
+                    let _ = scope.owner().spawn(async move {
+                        let report = auth::logout().await;
+                        if report.local_cookie_cleared() {
+                            let path = report
+                                .login_warning_code()
+                                .map(|s| {
+                                    format!("/login?logout_warning={}", urlencoding::encode(&s))
+                                })
+                                .unwrap_or_else(|| "/login".into());
+                            navigate(&path);
+                        } else {
+                            error.revise(|v| *v = report.retry_message());
+                        }
+                        busy.revise(|v| *v = false);
+                    });
+                }),
+        ));
+        col().class("app-header-content").fill((controls,
+            when(warning,move ||sapid::alert("development-mode").theme(warning_theme.clone()).severity(sapid::AlertSeverity::Danger).class("development-banner").content(t("server_status.dev_banner"))),
+            text().class("header-error").content(error),
+            when(show_help,move ||sapid::card().theme(help_theme.clone()).class("shortcut-help").title(t("keyboard_shortcuts.title")).fill((
+                text().content("g d: Dashboard · g a: Actors · g s: Spaces · g f: Federation · g v: Devices · g c: Accounts · g l: Audit · g p: Policy · g t: Server Status · g e: Capabilities"),
+                sapid::button().theme(help_theme.clone()).label(t("common.close")).on_press(move ||show_help.revise(|v|*v=false)),
+            ))),
+        )).show_in(scope)
+    })
+}
+fn navigation(
+    theme: sapid::Theme,
+    current: Page,
+    collapsed: Cage<bool>,
+    mobile: Bond<bool>,
+) -> impl Widget {
+    widget(move |scope| {
+        let class = scope.bond(move || {
+            if collapsed.get() && !mobile.get() {
+                "codmin-navigation nav-collapsed".to_owned()
+            } else {
+                "codmin-navigation".to_owned()
+            }
+        });
+        type NavigationSection<'a> = (&'a str, Vec<(&'a str, &'a str, &'a str)>);
+        let mut sections: Vec<NavigationSection<'_>> = vec![
+            ("", vec![("nav.dashboard", "/", "dashboard")]),
+            (
+                "nav.section_identity",
+                vec![
+                    ("nav.actors", "/actors", "users"),
+                    ("nav.devices", "/devices", "device"),
+                    ("nav.handles", "/handles", "key"),
+                    ("nav.capabilities", "/capabilities", "shield"),
+                    ("nav.coauth_capabilities", "/coauth/capabilities", "shield"),
+                    ("nav.invite_tokens", "/invite-tokens", "key"),
+                ],
+            ),
+            (
+                "nav.section_moderation",
+                vec![
+                    ("nav.realms", "/realms", "shield"),
+                    ("nav.spaces", "/spaces", "chat"),
+                    ("nav.audit", "/audit", "file"),
+                ],
+            ),
+            (
+                "nav.section_infrastructure",
+                vec![
+                    ("nav.federation", "/federation", "globe"),
+                    ("nav.media", "/media", "image"),
+                    ("Key backup", "/key-backup", "key"),
+                    ("nav.realm_links", "/realms/_/links", "link"),
+                    ("media_service.title", "/realms/_/media-service", "video"),
+                    (
+                        "realm_organization.title",
+                        "/realms/_/organization",
+                        "building",
+                    ),
+                ],
+            ),
+            (
+                "nav.section_server_ops",
+                vec![
+                    ("nav.policy", "/policy", "file"),
+                    ("nav.server_status", "/server-status", "activity"),
+                    ("nav.service_routes", "/service-routes", "layers"),
+                    ("Hardening", "/hardening", "shield"),
+                ],
+            ),
+            (
+                "nav.section_authority",
+                vec![("nav.realm_authority", "/realms/_/authority", "shield")],
+            ),
+        ];
+        if crate::utils::net::session::has_coauth() {
+            sections.push((
+                "nav.section_coauth",
+                vec![
+                    ("nav.coauth_accounts", "/coauth/accounts", "users"),
+                    ("nav.audit_log", "/coauth/audit-log", "file"),
+                    ("nav.oauth2_sessions", "/coauth/oauth2-sessions", "key"),
+                    ("nav.personal_tokens", "/coauth/personal-sessions", "key"),
+                    (
+                        "nav.registration_tokens",
+                        "/coauth/registration-tokens",
+                        "key",
+                    ),
+                    (
+                        "nav.upstream_providers",
+                        "/coauth/upstream-providers",
+                        "link",
+                    ),
+                    ("nav.upstream_links", "/coauth/upstream-links", "link"),
+                    (
+                        "nav.notification_channels",
+                        "/coauth/notification-channels",
+                        "mail",
+                    ),
+                    (
+                        "nav.notification_templates",
+                        "/coauth/notification-templates",
+                        "file",
+                    ),
+                    (
+                        "nav.connector_health",
+                        "/coauth/connector-health",
+                        "activity",
+                    ),
+                ],
+            ));
+        }
+        let mut children: Vec<Box<dyn Widget>> =
+            vec![Box::new(row().class("sidebar-brand").fill((
+                crate::appearance::icon("shield"),
+                text().class("sidebar-brand-name").content("Arkret Admin"),
+            )))];
+        for (label, items) in sections {
+            let mut links: Vec<Box<dyn Widget>> = vec![];
+            if !label.is_empty() {
+                links.push(Box::new(
+                    text().class("sidebar-section-label").content(t(label)),
+                ));
+            }
+            for (label, href, icon) in items {
+                let active = nav_active(current, resolve(href).page);
+                links.push(Box::new(
+                    sapid::anchor()
+                        .theme(theme.clone())
+                        .unstyled()
+                        .class(format!("sidebar-nav-link nav-icon-{icon}"))
+                        .label(t(label))
+                        .name(t(label))
+                        .href(href)
+                        .current(active.then_some(Current::Page)),
+                ));
+            }
+            children.push(Box::new(col().class("sidebar-section").fill(links)));
+        }
+        col().class(class).fill(children).show_in(scope)
+    })
+}
+fn nav_active(current: Page, target: Page) -> bool {
+    current == target
+        || matches!(
+            (current, target),
+            (Page::ActorShow, Page::ActorList)
+                | (Page::RealmShow, Page::RealmList)
+                | (Page::SpaceShow, Page::SpaceList)
+                | (Page::HandleShow, Page::HandleList)
+                | (Page::FederationShow, Page::FederationList)
+                | (Page::ServiceRouteShow, Page::ServiceRouteList)
+                | (Page::CoauthAccountShow, Page::CoauthAccountList)
+                | (Page::CoauthAccountDevices, Page::CoauthAccountList)
+        )
 }
 fn content(theme: sapid::Theme, route: Route) -> impl Widget {
     widget(move |scope| match route.page {

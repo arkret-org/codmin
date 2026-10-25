@@ -76,27 +76,33 @@ pub fn reactive<T: Clone + 'static>(
     render: impl Fn(&Scope, T) -> View + 'static,
 ) -> View {
     let render = Rc::new(render);
-    Box::new(widget(move |scope| {
-        let mounted = Rc::new(RefCell::new(None::<Mounted>));
-        scope.retain(mounted.clone())?;
-        let weak = scope.downgrade();
-        let render = render.clone();
-        scope.effect(move || {
-            let value = source.get();
-            let Some(parent) = weak.upgrade() else {
-                return;
-            };
-            mounted.borrow_mut().take();
-            let render = render.clone();
-            let next = parent
-                .mount_with(|| widget(move |child| render(child, value.clone()).build(child)));
-            match next {
-                Ok(next) => *mounted.borrow_mut() = Some(next),
-                Err(error) => log::error!("admin region render failed: {error}"),
-            }
-        });
-        Ok(())
-    }))
+    Box::new(
+        view()
+            .class("admin-reactive-region")
+            .style(Style::new().min_width(Length::Px(0.0)))
+            .fill(widget(move |scope| {
+                let mounted = Rc::new(RefCell::new(None::<Mounted>));
+                scope.retain(mounted.clone())?;
+                let weak = scope.downgrade();
+                let render = render.clone();
+                scope.effect(move || {
+                    let value = source.get();
+                    let Some(parent) = weak.upgrade() else {
+                        return;
+                    };
+                    mounted.borrow_mut().take();
+                    let render = render.clone();
+                    let next = parent.mount_with(|| {
+                        widget(move |child| render(child, value.clone()).build(child))
+                    });
+                    match next {
+                        Ok(next) => *mounted.borrow_mut() = Some(next),
+                        Err(error) => log::error!("admin region render failed: {error}"),
+                    }
+                });
+                Ok(())
+            })),
+    )
 }
 
 pub fn resource_view<T: Clone + 'static>(
@@ -107,7 +113,25 @@ pub fn resource_view<T: Clone + 'static>(
 ) -> View {
     let refresh = source.clone();
     let refresh_theme = theme.clone();
-    let body = reactive(source.data, move |scope, result| match result {
+    let body = resource_content(_scope, theme, source, render);
+    Box::new(
+        col().class("resource-panel").fill((
+            sapid::button()
+                .theme(refresh_theme)
+                .label(t("common.refresh"))
+                .on_press(move || refresh.reload()),
+            body,
+        )),
+    )
+}
+
+pub fn resource_content<T: Clone + 'static>(
+    _scope: &Scope,
+    theme: sapid::Theme,
+    source: Resource<T>,
+    render: impl Fn(&Scope, T) -> View + 'static,
+) -> View {
+    reactive(source.data, move |scope, result| match result {
         None => Box::new(text().class("loading").content(t("common.loading"))),
         Some(Ok(value)) => render(scope, value),
         Some(Err(error)) => {
@@ -125,20 +149,154 @@ pub fn resource_view<T: Clone + 'static>(
                 )),
             )
         }
-    });
-    Box::new(
-        col().class("resource-panel").fill((
-            sapid::button()
-                .theme(refresh_theme)
-                .label(t("common.refresh"))
-                .on_press(move || refresh.reload()),
-            body,
-        )),
-    )
+    })
 }
 
 pub fn heading(title: impl Into<String>) -> View {
-    Box::new(text().kind(TextKind::Heading(1)).content(title.into()))
+    Box::new(
+        text()
+            .kind(TextKind::Heading(1))
+            .class("admin-page-title")
+            .style(Style {
+                font_size: Some(24.0),
+                line_height: Some(32.0),
+                font_weight: Some(700.0),
+                margin: Some(Edges::all(0.0)),
+                ..Style::new()
+            })
+            .content(title.into()),
+    )
+}
+
+pub fn auth_frame(max_width: f64, children: Vec<View>) -> View {
+    Box::new(
+        view()
+            .role(Role::Main)
+            .class("auth-page")
+            .style(Style {
+                display: Some(Display::Flex),
+                flex_direction: Some(FlexDirection::Column),
+                width: Some(Length::Percent(100.0)),
+                max_width: Some(Limit::None),
+                align: Some(Align::Center),
+                justify: Some(Justify::Center),
+                padding: Some(Edges::all(16.0)),
+                margin: Some(Edges::all(0.0)),
+                ..Style::new()
+            })
+            .fill(
+                col()
+                    .class("auth-content")
+                    .style(
+                        Style::new()
+                            .display(Display::Flex)
+                            .flex_direction(FlexDirection::Column)
+                            .width(Length::Percent(100.0))
+                            .max_width(Limit::Px(max_width))
+                            .gap(24.0),
+                    )
+                    .fill(children),
+            ),
+    )
+}
+
+pub fn auth_brand(theme: sapid::Theme, title: String, subtitle: String, warning: bool) -> View {
+    use glory::render::{
+        GraphicPoint as Point, GraphicProps, GraphicStroke, PathCommand as Path, StrokeCap,
+    };
+    let ink = if warning { theme.danger } else { theme.accent };
+    let commands = if warning {
+        vec![
+            Path::Move(Point::new(12., 3.)),
+            Path::Line(Point::new(22., 21.)),
+            Path::Line(Point::new(2., 21.)),
+            Path::Close,
+            Path::Move(Point::new(12., 8.)),
+            Path::Line(Point::new(12., 14.)),
+            Path::Move(Point::new(12., 17.)),
+            Path::Line(Point::new(12., 18.)),
+        ]
+    } else {
+        vec![
+            Path::Move(Point::new(12., 3.)),
+            Path::Line(Point::new(21., 7.)),
+            Path::Line(Point::new(20., 14.)),
+            Path::Cubic {
+                first: Point::new(19., 18.),
+                second: Point::new(15., 21.),
+                end: Point::new(12., 22.),
+            },
+            Path::Cubic {
+                first: Point::new(9., 21.),
+                second: Point::new(5., 18.),
+                end: Point::new(4., 14.),
+            },
+            Path::Line(Point::new(3., 7.)),
+            Path::Close,
+        ]
+    };
+    Box::new(
+        col()
+            .class("auth-brand")
+            .style(Style {
+                display: Some(Display::Flex),
+                flex_direction: Some(FlexDirection::Column),
+                align: Some(Align::Center),
+                gap: Some(8.0),
+                ..Style::new()
+            })
+            .fill((
+                view()
+                    .class("auth-brand-icon")
+                    .style(Style {
+                        display: Some(Display::Flex),
+                        align: Some(Align::Center),
+                        justify: Some(Justify::Center),
+                        width: Some(Length::Px(64.0)),
+                        height: Some(Length::Px(64.0)),
+                        radius: Some(32.0),
+                        background: Some(if warning {
+                            theme.danger_soft
+                        } else {
+                            theme.accent_soft
+                        }),
+                        ..Style::new()
+                    })
+                    .fill(
+                        glory::ui::graphic()
+                            .style(
+                                Style::new()
+                                    .width(Length::Px(32.0))
+                                    .height(Length::Px(32.0)),
+                            )
+                            .drawing(GraphicProps {
+                                width: 24.,
+                                height: 24.,
+                                commands,
+                                stroke: Some(GraphicStroke {
+                                    color: ink,
+                                    width: 2.,
+                                    cap: StrokeCap::Round,
+                                }),
+                                ..GraphicProps::default()
+                            }),
+                    ),
+                sapid::title(1)
+                    .theme(theme.clone())
+                    .class("auth-title")
+                    .font_size(24.0)
+                    .line_height(32.0)
+                    .weight(700.0)
+                    .content(title),
+                sapid::text()
+                    .theme(theme)
+                    .class("auth-subtitle")
+                    .font_size(14.0)
+                    .line_height(20.0)
+                    .variant(sapid::TextVariant::Muted)
+                    .content(subtitle),
+            )),
+    )
 }
 
 fn error_text(error: &HttpError) -> String {
@@ -160,42 +318,190 @@ fn error_text(error: &HttpError) -> String {
 
 pub fn details(values: Vec<(String, String)>) -> View {
     Box::new(
-        col().class("admin-details").fill(
-            values
-                .into_iter()
-                .map(|(label, value)| {
-                    row().class("admin-detail").fill((
-                        text().class("detail-label").content(label),
-                        text().content(value),
-                    ))
-                })
-                .collect::<Vec<_>>(),
-        ),
+        col()
+            .class("admin-details")
+            .style(
+                Style::new()
+                    .display(Display::Flex)
+                    .flex_direction(FlexDirection::Column)
+                    .gap(12.0)
+                    .min_width(Length::Px(0.0)),
+            )
+            .fill(
+                values
+                    .into_iter()
+                    .map(|(label, value)| {
+                        row()
+                            .class("admin-detail")
+                            .style(Style {
+                                display: Some(Display::Flex),
+                                flex_direction: Some(FlexDirection::Row),
+                                gap: Some(16.0),
+                                align: Some(Align::Start),
+                                ..Style::new()
+                            })
+                            .fill((
+                                text()
+                                    .class("detail-label")
+                                    .style(Style {
+                                        width: Some(Length::Px(180.0)),
+                                        shrink: Some(0.0),
+                                        font_size: Some(14.0),
+                                        line_height: Some(20.0),
+                                        ..Style::new()
+                                    })
+                                    .content(label),
+                                text()
+                                    .class("detail-value")
+                                    .style(Style {
+                                        min_width: Some(Length::Px(0.0)),
+                                        grow: Some(1.0),
+                                        font_size: Some(14.0),
+                                        line_height: Some(20.0),
+                                        white_space: Some(WhiteSpace::PreWrap),
+                                        ..Style::new()
+                                    })
+                                    .content(value),
+                            ))
+                    })
+                    .collect::<Vec<_>>(),
+            ),
     )
 }
 
 pub fn table(theme: sapid::Theme, headers: Vec<String>, rows: Vec<Vec<String>>) -> View {
-    let head = sapid::table_head().row(
-        sapid::table_row("head").cells(
-            headers
-                .into_iter()
-                .enumerate()
-                .map(|(i, label)| sapid::table_header_cell(format!("h{i}")).text(label)),
-        ),
-    );
-    let body = sapid::table_body().rows(rows.into_iter().enumerate().map(|(i, cells)| {
-        sapid::table_row(format!("r{i}")).cells(cells.into_iter().enumerate().map(|(j, value)| {
-            sapid::table_cell(format!("c{j}")).content(move || text().content(value.clone()))
-        }))
-    }));
-    Box::new(
-        sapid::table("admin-table")
-            .theme(theme)
-            .class("admin-table")
-            .head(head)
-            .body(body)
-            .striped(true),
+    table_content(
+        theme,
+        headers,
+        rows.into_iter().map(|cells| (cells, None)).collect(),
     )
+}
+
+/// Headers include the trailing actions column, keeping all row operations aligned.
+pub fn table_with_actions(
+    theme: sapid::Theme,
+    headers: Vec<String>,
+    rows: Vec<(Vec<String>, View)>,
+) -> View {
+    table_content(
+        theme,
+        headers,
+        rows.into_iter()
+            .map(|(cells, actions)| (cells, Some(actions)))
+            .collect(),
+    )
+}
+
+pub fn table_widgets(theme: sapid::Theme, headers: Vec<String>, rows: Vec<Vec<View>>) -> View {
+    let mut content = Some((theme, headers, rows));
+    Box::new(widget(move |scope| {
+        let Some((theme, headers, rows)) = content.take() else {
+            return Ok(());
+        };
+        let head =
+            sapid::table_head().row(sapid::table_row("head").cells(
+                headers.into_iter().enumerate().map(|(index, label)| {
+                    sapid::table_header_cell(format!("h{index}")).text(label)
+                }),
+            ));
+        let body = sapid::table_body().rows(rows.into_iter().enumerate().map(|(index, cells)| {
+            sapid::table_row(format!("r{index}")).cells(cells.into_iter().enumerate().map(
+                |(column, cell)| {
+                    let mut cell = Some(cell);
+                    sapid::table_cell(format!("c{column}"))
+                        .content(move || cell.take().unwrap_or_else(|| Box::new(group())))
+                },
+            ))
+        }));
+        view()
+            .class("admin-table-scroll")
+            .style(
+                Style::new()
+                    .overflow_x(Overflow::Auto)
+                    .min_width(Length::Px(0.0)),
+            )
+            .fill(
+                sapid::table(format!("admin-table-{}", scope.id().slot()))
+                    .theme(theme)
+                    .class("admin-table")
+                    .head(head)
+                    .body(body),
+            )
+            .show_in(scope)
+    }))
+}
+
+fn table_content(
+    theme: sapid::Theme,
+    headers: Vec<String>,
+    rows: Vec<(Vec<String>, Option<View>)>,
+) -> View {
+    let mut content = Some((theme, headers, rows));
+    Box::new(widget(move |scope| {
+        let Some((theme, headers, rows)) = content.take() else {
+            return Ok(());
+        };
+        let head = sapid::table_head().row(
+            sapid::table_row("head").cells(
+                headers
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, label)| sapid::table_header_cell(format!("h{i}")).text(label)),
+            ),
+        );
+        let body =
+            sapid::table_body().rows(rows.into_iter().enumerate().map(|(i, (cells, actions))| {
+                let mut row = sapid::table_row(format!("r{i}")).cells(
+                    cells.into_iter().enumerate().map(|(j, value)| {
+                        sapid::table_cell(format!("c{j}"))
+                            .content(move || text().content(value.clone()))
+                    }),
+                );
+                if let Some(actions) = actions {
+                    let mut actions = Some(actions);
+                    row = row.cell(
+                        sapid::table_cell("actions")
+                            .content(move || actions.take().unwrap_or_else(|| Box::new(group()))),
+                    );
+                }
+                row
+            }));
+        view()
+            .class("admin-table-scroll")
+            .style(
+                Style::new()
+                    .overflow_x(Overflow::Auto)
+                    .min_width(Length::Px(0.0)),
+            )
+            .fill(
+                sapid::table(format!("admin-table-{}", scope.id().slot()))
+                    .theme(theme)
+                    .class("admin-table")
+                    .head(head)
+                    .body(body)
+                    .striped(false),
+            )
+            .show_in(scope)
+    }))
+}
+
+/// Keep mounted editors stable while giving dense tables a compact action trigger.
+pub fn compact_action(theme: sapid::Theme, label: impl Into<String>, content: View) -> View {
+    let label = label.into();
+    let mut content = Some(content);
+    Box::new(widget(move |scope| {
+        let Some(content) = content.take() else {
+            return Ok(());
+        };
+        let mut content = Some(content);
+        sapid::collapsible(format!("action-{}", scope.id().slot()))
+            .theme(theme.clone())
+            .class("admin-compact-action")
+            .label(label.clone())
+            .content_policy(sapid::ContentPolicy::KeepMounted)
+            .content(move || content.take().unwrap_or_else(|| Box::new(group())))
+            .show_in(scope)
+    }))
 }
 
 #[derive(Clone)]
@@ -333,23 +639,53 @@ where
     let busy = state.busy;
     let message = state.message;
     let label = label.into();
-    let mut children: Vec<View> = fields
+    let children: Vec<View> = fields
         .into_iter()
         .zip(values.iter().copied())
         .map(|(field, value)| {
             Box::new(
-                col().class("admin-field").fill((
-                    text().content(field.label.clone()),
-                    sapid::text_field()
-                        .theme(theme.clone())
-                        .name(field.label)
-                        .value(value)
-                        .multiline(field.multiline)
-                        .on_value_change(move |new| value.revise(|old| *old = new)),
-                )),
+                col()
+                    .class("admin-field")
+                    .style(Style {
+                        display: Some(Display::Flex),
+                        flex_direction: Some(FlexDirection::Column),
+                        width: Some(Length::Px(240.0)),
+                        max_width: Some(Limit::Percent(100.0)),
+                        grow: Some(1.0),
+                        min_width: Some(Length::Px(0.0)),
+                        gap: Some(6.0),
+                        ..Style::new()
+                    })
+                    .fill((
+                        text()
+                            .style(Style {
+                                font_size: Some(14.0),
+                                font_weight: Some(500.0),
+                                ..Style::new()
+                            })
+                            .content(field.label.clone()),
+                        sapid::text_field()
+                            .theme(theme.clone())
+                            .name(field.label)
+                            .value(value)
+                            .multiline(field.multiline)
+                            .on_value_change(move |new| value.revise(|old| *old = new)),
+                    )),
             ) as View
         })
         .collect();
+    let field_grid = row()
+        .class("admin-form-fields")
+        .style(Style {
+            display: Some(Display::Flex),
+            flex_direction: Some(FlexDirection::Row),
+            flex_wrap: Some(glory::style::FlexWrap::Wrap),
+            gap: Some(16.0),
+            min_width: Some(Length::Px(0.0)),
+            ..Style::new()
+        })
+        .fill(children);
+    let mut children: Vec<View> = vec![Box::new(field_grid)];
     if let Some(danger) = danger.as_ref() {
         children.push(Box::new(text().content(format!(
             "{}{}{}",
@@ -395,75 +731,96 @@ where
     let on_success = Rc::new(on_success);
     let submit = Rc::new(submit);
     let weak = state.owner;
-    let row = scope.downgrade();
+    let row_owner = scope.downgrade();
     let variant = if danger.is_some() {
         sapid::ButtonVariant::Danger
     } else {
         sapid::ButtonVariant::Primary
     };
-    children.push(Box::new(
-        sapid::button()
-            .theme(theme)
-            .label(label)
-            .variant(variant)
-            .loading(busy)
-            .enabled(enabled)
-            .on_press(move || {
-                if busy.get_untracked() {
+    let submit_button = sapid::button()
+        .theme(theme)
+        .label(label)
+        .variant(variant)
+        .loading(busy)
+        .enabled(enabled)
+        .on_press(move || {
+            if busy.get_untracked() {
+                return;
+            }
+            if let Some(gate) = danger.as_ref() {
+                if phrase.get_untracked().trim() != gate.phrase.trim() {
                     return;
                 }
-                if let Some(gate) = danger.as_ref() {
-                    if phrase.get_untracked().trim() != gate.phrase.trim() {
-                        return;
-                    }
-                    if gate.show_reason
-                        && let Some(key) =
-                            destructive_reason_error(&reason.get_untracked(), gate.required_reason)
-                    {
-                        message.revise(|value| *value = t(key));
-                        return;
-                    }
-                }
-                let mut snapshot: Vec<_> =
-                    values.iter().map(|value| value.get_untracked()).collect();
-                if danger.as_ref().is_some_and(|gate| gate.show_reason) {
-                    snapshot.push(reason.get_untracked().trim().to_string());
-                }
-                let Some(scope) = weak.upgrade() else {
+                if gate.show_reason
+                    && let Some(key) =
+                        destructive_reason_error(&reason.get_untracked(), gate.required_reason)
+                {
+                    message.revise(|value| *value = t(key));
                     return;
-                };
-                busy.revise(|value| *value = true);
-                message.revise(|value| value.clear());
-                let future = submit(snapshot);
-                let success = on_success.clone();
-                let weak = weak.clone();
-                let row = row.clone();
-                let result = scope.owner().spawn(async move {
-                    let result = future.await;
-                    if weak.upgrade().is_none() {
-                        return;
-                    }
-                    busy.revise(|value| *value = false);
-                    match result {
-                        Ok(()) => {
-                            if row.upgrade().is_some() {
-                                phrase.revise(|value| value.clear());
-                                reason.revise(|value| value.clear());
-                            }
-                            message.revise(|value| *value = t("common.completed"));
-                            success();
+                }
+            }
+            let mut snapshot: Vec<_> = values.iter().map(|value| value.get_untracked()).collect();
+            if danger.as_ref().is_some_and(|gate| gate.show_reason) {
+                snapshot.push(reason.get_untracked().trim().to_string());
+            }
+            let Some(scope) = weak.upgrade() else {
+                return;
+            };
+            busy.revise(|value| *value = true);
+            message.revise(|value| value.clear());
+            let future = submit(snapshot);
+            let success = on_success.clone();
+            let weak = weak.clone();
+            let row_owner = row_owner.clone();
+            let result = scope.owner().spawn(async move {
+                let result = future.await;
+                if weak.upgrade().is_none() {
+                    return;
+                }
+                busy.revise(|value| *value = false);
+                match result {
+                    Ok(()) => {
+                        if row_owner.upgrade().is_some() {
+                            phrase.revise(|value| value.clear());
+                            reason.revise(|value| value.clear());
                         }
-                        Err(error) => message.revise(|value| *value = error_text(&error)),
+                        message.revise(|value| *value = t("common.completed"));
+                        success();
                     }
-                });
-                if let Err(error) = result {
-                    busy.revise(|value| *value = false);
-                    message.revise(|value| *value = error.to_string());
+                    Err(error) => message.revise(|value| *value = error_text(&error)),
                 }
-            }),
+            });
+            if let Err(error) = result {
+                busy.revise(|value| *value = false);
+                message.revise(|value| *value = error.to_string());
+            }
+        });
+    children.push(Box::new(
+        row()
+            .class("admin-form-actions")
+            .style(Style {
+                display: Some(Display::Flex),
+                flex_direction: Some(FlexDirection::Row),
+                gap: Some(8.0),
+                align: Some(Align::Center),
+                justify: Some(Justify::End),
+                ..Style::new()
+            })
+            .fill(submit_button),
     ));
     children.push(Box::new(text().class("action-message").content(message)));
-    Box::new(col().class("admin-action-form").fill(children))
+    Box::new(
+        col()
+            .class("admin-action-form")
+            .style(
+                Style::new()
+                    .display(Display::Flex)
+                    .flex_direction(FlexDirection::Column)
+                    .gap(16.0)
+                    .min_width(Length::Px(0.0)),
+            )
+            .fill(children),
+    )
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
@@ -475,6 +832,46 @@ mod tests {
     use glory::render::{Event, NodeId, Props};
 
     use super::*;
+
+    #[test]
+    fn refreshed_region_keeps_its_document_position_between_static_siblings() {
+        let app = App::memory();
+        let value = app.scope().cage("initial".to_string());
+        app.mount(col().fill((
+            text().content("Before"),
+            reactive(value, |_, value| Box::new(text().content(value))),
+            text().content("After"),
+        )))
+        .unwrap();
+        let region = find(&app, |node| {
+            node.classes
+                .iter()
+                .any(|class| class == "admin-reactive-region")
+        });
+        let after = find(
+            &app,
+            |node| matches!(node.props, Props::Text(text) if text.content == "After"),
+        );
+        for content in ["initial", "refreshed", "reloaded"] {
+            value.revise(|value| *value = content.into());
+            app.flush().unwrap();
+            let tree = app.tree();
+            let root = tree.node(tree.roots()[0]).unwrap();
+            assert_eq!(root.children[1], region);
+            assert_eq!(root.children[2], after);
+            let mut stack = tree.roots().iter().copied().rev().collect::<Vec<_>>();
+            let mut reading_order = Vec::new();
+            while let Some(id) = stack.pop() {
+                let node = tree.node(id).unwrap();
+                if let Props::Text(text) = node.descriptor.view().props {
+                    reading_order.push(text.content.clone());
+                }
+                stack.extend(node.children.iter().copied().rev());
+            }
+            assert_eq!(reading_order, ["Before", content, "After"]);
+            assert_eq!(tree.node(region).unwrap().children.len(), 1);
+        }
+    }
 
     #[derive(Default)]
     struct Gate {
