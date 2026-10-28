@@ -45,7 +45,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/arkret-rust-sdk
           path: arkret-rust-sdk
-          ref: f9a9530ed7fdb6d1697e47218be4cf585c106fd0
+          ref: 81619ef0d4d266cae58a18002809e231908eaa7b
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out coauth
@@ -61,7 +61,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coland
           path: coland
-          ref: 4b8d961e0b44bf6c53605d611c3bc53973501a8e
+          ref: 7ee3e497d7f1d767367dbdf0a781645f93166d3f
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Checkout floria
@@ -101,7 +101,7 @@ jobs:
         with:
           repository: savfox-ai/savfox
           path: savfox-ai/savfox
-          ref: 103c26751600b3bb0c174ade3d55bcdb764780df
+          ref: 506aebcf7521f46913782f503eb7e4ef16da93c0
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Install Rust toolchain
