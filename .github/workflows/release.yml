@@ -53,7 +53,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coauth
           path: coauth
-          ref: cf2633fc527e4965d056d482b6e593421afaf2e9
+          ref: dd42dff4f05292dba8b7ebc153c27141d5321ba3
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out coland
@@ -61,7 +61,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coland
           path: coland
-          ref: 5182d9caefdde5223e98df6a33e6af1df0104c8a
+          ref: 076e1984fba0436bacd9b9996a0e5e2d1722205c
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Checkout floria
