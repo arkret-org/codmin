@@ -53,7 +53,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coauth
           path: coauth
-          ref: 9c08af591730cdf378dbf912669f4e4400ac92e3
+          ref: 33f0da0f0d730ee37000d790146624652c95f0ad
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out coland
@@ -61,7 +61,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coland
           path: coland
-          ref: 723070f3b1f2156062a759944f80d33730c82086
+          ref: 4b8d961e0b44bf6c53605d611c3bc53973501a8e
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Checkout floria
@@ -77,7 +77,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/garth
           path: garth
-          ref: 388f3c3d0cc38ac5cb6d3aed13c168be92c1440f
+          ref: 401dd7d9102e550457f8867410bf67c7bf839952
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Checkout bridges
@@ -85,7 +85,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/bridges
           path: bridges
-          ref: e1d7f23643c1279bd79bacf42f4937d0a06cb574
+          ref: 683cd0c2cf2f6b7fbfd16c63c73d4ee091c3ba4b
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Checkout arkret-spec
@@ -101,7 +101,7 @@ jobs:
         with:
           repository: savfox-ai/savfox
           path: savfox-ai/savfox
-          ref: 30718f036341f22acb7cca1e35accee069a5d74a
+          ref: 103c26751600b3bb0c174ade3d55bcdb764780df
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Install Rust toolchain
