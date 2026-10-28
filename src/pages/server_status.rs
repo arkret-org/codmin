@@ -194,18 +194,6 @@ fn describe_body(describe: &ServerDescribeDocument) -> Element {
     let trust_domain = describe.trust_domain.to_string();
     let service_kind = describe.service_kind.as_str().to_owned();
     let protocol = describe.protocol_version.to_string();
-    // Service-proprietary top-level extensions (not part of the spec
-    // ServiceDescribe shape) — read via the extension envelope.
-    let openapi = describe
-        .extra_str(&["openapi_version"])
-        .unwrap_or_else(|| "-".to_string());
-    let schema = describe
-        .extra_str(&["schema_registry_version"])
-        .unwrap_or_else(|| "-".to_string());
-    let event_kind = describe
-        .extra_str(&["event_kind_registry_version"])
-        .unwrap_or_else(|| "-".to_string());
-
     let profiles = describe.supported_profiles.clone();
     let features = describe.supported_features.clone();
     let operation_bundles = describe.supported_operation_bundles.clone();
@@ -301,9 +289,6 @@ fn describe_body(describe: &ServerDescribeDocument) -> Element {
                 {info_cell(t("server_status.trust_domain"), trust_domain)}
                 {info_cell(t("server_status.service_kind"), service_kind)}
                 {info_cell(t("server_status.protocol_version"), protocol)}
-                {info_cell(t("server_status.openapi_version"), openapi)}
-                {info_cell(t("server_status.schema_registry"), schema)}
-                {info_cell(t("server_status.event_kind_registry"), event_kind)}
                 {info_cell(t("server_status.proof_verifier_mode"), proof_verifier_mode)}
                 {info_cell(t("server_status.admin_auth_mode"), admin_auth_mode)}
             }

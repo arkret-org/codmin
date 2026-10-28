@@ -95,18 +95,6 @@ pub fn Dashboard() -> Element {
         .as_ref()
         .map(|d| join_or_dash(&d.supported_profiles))
         .unwrap_or_else(|| "-".to_string());
-    let schema_registry = describe_data
-        .as_ref()
-        .and_then(schema_registry_version)
-        .unwrap_or_else(|| "-".to_string());
-    let event_kind_registry = describe_data
-        .as_ref()
-        .and_then(event_kind_registry_version)
-        .unwrap_or_else(|| "-".to_string());
-    let openapi_version = describe_data
-        .as_ref()
-        .and_then(|d| d.extra_str(&["openapi_version"]))
-        .unwrap_or_else(|| "-".to_string());
     let conformance = describe_data
         .as_ref()
         .and_then(conformance_level)
@@ -221,9 +209,6 @@ pub fn Dashboard() -> Element {
                         {metadata_cell(t("dashboard.coauth_issuer_did"), coauth_issuer_did)}
                         {metadata_cell(t("dashboard.delegated_resolver"), delegated_resolver_endpoint)}
                         {metadata_cell(t("dashboard.supported_profiles"), supported_profiles)}
-                        {metadata_cell(t("dashboard.schema_registry"), schema_registry)}
-                        {metadata_cell(t("dashboard.event_kind_registry"), event_kind_registry)}
-                        {metadata_cell(t("dashboard.openapi_version"), openapi_version)}
                     }
                 }
             }
@@ -327,16 +312,6 @@ fn identity_registry_endpoint(describe: &ServerDescribeDocument) -> Option<Strin
         "delegated_resolver",
         "resolver",
     ])
-}
-
-fn schema_registry_version(describe: &ServerDescribeDocument) -> Option<String> {
-    describe.extra_str(&["schema_registry_version"])
-}
-
-fn event_kind_registry_version(describe: &ServerDescribeDocument) -> Option<String> {
-    describe
-        .extra_str(&["event_kind_registry_version"])
-        .or_else(|| describe.extra_str(&["registry", "event_kind_registry_version"]))
 }
 
 fn conformance_level(describe: &ServerDescribeDocument) -> Option<String> {
