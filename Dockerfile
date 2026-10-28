@@ -78,7 +78,7 @@ RUN --network=default \
     test -f "$dist_dir/index.html" && \
     cp -r "$dist_dir" /workspace/dist
 
-FROM nginx:alpine
+FROM nginx:alpine AS runtime
 
 # Apply available security fixes to packages inherited from the base image.
 RUN apk upgrade --no-cache
