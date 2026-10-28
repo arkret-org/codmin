@@ -24,6 +24,8 @@ services:
     build:
       context: ../..
       dockerfile: coauth/Dockerfile
+      additional_contexts:
+        savfox: ../../../savfox-ai/savfox
     container_name: arkret-example-coauth
     depends_on:
       postgres:
@@ -103,6 +105,9 @@ services:
         arkret-rust-sdk: ../../arkret-rust-sdk
         arkret-spec: ../../arkret-spec
         floria: ../../floria
+        garth: ../../garth
+        bridges: ../../bridges
+        savfox: ../../../savfox-ai/savfox
     container_name: arkret-example-coland
     depends_on:
       postgres:
@@ -167,6 +172,8 @@ services:
     build:
       context: ../..
       dockerfile: codmin/Dockerfile
+      additional_contexts:
+        savfox: ../../../savfox-ai/savfox
     container_name: arkret-example-codmin
     depends_on:
       coauth:

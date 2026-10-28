@@ -26,7 +26,9 @@ Coauth + codmin both use an **umbrella build context** (`../..` →
 `arkret/`) so the workspace `Cargo.toml` path-deps
 `../arkret-rust-sdk/...` and `../coauth/crates/admin-types` resolve
 inside the build sandbox. Coland and Floria use named SDK build contexts;
-Coland additionally receives the Spec and Floria contract contexts.
+Coland additionally receives the Spec, Floria, Garth and Bridges contract contexts.
+Coauth, Coland and Codmin receive the adjacent `savfox-ai/savfox` repository
+as the named `savfox` build context.
 
 The SDK's `.dockerignore` filters its named contexts, and the Coauth and
 Codmin Dockerfile-specific ignore files filter their umbrella contexts.
@@ -43,11 +45,14 @@ arkret/
   floria/
   cotest/
   garth/
+  bridges/
   codmin/
     examples/
       docker-compose.example-stack.yaml   <-- run from here
       up.sh / down.sh / smoke.sh
       coauth-config.yaml                  <-- generated, gitignored
+savfox-ai/
+  savfox/                                 <-- named build context
 ```
 
 If your checkout differs, override every `*_IMAGE` env var with a

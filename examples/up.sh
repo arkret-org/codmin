@@ -65,13 +65,18 @@ if ! command -v openssl >/dev/null 2>&1; then
 fi
 
 UMBRELLA_DIR="$(cd "${EXAMPLES_DIR}/../.." && pwd)"
-for sibling in arkret-rust-sdk arkret-spec coauth coland floria codmin cotest garth; do
+for sibling in arkret-rust-sdk arkret-spec coauth coland floria codmin cotest garth bridges; do
     if [[ ! -d "${UMBRELLA_DIR}/${sibling}" ]]; then
         echo "[example-stack/up] missing sibling ${UMBRELLA_DIR}/${sibling}" >&2
         echo "[example-stack/up] umbrella layout expected: arkret/{arkret-rust-sdk,arkret-spec,coauth,coland,floria,codmin,cotest,garth}/" >&2
         exit 2
     fi
 done
+
+if [[ ! -f "${UMBRELLA_DIR}/../savfox-ai/savfox/Cargo.toml" ]]; then
+    echo "[example-stack/up] missing Savfox build context ${UMBRELLA_DIR}/../savfox-ai/savfox" >&2
+    exit 2
+fi
 
 if (( NO_BUILD == 0 )); then
     echo "[example-stack/up] building coauth image first (needed for config gen)"
