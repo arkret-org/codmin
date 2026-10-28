@@ -193,18 +193,6 @@ fn dashboard_content(theme: sapid::Theme, data: DashboardData) -> View {
                 t("dashboard.supported_profiles"),
                 known(describe.map(|d| join_or_dash(&d.supported_profiles))),
             ),
-            (
-                t("dashboard.schema_registry"),
-                known(describe.and_then(schema_registry_version)),
-            ),
-            (
-                t("dashboard.event_kind_registry"),
-                known(describe.and_then(event_kind_registry_version)),
-            ),
-            (
-                t("dashboard.openapi_version"),
-                known(describe.and_then(|d| d.extra_str(&["openapi_version"]))),
-            ),
         ],
         "metadata-grid four-columns",
     ));
@@ -340,16 +328,6 @@ fn identity_registry_endpoint(describe: &ServerDescribeDocument) -> Option<Strin
         "delegated_resolver",
         "resolver",
     ])
-}
-
-fn schema_registry_version(describe: &ServerDescribeDocument) -> Option<String> {
-    describe.extra_str(&["schema_registry_version"])
-}
-
-fn event_kind_registry_version(describe: &ServerDescribeDocument) -> Option<String> {
-    describe
-        .extra_str(&["event_kind_registry_version"])
-        .or_else(|| describe.extra_str(&["registry", "event_kind_registry_version"]))
 }
 
 fn conformance_level(describe: &ServerDescribeDocument) -> Option<String> {

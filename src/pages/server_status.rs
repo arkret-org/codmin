@@ -362,15 +362,6 @@ pub(crate) fn describe_card(theme: sapid::Theme, describe: &ServerDescribeDocume
                 t("server_status.protocol_version"),
                 describe.protocol_version.to_string(),
             ),
-            (t("server_status.openapi_version"), ext("openapi_version")),
-            (
-                t("server_status.schema_registry"),
-                ext("schema_registry_version"),
-            ),
-            (
-                t("server_status.event_kind_registry"),
-                ext("event_kind_registry_version"),
-            ),
             (
                 t("server_status.proof_verifier_mode"),
                 ext("proof_verifier_mode"),
