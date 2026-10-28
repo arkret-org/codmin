@@ -23,7 +23,8 @@ EXAMPLES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 probe() {
     local name="$1"
     local url="$2"
-    for attempt in $(sequence 1 "${ATTEMPT_BUDGET}"); do
+    local attempt
+    for ((attempt = 1; attempt <= ATTEMPT_BUDGET; attempt++)); do
         local code
         local tls_options=()
         if [[ "${name}" == "coland" ]]; then
