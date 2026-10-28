@@ -73,7 +73,7 @@ RUN --network=default \
     --mount=type=cache,id=codmin-target,target=/workspace/codmin/target \
     python3 scripts/build-web.py --release --out-dir /workspace/dist
 
-FROM nginx:alpine
+FROM nginx:alpine AS runtime
 
 # Apply available security fixes to packages inherited from the base image.
 RUN apk upgrade --no-cache

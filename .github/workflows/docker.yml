@@ -94,6 +94,8 @@ jobs:
             sapid=../glory-rs/sapid
           platforms: linux/${{ matrix.arch }}
           pull: true
+          # Refresh repository security fixes even when the base digest is unchanged.
+          no-cache-filters: runtime
           load: true
           tags: codmin:ci
           cache-from: type=gha,scope=docker-${{ matrix.arch }}

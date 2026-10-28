@@ -758,13 +758,13 @@ mod tests {
     fn principal_logout_requires_explicit_revocation_confirmation() {
         let not_revoked = classify_principal_logout(Ok(TextResponse {
             status: 200,
-            text: r#"{"ok":true,"revoked":false}"#.to_owned(),
+            text: r#"{"revoked":false}"#.to_owned(),
         }));
         assert!(matches!(not_revoked, LogoutStepStatus::Failed(_)));
 
         let confirmed = classify_principal_logout(Ok(TextResponse {
             status: 200,
-            text: r#"{"ok":true,"revoked":true}"#.to_owned(),
+            text: r#"{"revoked":true}"#.to_owned(),
         }));
         assert_eq!(confirmed, LogoutStepStatus::Confirmed);
     }
