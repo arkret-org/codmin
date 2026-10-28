@@ -45,7 +45,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/arkret-rust-sdk
           path: arkret-rust-sdk
-          ref: 5f99e7c40a12805267560aff908ec0873a46d17e
+          ref: f9a9530ed7fdb6d1697e47218be4cf585c106fd0
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out coauth
