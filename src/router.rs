@@ -199,7 +199,7 @@ fn authenticated(scope: &Scope, theme: sapid::Theme, route: Route) -> impl Widge
         })
     })
 }
-fn scope_enabled(busy: Cage<bool>) -> glory::Lotus<bool> {
+fn scope_enabled(busy: Cage<bool>) -> Vary<bool> {
     busy.map(|busy| !*busy).into()
 }
 fn probe(scope: &Scope, verdict: Cage<Option<bool>>, message: Cage<String>, busy: Cage<bool>) {

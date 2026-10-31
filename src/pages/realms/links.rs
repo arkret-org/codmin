@@ -50,10 +50,9 @@ pub fn page(scope: &Scope, theme: sapid::Theme, realm_id: String) -> impl Widget
             text().content(format!("Selected Realm: {realm_id}")),
             text().content(state),
             when(graph_empty, || text().content(t("realm_links.graph_empty"))),
-            each(
-                edges,
-                |edge| edge.key.clone(),
-                move |edge, _| {
+            each(edges)
+                .key(|edge| edge.key.clone())
+                .children(move |edge| {
                     row()
                         .class("realm-link-edge")
                         .style(
@@ -71,16 +70,19 @@ pub fn page(scope: &Scope, theme: sapid::Theme, realm_id: String) -> impl Widget
                                     sapid::anchor()
                                         .theme(graph_theme.clone())
                                         .href(
-                                            edge.map(|edge| station::path("/realms", &edge.source)),
+                                            edge.value
+                                                .map(|edge| station::path("/realms", &edge.source)),
                                         )
-                                        .label(edge.map(|edge| edge.source.clone())),
+                                        .label(edge.value.map(|edge| edge.source.clone())),
                                 ),
                             col().class("realm-link-direction").fill((
-                                text().content(edge.map(|edge| edge.direction.clone())),
+                                text().content(edge.value.map(|edge| edge.direction.clone())),
                                 text().content("→"),
-                                text().content(edge.map(|edge| edge.kind.clone())),
-                                text().content(edge.map(|edge| format!("Status: {}", edge.status))),
-                                text().content(edge.map(|edge| edge.label.clone())),
+                                text().content(edge.value.map(|edge| edge.kind.clone())),
+                                text().content(
+                                    edge.value.map(|edge| format!("Status: {}", edge.status)),
+                                ),
+                                text().content(edge.value.map(|edge| edge.label.clone())),
                             )),
                             sapid::card()
                                 .theme(graph_theme.clone())
@@ -89,13 +91,13 @@ pub fn page(scope: &Scope, theme: sapid::Theme, realm_id: String) -> impl Widget
                                     sapid::anchor()
                                         .theme(graph_theme.clone())
                                         .href(
-                                            edge.map(|edge| station::path("/realms", &edge.target)),
+                                            edge.value
+                                                .map(|edge| station::path("/realms", &edge.target)),
                                         )
-                                        .label(edge.map(|edge| edge.target.clone())),
+                                        .label(edge.value.map(|edge| edge.target.clone())),
                                 ),
                         ))
-                },
-            ),
+                }),
         ));
     Box::new(col().class("station-page").fill((
         ui::heading(t("realm_links.title")),

@@ -43,7 +43,7 @@ pub fn page(scope: &Scope, theme: sapid::Theme, realm_id: String) -> impl Widget
                         ("media_service.focus_connect_url", focus.connect_url.clone()),
                         (
                             "media_service.focus_health_endpoint",
-                            p::optional(focus.health_endpoint.as_ref()),
+                            p::optional(focus.health_url.as_ref()),
                         ),
                         (
                             "media_service.focus_cascade_group",

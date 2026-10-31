@@ -171,7 +171,7 @@ pub fn show_page(scope: &Scope, theme: sapid::Theme, handle_id: String) -> impl 
 fn handle_actions(
     scope: &Scope,
     theme: sapid::Theme,
-    row: &crate::types::AdminHandleRecord,
+    row: &crate::types::AdminHandleView,
     on_success: impl Fn() + 'static,
 ) -> View {
     let id = row.id.clone();
