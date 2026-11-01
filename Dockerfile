@@ -36,9 +36,6 @@ RUN --network=default \
 # Build tools and Cargo metadata decoding.
 RUN apt-get update && apt-get install -y python3 && rm -rf /var/lib/apt/lists/*
 
-RUN --mount=type=cache,id=codmin-cargo-registry,target=/usr/local/cargo/registry \
-    --mount=type=cache,id=codmin-cargo-git,target=/usr/local/cargo/git \
-    cargo install wasm-bindgen-cli --version 0.2.129 --locked
 
 WORKDIR /workspace
 
@@ -57,9 +54,16 @@ COPY --from=glory crates /glory-rs/glory/crates
 COPY --from=sapid Cargo.toml README.md /glory-rs/sapid/
 COPY --from=sapid src /glory-rs/sapid/src
 COPY --from=sapid styles /glory-rs/sapid/styles
+COPY --from=apace . /glory-rs/apace
+COPY --from=takia . /glory-rs/takia
+COPY --from=wingy . /glory-rs/wingy
 COPY codmin/ /workspace/codmin
 
 WORKDIR /workspace/codmin
+RUN --mount=type=cache,id=codmin-cargo-registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=codmin-cargo-git,target=/usr/local/cargo/git \
+    version="$(python3 scripts/build-web.py --print-bindgen-version)" && \
+    cargo install wasm-bindgen-cli --version "$version" --locked
 
 # Public git dependencies are fetched without build credentials.
 # Pre-fetch deps so source-only changes don't redownload the world.

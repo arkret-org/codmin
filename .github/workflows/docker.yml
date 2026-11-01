@@ -92,6 +92,9 @@ jobs:
             savfox=../savfox-ai/savfox
             glory=../glory-rs/glory
             sapid=../glory-rs/sapid
+            apace=../glory-rs/apace
+            takia=../glory-rs/takia
+            wingy=../glory-rs/wingy
           platforms: linux/${{ matrix.arch }}
           pull: true
           # Refresh repository security fixes even when the base digest is unchanged.
@@ -145,6 +148,9 @@ jobs:
             savfox=../savfox-ai/savfox
             glory=../glory-rs/glory
             sapid=../glory-rs/sapid
+            apace=../glory-rs/apace
+            takia=../glory-rs/takia
+            wingy=../glory-rs/wingy
           platforms: linux/${{ matrix.arch }}
           outputs: type=image,name=${{ steps.image.outputs.name }},push-by-digest=true,name-canonical=true,push=true
           labels: |
