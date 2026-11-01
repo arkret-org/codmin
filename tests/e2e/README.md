@@ -96,6 +96,5 @@ and run `npm run test:migration`. This separate suite drives the real WASM app
 with mocked HTTP contracts. It covers authorization, forms, cursors, token
 regeneration during refresh, mobile navigation, sign-out, every admin route
 and the public accessibility surface. It does not require seeded backend data
-and does not prove live OAuth or backend authorization. On Windows the wrapper
-keeps transform caches, browser profiles and artifacts under D:/BuildCache/codmin-glory.
+and does not prove live OAuth or backend authorization. Artifacts are saved under artifacts/glory-e2e by default; CODMIN_E2E_OUTPUT_DIR selects an explicit destination.
 Set `CODMIN_E2E_CHANNEL=msedge` or `chrome` to reuse an installed browser.

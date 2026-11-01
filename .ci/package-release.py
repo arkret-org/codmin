@@ -44,16 +44,9 @@ def main():
     metadata = json.loads(run('cargo', 'metadata', '--locked', '--no-deps',
                               '--format-version', '1'))
     target = Path(metadata['target_directory'])
-    output = Path('D:/BuildCache/codmin-glory/release-assets') if os.name == 'nt' else root / 'release-assets'
-    if os.name == 'nt' and output.resolve().drive.lower() != 'd:':
-        raise RuntimeError(f'Release output must be on D:, got {output}')
+    output = root / 'release-assets'
     output.mkdir(parents=True, exist_ok=True)
-    temporary_root = Path('D:/BuildCache/codmin-glory/tmp') if os.name == 'nt' else None
-    if temporary_root:
-        temporary_root.mkdir(parents=True, exist_ok=True)
-        if target.resolve().drive.lower() != 'd:':
-            raise RuntimeError(f'Cargo target must be on D:, got {target}')
-    with tempfile.TemporaryDirectory(prefix='release-', dir=temporary_root) as temporary:
+    with tempfile.TemporaryDirectory(prefix='release-') as temporary:
         stage = Path(temporary) / name
         stage.mkdir()
         suffix = '.exe' if 'windows' in args.target else ''

@@ -1,8 +1,7 @@
 import { defineConfig } from '@playwright/test';
+import { resolve } from 'node:path';
 
-const output = process.env.CODMIN_E2E_OUTPUT_DIR || (process.platform === 'win32'
-  ? 'D:/BuildCache/codmin-glory/e2e'
-  : `${process.env.RUNNER_TEMP || process.env.TMPDIR || '/tmp'}/codmin-glory-e2e`);
+const output = process.env.CODMIN_E2E_OUTPUT_DIR || resolve(__dirname, '../../artifacts/glory-e2e');
 
 export default defineConfig({
   testDir: '.',

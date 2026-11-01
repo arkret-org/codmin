@@ -103,7 +103,8 @@ normative source:
 ```bash
 cargo test --lib --locked
 python scripts/build-web.py
-node scripts/serve-spa.mjs D:/BuildCache/codmin-glory/target/web 4173
+web_dir=$(cargo metadata --no-deps --format-version 1 | python -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')
+node scripts/serve-spa.mjs "$web_dir/web" 4173
 ```
 
 The UI uses local path dependencies at `../../glory-rs/glory/crates/glory` and
@@ -111,13 +112,7 @@ The UI uses local path dependencies at `../../glory-rs/glory/crates/glory` and
 Keep those sibling checkouts present. CI prepares them through
 `.ci/checkout-ui-dependencies.sh`. The build uses Cargo and wasm-bindgen.
 
-On Windows set `CARGO_TARGET_DIR=D:/BuildCache/codmin-glory/target`,
-`CARGO_HOME=D:/BuildCache/cargo`, and `TEMP`/`TMP=D:/BuildCache/codmin-glory/tmp`
-before Cargo commands, and verify `cargo metadata --no-deps --format-version 1`.
-The web build script applies these locations by default and emits the bundle to
-Cargo's reported target directory under `web/`. Set `WASM_BINDGEN` to an existing
-0.2.129 executable if it is not on PATH. Install tool binaries with a D-drive
-`--root` on Windows. Linux CI may use `--out-dir dist`.
+The build script inherits the current Cargo and temporary-file settings and emits the bundle under Cargo's reported target directory in web/. Set WASM_BINDGEN to a CLI matching Cargo.lock when it is not on PATH. Use --out-dir dist for an explicit deployment directory.
 
 Theme and language selections are persisted using the existing settings keys
 and take effect through a page reload; finish in-progress forms before switching.
