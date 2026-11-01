@@ -50,7 +50,15 @@ jobs:
         working-directory: codmin
         run: bash .ci/checkout-ui-dependencies.sh
 
-      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
+      # The UI PathSource siblings live outside GITHUB_WORKSPACE; run on the
+      # host so the checked-out sibling layout remains visible.
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@fa04a1451ff1842e2626ccb99004d0195b455a88 # master
         with:
-          manifest-path: codmin/Cargo.toml
-          command: check
+          toolchain: stable
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --version 0.19.8 --locked
+
+      - name: Check dependencies
+        run: cargo deny --log-level warn --locked --all-features check
