@@ -25,7 +25,7 @@ async function setup(page: Page, admin = true) {
   await page.route('**/*', async route => {
     const path = new URL(route.request().url()).pathname;
     if (path === '/config.json') return route.fulfill({ json: { coauth_public_url: new URL(route.request().url()).origin, oauth_client_id: '01GFWR28C4KNE04WG3HKXB7C9R' } });
-    if (path === '/_coland/admin/viewer') return route.fulfill({ json: { principal_id: principal, state: 'active', is_server_admin: admin } });
+    if (path === '/_coland/admin/viewer') return route.fulfill({ json: { principal_id: principal, state: 'active', devices: [], is_server_admin: admin } });
     if (path === '/_coland/admin/server/stats') return route.fulfill({ json: { actor_count: 7, active_actor_count: 6, realm_count: 2, device_count: 3, report_count: 0, federation_peer_count: 1, applet_count: 0, blob_count: 4, blob_total_size: 1024, generated_at: timestamp } });
     if (path === '/_coland/admin/server/info') return route.fulfill({ json: { server_version: 'glory-fixture', protocol_version: '1.0', server_name: 'Migration fixture', uptime: null, service_id: 'ak:did_core:web:station.example', trust_domain: 'station.example', development_mode: false, allow_public_registration: false } });
     if (path === '/_coland/admin/server/status') return route.fulfill({ json: { status: 'ok', service_id: 'ak:did_core:web:station.example', storage: 'postgres', development_mode: false, checked_by: principal, generated_at: timestamp, counts: { accounts: 7, devices: 3, realms: 2 } } });
@@ -184,7 +184,7 @@ test('failed cookie logout keeps the session and a retry can finish sign-out', a
   const errors = await setup(page);
   await mockAccounts(page);
   let attempts = 0;
-  await page.route('**/_arkret/gate/account/logout', route => route.fulfill({ json: { ok: true, revoked: true } }));
+  await page.route('**/_arkret/gate/account/logout', route => route.fulfill({ json: { revoked: true } }));
   await page.route('**/oauth/revoke', route => route.fulfill({ status: 200, body: '' }));
   await page.route('**/_coauth/account/auth/logout', route => route.fulfill({ json: { status: ++attempts === 1 ? 'unconfirmed' : 'success' } }));
   await page.goto('/coauth/accounts');
