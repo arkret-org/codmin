@@ -33,6 +33,15 @@ jobs:
     # Four cold Rust/WASM images are built in sequence to bound memory.
     timeout-minutes: 120
     steps:
+      - name: Reclaim unused hosted-runner software for example-stack builds
+        if: ${{ runner.environment == 'github-hosted' && runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          df -h .
+          sudo rm -rf -- /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h .
+
       - name: Check out codmin
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
