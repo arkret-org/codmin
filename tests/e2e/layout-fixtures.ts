@@ -244,7 +244,7 @@ export async function setupLayout(page: Page, { dark = false, language = 'en' }:
     if (path === '/_coland/admin/viewer') return reply({ principal_id: layoutIds.actor, state: 'active', is_server_admin: true });
     if (path === '/_arkret/describe') return reply(describe);
     if (path === '/_coland/admin/server/info') return reply({ server_version: '0.3.0', protocol_version: '1.0', server_name: 'Arkret Engineering', uptime: 86400, service_id: layoutIds.station, trust_domain: 'station.example', development_mode: false, allow_public_registration: false });
-    if (path === '/_coland/admin/server/stats') return reply({ actor_count: 1284, active_actor_count: 1128, realm_count: 32, device_count: 2048, report_count: 3, federation_peer_count: 8, applet_count: 12, blob_count: 8492, blob_total_size: 7516192768, generated_at: recent });
+    if (path === '/_coland/admin/server/stats') return reply({ actor_count: 1284, active_actor_count: 1128, realm_count: 32, device_count: 2048, federation_peer_count: 8, applet_count: 12, blob_count: 8492, blob_total_size: 7516192768, generated_at: recent });
     if (path === '/_coland/admin/server/status') return reply({ status: 'ok', service_id: layoutIds.station, storage: 'postgres', development_mode: false, checked_by: layoutIds.actor, generated_at: recent, counts: { accounts: 1284, devices: 2048, realms: 32 } });
 
     if (method === 'GET' && path === '/_coauth/admin/accounts') {
