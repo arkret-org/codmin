@@ -1,3 +1,25 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><title>Arkret Admin</title><link rel="stylesheet" href="/sapid.css"><link rel="stylesheet" href="/app.css"></head>
-<body><div id="app"></div><noscript>Arkret Admin requires JavaScript and WebAssembly.</noscript><script type="module" src="/bootstrap.js"></script></body></html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>Arkret Admin</title>
+    <link rel="stylesheet" href="/startup.css">
+    <link rel="stylesheet" href="/sapid.css">
+    <link rel="stylesheet" href="/app.css">
+  </head>
+  <body>
+    <div id="arkret-startup" role="status" aria-live="polite" aria-busy="true">
+      <img class="startup-logo" src="/arkret-logo.svg" width="88" height="88" alt="Arkret">
+      <div class="startup-brand" aria-hidden="true">ARKRET</div>
+      <h1>Arkret Admin</h1>
+      <p id="arkret-startup-message">Loading Arkret Admin…</p>
+      <span class="startup-spinner" aria-hidden="true"></span>
+      <button id="arkret-startup-retry" type="button" hidden>Reload page</button>
+      <noscript><p>Enable JavaScript and WebAssembly to open Arkret Admin.</p></noscript>
+    </div>
+    <div id="app"></div>
+    <script type="module" src="/bootstrap.js"></script>
+  </body>
+</html>
