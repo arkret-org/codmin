@@ -29,8 +29,8 @@ arkret-wire = { path = "../arkret-rust-sdk/crates/wire", default-features = fals
 chrono = "0.4.45"
 coauth-account-types = { path = "../coauth/crates/account-types" }
 coauth-admin-types = { path = "../coauth/crates/admin-types" }
-glory = { git = "https://github.com/glory-rs/glory.git", branch = "main", default-features = false, features = ["web", "ssr"] }
-sapid = { git = "https://github.com/sapid-ui/sapid.git", branch = "main" }
+glory = { version = "=0.7.0", default-features = false, features = ["web", "ssr"] }
+sapid = { version = "=0.7.1" }
 futures-util = { version = "0.3.34", default-features = false }
 gloo-net = "0.7"
 gloo-storage = "0.4.0"
@@ -147,6 +147,3 @@ strip = "debuginfo"
 
 [profile.dev]
 debug = 0
-
-[patch."https://github.com/sapid-ui/sapid.git"]
-glory = { git = "https://github.com/glory-rs/glory.git", branch = "main" }

@@ -1,0 +1,71 @@
+"""Resolve UI assets and provenance from the locked Cargo package graph."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+
+EXPECTED = {"glory": "0.7.0", "sapid": "0.7.1"}
+REGISTRY = "registry+https://github.com/rust-lang/crates.io-index"
+
+
+def cargo_environment(root, environment=None):
+    return dict(os.environ if environment is None else environment)
+
+
+def cargo_metadata(root, environment=None):
+    env = cargo_environment(root, environment)
+    metadata = json.loads(subprocess.check_output(
+        ["cargo", "metadata", "--locked", "--all-features", "--format-version", "1"],
+        cwd=root, env=env, text=True, encoding="utf-8"))
+    return metadata
+
+
+def ui_packages(metadata):
+    result = {}
+    for name, expected in EXPECTED.items():
+        packages = [package for package in metadata["packages"] if package["name"] == name]
+        if len(packages) != 1:
+            raise RuntimeError(f"Expected one resolved {name} package, found {len(packages)}")
+        package = packages[0]
+        source = package.get("source") or ""
+        if source != REGISTRY or package["version"] != expected:
+            raise RuntimeError(f"{name} must resolve to crates.io release {expected}: {source!r} {package['version']!r}")
+        manifest = Path(package["manifest_path"]).resolve()
+        if not manifest.is_file():
+            raise FileNotFoundError(manifest)
+        result[name] = {"source": source,
+                        "manifest_path": str(manifest), "version": package["version"]}
+    return result
+
+
+def sapid_stylesheet(metadata):
+    package = ui_packages(metadata)["sapid"]
+    stylesheet = Path(package["manifest_path"]).parent / "styles" / "sapid.css"
+    if not stylesheet.is_file():
+        raise FileNotFoundError(stylesheet)
+    return stylesheet
+
+
+def ui_provenance(metadata):
+    result = ui_packages(metadata)
+    result["sapid"]["stylesheet_sha256"] = hashlib.sha256(sapid_stylesheet(metadata).read_bytes()).hexdigest()
+    return result
+
+
+def verify_web_provenance(directory, metadata):
+    recorded = json.loads((directory / "ui-build-info.json").read_text(encoding="utf-8"))
+    expected = ui_provenance(metadata)
+    for name in EXPECTED:
+        for field in ("source", "version"):
+            if recorded.get(name, {}).get(field) != expected[name][field]:
+                raise RuntimeError(f"Web artifact {name} {field} does not match the locked Cargo graph")
+    if recorded.get("sapid", {}).get("stylesheet_sha256") != expected["sapid"]["stylesheet_sha256"]:
+        raise RuntimeError("Web artifact Sapid stylesheet does not match the locked dependency")
+
+
+if __name__ == "__main__":
+    root = Path(__file__).resolve().parents[1]
+    metadata = cargo_metadata(root)
+    print(json.dumps({"target_directory": metadata["target_directory"],
+                      "ui_dependencies": ui_provenance(metadata)}, indent=2))

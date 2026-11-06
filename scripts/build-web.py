@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tomllib
+from ui_dependencies import cargo_metadata, sapid_stylesheet, ui_provenance
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -59,8 +60,7 @@ def main():
         return
     env = os.environ.copy()
     bindgen = find_bindgen(env, expected_bindgen)
-    metadata = json.loads(subprocess.check_output(
-        ["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1"], cwd=ROOT, env=env, text=True))
+    metadata = cargo_metadata(ROOT, env)
     target = Path(metadata["target_directory"]).resolve()
     print(f"Cargo target directory: {target}", flush=True)
     command = ["cargo", "build", "--locked", "--lib", "--target", "wasm32-unknown-unknown"]
@@ -77,8 +77,9 @@ def main():
             shutil.copy2(source, output / source.name)
         elif source.is_dir():
             shutil.copytree(source, output / source.name, dirs_exist_ok=True)
-    sapid = ROOT.parent.parent / "glory-rs" / "sapid" / "styles" / "sapid.css"
+    sapid = sapid_stylesheet(metadata)
     shutil.copy2(sapid, output / "sapid.css")
+    (output / "ui-build-info.json").write_text(json.dumps(ui_provenance(metadata), indent=2) + "\n", encoding="utf-8")
     print(f"Static web bundle: {output}")
 
 if __name__ == "__main__":
