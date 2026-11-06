@@ -630,6 +630,8 @@ where
     Fut: Future<Output = std::result::Result<(), HttpError>> + 'static,
 {
     let state = controller.state(key.into());
+    static NEXT_FORM: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    let instance = NEXT_FORM.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let values: Vec<_> = fields
         .iter()
         .map(|field| scope.cage(field.initial.clone()))
@@ -642,9 +644,13 @@ where
     let children: Vec<View> = fields
         .into_iter()
         .zip(values.iter().copied())
-        .map(|(field, value)| {
+        .enumerate()
+        .map(|(index, (field, value))| {
+            let label = field.label.clone();
+            let field_theme = theme.clone();
             Box::new(
-                col()
+                sapid::field(format!("action-field-{instance:x}-{index}"))
+                    .theme(theme.clone())
                     .class("admin-field")
                     .style(Style {
                         display: Some(Display::Flex),
@@ -656,21 +662,16 @@ where
                         gap: Some(6.0),
                         ..Style::new()
                     })
-                    .fill((
-                        text()
-                            .style(Style {
-                                font_size: Some(14.0),
-                                font_weight: Some(500.0),
-                                ..Style::new()
-                            })
-                            .content(field.label.clone()),
+                    .label(field.label)
+                    .control(move |control| {
                         sapid::text_field()
-                            .theme(theme.clone())
-                            .name(field.label)
+                            .theme(field_theme.clone())
+                            .field(control)
+                            .name(label.clone())
                             .value(value)
                             .multiline(field.multiline)
-                            .on_value_change(move |new| value.revise(|old| *old = new)),
-                    )),
+                            .on_value_change(move |new| value.revise(|old| *old = new))
+                    }),
             ) as View
         })
         .collect();
