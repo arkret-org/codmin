@@ -240,9 +240,11 @@ Notes:
     │  - choose backend (livekit / mediasoup / janus / arkret_native / moq_relay)
     │  - paste connect_url (the SFU/relay control endpoint)
     │  - choose issuer_kid (from coland's active kid set)
-    │  - codmin synthesizes focus_id using the canonical rules:
-    │      <backend>:<region>:<disambiguator>
-    │  - validate (region matches [a-z0-9-]+, length checks)
+    │  - configure an opaque focus_id (1–256 Unicode scalar values)
+    │  - reject an empty handle or one beginning with ak:
+    │  - preserve Unicode and spaces exactly; do not trim or normalize
+    │  - token exchange requires the same handle to fit its 64-character bound
+    │  - backend and region do not impose a focus_id naming grammar
     │  - save draft
     ▼
 [stage]
@@ -267,3 +269,10 @@ Notes:
     Audit rows under `realm.media_service.foci.update` capture every
     transition.
 ```
+
+The formal v1 focus contract permits up to 256 Unicode scalar values in
+media-service configuration, committed call focus, and SFrame/RTC exporters.
+Media-token exchange request/response and the Arkret-native backend token
+carry at most 64. A longer configured handle cannot be truncated to fit a
+token. These are carrier bounds, not a backend/region derivation rule. The
+current media-service page displays configured focus identifiers verbatim.
