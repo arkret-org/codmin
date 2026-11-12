@@ -45,7 +45,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/arkret-rust-sdk
           path: arkret-rust-sdk
-          ref: 606676ba0fb7208f87994314c4054779424833e2
+          ref: fac9f552d1b7f64e9933b8785b0da207e289587b
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out coauth
@@ -53,7 +53,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coauth
           path: coauth
-          ref: c01675ba7a36c4edad3ca322c4bd02d9507c74e4
+          ref: ca57512d219f1c1fbf76acef4e9c9df59135d738
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out coland
@@ -61,7 +61,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coland
           path: coland
-          ref: 076e1984fba0436bacd9b9996a0e5e2d1722205c
+          ref: 122bfa71e24c5c46f7f2587e2308617777dd153a
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Checkout floria
@@ -69,7 +69,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/floria
           path: floria
-          ref: 8140a98952ecca14173c3a1eedf3e62454e1420a
+          ref: 2c5b292081316cfa164c3a026df46001a92e534e
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Checkout garth
@@ -77,7 +77,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/garth
           path: garth
-          ref: 401dd7d9102e550457f8867410bf67c7bf839952
+          ref: 56de48e23096c3fd3474a27b1a5e521c6574c42a
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Checkout bridges
@@ -85,7 +85,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/bridges
           path: bridges
-          ref: 683cd0c2cf2f6b7fbfd16c63c73d4ee091c3ba4b
+          ref: e70585ebe3b3d964ca55351127467a17947d4975
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Checkout arkret-spec
@@ -93,7 +93,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/arkret-spec
           path: arkret-spec
-          ref: 68a195f0f26ac892de46a588d2dcb10770bcb8e4
+          ref: ba5708db97bd385752a3dc7910ccb4a943870119
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Checkout savfox
@@ -101,7 +101,7 @@ jobs:
         with:
           repository: savfox-ai/savfox
           path: savfox-ai/savfox
-          ref: 506aebcf7521f46913782f503eb7e4ef16da93c0
+          ref: 18a5d4deae8efe9630ee55d710eefe133acc4939
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out Glory and Sapid
