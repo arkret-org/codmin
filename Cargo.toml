@@ -91,6 +91,7 @@ wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = { workspace = true }
 web-sys = { workspace = true, features = [
     "Window",
+    "BeforeUnloadEvent",
     "console",
     "Document",
     "HtmlDocument",

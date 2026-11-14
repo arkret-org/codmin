@@ -2361,3 +2361,28 @@ html.dark .status-warning {
     width: max-content;
     max-width: 100%;
 }
+
+.navigation-search { margin: 8px 12px; width: calc(100% - 24px); }
+.sidebar-nav-group > .sapid-collapsible-trigger {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%; min-height: 40px; padding: 10px 12px;
+    border: 0; border-radius: 6px; background: transparent; color: var(--ink);
+    text-align: start; cursor: pointer;
+}
+.sidebar-nav-group > .sapid-collapsible-trigger::after { content: "+"; font-size: 16px; }
+.sidebar-nav-group > .sapid-collapsible-trigger[aria-expanded="true"]::after { content: "−"; }
+.sidebar-nav-group > .sapid-collapsible-trigger:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.sidebar-nav-group .sidebar-section-label { margin: 0; color: var(--muted); }
+.sidebar-nav-group .sapid-collapsible-panel { display: flex; flex-direction: column; gap: 2px; }
+.nav-collapsed .navigation-search, .nav-collapsed .sidebar-nav-group > .sapid-collapsible-trigger { display: none; }
+.nav-empty { padding: 12px; color: var(--muted); }
+.account-query-error:empty { display: none; }
+.account-query-error { color: #a52b25; }
+html.dark .account-query-error { color: #ffb6a8; }
+.preference-change-dialog > .sapid-layer-close,
+.preference-change-dialog > .sapid-alert-dialog-confirm {
+    width: 100%; min-height: 44px; padding: 10px 14px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer;
+}
+.preference-change-dialog > .sapid-alert-dialog-confirm { background: #b82d2b; color: #fff; border-color: transparent; }
+.preference-change-dialog > button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }

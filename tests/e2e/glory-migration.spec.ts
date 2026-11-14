@@ -93,6 +93,7 @@ test('the Glory shell renders typed server data and opens another admin route', 
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
   await expect(page.getByText('glory-fixture', { exact: true }).first()).toBeVisible();
+  await page.locator('input.navigation-search').fill('accounts');
   await page.locator('a[href="/coauth/accounts"]').click();
   await expect(page).toHaveURL(/\/coauth\/accounts$/);
   await expect(page.getByRole('heading', { name: 'coauth Accounts', exact: true })).toBeVisible();
@@ -109,6 +110,7 @@ test('account search resets the cursor and pagination keeps the selected filter'
   await expect(page.getByText('Second operator', { exact: true }).first()).toBeVisible();
   expect(requests.at(-1)!.searchParams.get('page[after]')).toBe('next-page');
   await page.getByRole('textbox', { name: 'Search (any field)', exact: true }).fill('operator');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page.getByText('Filtered operator', { exact: true }).first()).toBeVisible();
   expect(requests.at(-1)!.searchParams.get('filter[search]')).toBe('operator');
   expect(requests.at(-1)!.searchParams.has('page[after]')).toBe(false);
@@ -175,6 +177,7 @@ test('the mobile menu opens the sidebar and follows an admin link', async ({ pag
   await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Open navigation', exact: true }).click();
   await expect(page.locator('.sapid-sidebar-drawer')).toBeVisible();
+  await page.locator('.sapid-sidebar-drawer input.navigation-search').fill('accounts');
   await page.locator('.sapid-sidebar-drawer a[href="/coauth/accounts"]').click();
   await expect(page.getByRole('heading', { name: 'coauth Accounts', exact: true })).toBeVisible();
   expect(errors).toEqual([]);
@@ -307,6 +310,7 @@ test('keyboard navigation ignores form editing and confirmed logout in another t
   await page.keyboard.press('d');
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible();
+  await page.locator('input.navigation-search').fill('accounts');
   await page.locator('a[href="/coauth/accounts"]').click();
   await page.getByRole('textbox', { name: 'Search (any field)', exact: true }).pressSequentially('gd?');
   await expect(page).toHaveURL(/\/coauth\/accounts$/);

@@ -84,3 +84,119 @@ test('dangerous operation identifies its target, cancels without a write, and ke
   await page.screenshot({ path: test.info().outputPath('revoke-failure-desktop.png'), fullPage: true });
   expect(errors).toEqual([]);
 });
+
+test('navigation searches real destinations and exposes Realm controls only in context', async ({ page }) => {
+  const errors = await setupLayout(page);
+  await page.goto('/');
+  const search = page.locator('input.navigation-search');
+  await expect(page.locator('a[href^="/realms/_/"]')).toHaveCount(0);
+  await expect(page.locator('.sidebar-nav-group')).toHaveCount(6);
+  await search.fill('accounts');
+  const destination = page.locator('a[href="/coauth/accounts"]');
+  await expect(destination).toBeVisible();
+  await destination.click();
+  await expect(page.getByRole('heading', { name: 'coauth Accounts', exact: true })).toBeVisible();
+  await page.goto(`/realms/${encodeURIComponent(layoutIds.realm)}`);
+  await expect(page.locator(`.codmin-navigation a[href="/realms/${encodeURIComponent(layoutIds.realm)}/authority"]`)).toHaveCount(1);
+  await page.getByRole('button', { name: 'Collapse navigation', exact: true }).click();
+  await expect(page.locator('a[href="/coauth/accounts"]')).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('grouped-navigation.png'), fullPage: true });
+  expect(errors).toEqual([]);
+});
+
+test('account search keeps the result query and page during delayed and failed requests', async ({ page }) => {
+  const errors = await setupLayout(page);
+  let release: () => void = () => {};
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const requests: URL[] = [];
+  let fail = true;
+  await page.route('**/_coauth/admin/accounts?*', async route => {
+    const url = new URL(route.request().url()); requests.push(url);
+    const query = url.searchParams.get('filter[search]') || '';
+    if (!query) return route.fallback();
+    await gate;
+    if (fail) return route.fulfill({ status: 503, json: { title: 'Search temporarily unavailable', status: 503, detail: 'Try again.' } });
+    return route.fulfill({ json: { data: [{ type: 'accounts', id: layoutIds.account, attributes: { handle: 'query-match', display_name: 'Search match', status: 'active' }, links: { self: `/_coauth/admin/accounts/${layoutIds.account}` } }], links: { self: '/_coauth/admin/accounts', next: null }, meta: { count: 1 } } });
+  });
+  await page.goto('/coauth/accounts');
+  await expect(page.getByText('Alice', { exact: true }).first()).toBeVisible();
+  const input = page.locator('input.account-search');
+  const count = requests.length;
+  await input.fill('query-match');
+  expect(requests.length).toBe(count);
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(page.locator('.account-query-state')).toContainText('Previous');
+  await expect(page.getByText('Alice', { exact: true }).first()).toBeVisible();
+  await expect(input).toHaveValue('query-match');
+  await input.focus();
+  release();
+  await expect(page.locator('.account-query-error')).toContainText('503');
+  await expect(input).toBeFocused();
+  await expect(page.locator('.account-query-state')).toContainText('all accounts');
+  await expect(page.getByText('Alice', { exact: true }).first()).toBeVisible();
+  fail = false;
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(page.getByText('Search match', { exact: true })).toBeVisible();
+  await expect(page.locator('.account-query-state')).toContainText('query-match');
+  await expect(page.locator('.account-query-error')).toBeEmpty();
+  await page.screenshot({ path: test.info().outputPath('search-result-attribution.png'), fullPage: true });
+  expect(errors).toEqual([]);
+});
+
+test('the newest explicit search wins when an older response arrives late', async ({ page }) => {
+  const errors = await setupLayout(page);
+  let release: () => void = () => {};
+  let finished: () => void = () => {};
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const oldFinished = new Promise<void>(resolve => { finished = resolve; });
+  let oldStarted = false;
+  await page.route('**/_coauth/admin/accounts?*', async route => {
+    const query = new URL(route.request().url()).searchParams.get('filter[search]');
+    if (!query) return route.fallback();
+    if (query === 'old') { oldStarted = true; await gate; }
+    try {
+      await route.fulfill({ json: { data: [{ type: 'accounts', id: layoutIds.account, attributes: { handle: query, display_name: query === 'old' ? 'Old result' : 'Newest result', status: 'active' }, links: { self: `/_coauth/admin/accounts/${layoutIds.account}` } }], links: { self: '/_coauth/admin/accounts', next: null }, meta: { count: 1 } } });
+    } finally { if (query === 'old') finished(); }
+  });
+  await page.goto('/coauth/accounts');
+  const input = page.locator('input.account-search');
+  await expect(page.getByText('Alice', { exact: true }).first()).toBeVisible();
+  await input.fill('old');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect.poll(() => oldStarted).toBe(true);
+  await input.fill('new');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(page.getByText('Newest result', { exact: true })).toBeVisible();
+  release();
+  await oldFinished;
+  await expect(page.getByText('Old result', { exact: true })).toHaveCount(0);
+  await expect(page.locator('.account-query-state')).toContainText('new');
+  expect(errors).toEqual([]);
+});
+
+test('preference changes safely cancel with hidden form drafts and reload only after confirmation', async ({ page }) => {
+  const errors = await setupLayout(page);
+  await page.goto('/policy');
+  const trigger = page.getByRole('button', { name: 'Create', exact: true }).and(page.locator('[aria-expanded]'));
+  await trigger.click();
+  await page.getByRole('textbox', { name: 'Name', exact: true }).fill('Retain this admin draft');
+  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+  const original = await page.evaluate(() => localStorage.getItem('theme'));
+  await page.locator('.theme-toggle').click();
+  const confirmation = page.getByRole('alertdialog');
+  await expect(confirmation).toBeVisible();
+  await expect(confirmation.getByRole('button', { name: 'Keep editing', exact: true })).toBeFocused();
+  await page.keyboard.press('Escape');
+  expect(await page.evaluate(() => localStorage.getItem('theme'))).toBe(original);
+  await trigger.click();
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('Retain this admin draft');
+  await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+  await page.locator('.theme-toggle').click();
+  await confirmation.getByRole('button', { name: 'Discard input and apply', exact: true }).click();
+  await expect(page.locator('.codmin-shell')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('theme'))).not.toBe(original);
+  await trigger.click();
+  await expect(page.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('');
+  await page.screenshot({ path: test.info().outputPath('confirmed-theme-reload.png'), fullPage: true });
+  expect(errors).toEqual([]);
+});

@@ -143,6 +143,63 @@ pub fn navigate(path: &str) {
     let _ = path;
 }
 
+#[derive(Clone)]
+enum PreferenceChange {
+    Language(crate::utils::i18n::Language),
+    Theme(String),
+}
+
+fn apply_preference(choice: PreferenceChange) {
+    match choice {
+        PreferenceChange::Language(language) => crate::utils::i18n::set_language(language),
+        PreferenceChange::Theme(theme) => crate::components::theme::set_theme(&theme),
+    }
+    crate::utils::drafts::permit_navigation();
+    navigate(&current_path());
+}
+
+fn request_preference(
+    choice: PreferenceChange,
+    pending: Cage<Option<PreferenceChange>>,
+    error: Cage<String>,
+) {
+    use crate::utils::drafts::{self, State};
+    match drafts::state() {
+        State::Clean => apply_preference(choice),
+        State::Unsaved => pending.revise(|value| *value = Some(choice)),
+        State::Busy => error.revise(|value| *value = t("preferences.wait_for_operation")),
+    }
+}
+
+fn preference_confirmation(
+    scope: &Scope,
+    pending: Cage<Option<PreferenceChange>>,
+) -> crate::components::ui::View {
+    Box::new(
+        sapid::alert_dialog(format!("preference-change-{}", scope.id().slot()))
+            .unstyled()
+            .class("admin-action-dialog preference-change-dialog")
+            .label(t("preferences.reload_title"))
+            .title(t("preferences.reload_title"))
+            .description(t("preferences.reload_warning"))
+            .cancel_label(t("preferences.keep_editing"))
+            .confirm_label(t("preferences.discard_and_apply"))
+            .confirm_variant(sapid::ButtonVariant::Danger)
+            .show_trigger(false)
+            .open(pending.map(|choice| choice.is_some()))
+            .on_open_change(move |open| {
+                if !open {
+                    pending.revise(|value| *value = None);
+                }
+            })
+            .on_confirm(move || {
+                if let Some(choice) = pending.get_untracked() {
+                    apply_preference(choice);
+                }
+            }),
+    )
+}
+
 pub fn app(_scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
     let route = resolve(&current_path());
     widget(move |scope| match route.page {
@@ -265,6 +322,7 @@ fn header(theme: sapid::Theme) -> impl Widget {
     widget(move |scope| {
         let show_help = scope.cage(false);
         crate::browser::session_sync(scope)?;
+        crate::utils::drafts::protect_navigation(scope)?;
         crate::browser::keyboard_shortcuts(scope, show_help)?;
         let describe = crate::components::ui::resource(scope, || async {
             Ok(crate::api::server::get_server_describe().await.ok())
@@ -297,6 +355,7 @@ fn header(theme: sapid::Theme) -> impl Widget {
         let language = scope.cage(Some(
             crate::utils::i18n::current_language().code().to_owned(),
         ));
+        let pending_preference = scope.cage(None::<PreferenceChange>);
         let help_theme = theme.clone();
         let warning_theme = theme.clone();
         let controls = row().class("app-header-controls").fill((
@@ -314,8 +373,14 @@ fn header(theme: sapid::Theme) -> impl Widget {
                         .as_deref()
                         .and_then(crate::utils::i18n::Language::from_code)
                     {
-                        crate::utils::i18n::set_language(lang);
-                        navigate(&current_path());
+                        language.revise(|value| {
+                            *value = Some(crate::utils::i18n::current_language().code().to_owned())
+                        });
+                        request_preference(
+                            PreferenceChange::Language(lang),
+                            pending_preference,
+                            error,
+                        );
                     }
                 }),
             sapid::button()
@@ -331,15 +396,17 @@ fn header(theme: sapid::Theme) -> impl Widget {
                         "moon"
                     },
                 ))
-                .on_press(|| {
-                    crate::components::theme::set_theme(
-                        if crate::components::theme::get_resolved_theme() == "dark" {
-                            "light"
-                        } else {
-                            "dark"
-                        },
+                .on_press(move || {
+                    let next = if crate::components::theme::get_resolved_theme() == "dark" {
+                        "light"
+                    } else {
+                        "dark"
+                    };
+                    request_preference(
+                        PreferenceChange::Theme(next.into()),
+                        pending_preference,
+                        error,
                     );
-                    navigate(&current_path());
                 }),
             sapid::button()
                 .theme(theme.clone())
@@ -391,7 +458,7 @@ fn header(theme: sapid::Theme) -> impl Widget {
                     });
                 }),
         ));
-        col().class("app-header-content").fill((controls,
+        col().class("app-header-content").fill((controls, preference_confirmation(scope, pending_preference),
             when(warning,move ||sapid::alert("development-mode").theme(warning_theme.clone()).severity(sapid::AlertSeverity::Danger).class("development-banner").content(t("server_status.dev_banner"))),
             text().class("header-error").content(error),
             when(show_help,move ||sapid::card().theme(help_theme.clone()).class("shortcut-help").title(t("keyboard_shortcuts.title")).fill((
@@ -415,130 +482,232 @@ fn navigation(
                 "codmin-navigation".to_owned()
             }
         });
-        type NavigationSection<'a> = (&'a str, Vec<(&'a str, &'a str, &'a str)>);
-        let mut sections: Vec<NavigationSection<'_>> = vec![
-            ("", vec![("nav.dashboard", "/", "dashboard")]),
+        let query = scope.cage(String::new());
+        scope.effect(move || {
+            if collapsed.get() && !mobile.get() {
+                query.revise(String::clear);
+            }
+        });
+        let result_theme = theme.clone();
+        let groups = crate::components::ui::reactive(query, move |scope, query| {
+            navigation_groups(
+                scope,
+                result_theme.clone(),
+                current,
+                &query,
+                collapsed,
+                mobile,
+            )
+        });
+        col()
+            .class(class)
+            .fill((
+                row().class("sidebar-brand").fill((
+                    crate::appearance::icon("shield"),
+                    text().class("sidebar-brand-name").content("Arkret Admin"),
+                )),
+                sapid::text_field()
+                    .theme(theme.clone())
+                    .class("navigation-search")
+                    .name(t("nav.search"))
+                    .placeholder(t("nav.search"))
+                    .value(query)
+                    .on_value_change(move |next| query.revise(|value| *value = next)),
+                groups,
+            ))
+            .show_in(scope)
+    })
+}
+fn navigation_groups(
+    scope: &Scope,
+    theme: sapid::Theme,
+    current: Page,
+    query: &str,
+    collapsed: Cage<bool>,
+    mobile: Bond<bool>,
+) -> crate::components::ui::View {
+    type Entry = (String, String, &'static str);
+    let entries = |items: &[(&str, &str, &'static str)]| -> Vec<Entry> {
+        items
+            .iter()
+            .map(|(label, path, icon)| (t(label), path.to_string(), *icon))
+            .collect()
+    };
+    let mut sections = vec![
+        (
+            "nav.group_overview",
+            entries(&[("nav.dashboard", "/", "dashboard")]),
+        ),
+        (
+            "nav.group_access",
+            entries(&[
+                ("nav.actors", "/actors", "users"),
+                ("nav.devices", "/devices", "device"),
+                ("nav.handles", "/handles", "key"),
+                ("nav.capabilities", "/capabilities", "shield"),
+                ("nav.invite_tokens", "/invite-tokens", "key"),
+                ("nav.key_backup", "/key-backup", "key"),
+            ]),
+        ),
+        (
+            "nav.group_realms",
+            entries(&[
+                ("nav.realms", "/realms", "shield"),
+                ("nav.spaces", "/spaces", "chat"),
+            ]),
+        ),
+        (
+            "nav.group_infrastructure",
+            entries(&[
+                ("nav.federation", "/federation", "globe"),
+                ("nav.media", "/media", "image"),
+                ("nav.service_routes", "/service-routes", "layers"),
+            ]),
+        ),
+        (
+            "nav.group_audit",
+            entries(&[("nav.audit", "/audit", "file")]),
+        ),
+        (
+            "nav.group_configuration",
+            entries(&[
+                ("nav.policy", "/policy", "file"),
+                ("nav.server_status", "/server-status", "activity"),
+                ("nav.hardening", "/hardening", "shield"),
+            ]),
+        ),
+    ];
+    if crate::utils::net::session::has_coauth() {
+        sections[1].1.extend(entries(&[
+            ("nav.coauth_accounts", "/coauth/accounts", "users"),
+            ("nav.coauth_capabilities", "/coauth/capabilities", "shield"),
+            ("nav.oauth2_sessions", "/coauth/oauth2-sessions", "key"),
+            ("nav.personal_tokens", "/coauth/personal-sessions", "key"),
             (
-                "nav.section_identity",
-                vec![
-                    ("nav.actors", "/actors", "users"),
-                    ("nav.devices", "/devices", "device"),
-                    ("nav.handles", "/handles", "key"),
-                    ("nav.capabilities", "/capabilities", "shield"),
-                    ("nav.coauth_capabilities", "/coauth/capabilities", "shield"),
-                    ("nav.invite_tokens", "/invite-tokens", "key"),
-                ],
+                "nav.registration_tokens",
+                "/coauth/registration-tokens",
+                "key",
+            ),
+            ("nav.upstream_links", "/coauth/upstream-links", "link"),
+        ]));
+        sections[4]
+            .1
+            .extend(entries(&[("nav.audit_log", "/coauth/audit-log", "file")]));
+        sections[5].1.extend(entries(&[
+            (
+                "nav.upstream_providers",
+                "/coauth/upstream-providers",
+                "link",
             ),
             (
-                "nav.section_moderation",
-                vec![
-                    ("nav.realms", "/realms", "shield"),
-                    ("nav.spaces", "/spaces", "chat"),
-                    ("nav.audit", "/audit", "file"),
-                ],
+                "nav.notification_channels",
+                "/coauth/notification-channels",
+                "mail",
             ),
             (
-                "nav.section_infrastructure",
-                vec![
-                    ("nav.federation", "/federation", "globe"),
-                    ("nav.media", "/media", "image"),
-                    ("Key backup", "/key-backup", "key"),
-                    ("nav.realm_links", "/realms/_/links", "link"),
-                    ("media_service.title", "/realms/_/media-service", "video"),
-                    (
-                        "realm_organization.title",
-                        "/realms/_/organization",
-                        "building",
-                    ),
-                ],
+                "nav.notification_templates",
+                "/coauth/notification-templates",
+                "file",
             ),
             (
-                "nav.section_server_ops",
-                vec![
-                    ("nav.policy", "/policy", "file"),
-                    ("nav.server_status", "/server-status", "activity"),
-                    ("nav.service_routes", "/service-routes", "layers"),
-                    ("Hardening", "/hardening", "shield"),
-                ],
+                "nav.connector_health",
+                "/coauth/connector-health",
+                "activity",
             ),
-            (
-                "nav.section_authority",
-                vec![("nav.realm_authority", "/realms/_/authority", "shield")],
-            ),
-        ];
-        if crate::utils::net::session::has_coauth() {
-            sections.push((
-                "nav.section_coauth",
-                vec![
-                    ("nav.coauth_accounts", "/coauth/accounts", "users"),
-                    ("nav.audit_log", "/coauth/audit-log", "file"),
-                    ("nav.oauth2_sessions", "/coauth/oauth2-sessions", "key"),
-                    ("nav.personal_tokens", "/coauth/personal-sessions", "key"),
-                    (
-                        "nav.registration_tokens",
-                        "/coauth/registration-tokens",
-                        "key",
-                    ),
-                    (
-                        "nav.upstream_providers",
-                        "/coauth/upstream-providers",
-                        "link",
-                    ),
-                    ("nav.upstream_links", "/coauth/upstream-links", "link"),
-                    (
-                        "nav.notification_channels",
-                        "/coauth/notification-channels",
-                        "mail",
-                    ),
-                    (
-                        "nav.notification_templates",
-                        "/coauth/notification-templates",
-                        "file",
-                    ),
-                    (
-                        "nav.connector_health",
-                        "/coauth/connector-health",
-                        "activity",
-                    ),
-                ],
+        ]));
+    }
+    let route = resolve(&current_path());
+    if matches!(
+        route.page,
+        Page::RealmShow
+            | Page::RealmAuthority
+            | Page::RealmLinks
+            | Page::RealmMediaService
+            | Page::RealmOrganization
+    ) && let Some(id) = route.params.first().filter(|id| id.as_str() != "_")
+    {
+        for (label, suffix, icon) in [
+            ("nav.realm_authority", "authority", "shield"),
+            ("nav.realm_links", "links", "link"),
+            ("media_service.title", "media-service", "video"),
+            ("realm_organization.title", "organization", "building"),
+        ] {
+            sections[2].1.push((
+                t(label),
+                format!("/realms/{}/{}", urlencoding::encode(id), suffix),
+                icon,
             ));
         }
-        let mut children: Vec<Box<dyn Widget>> =
-            vec![Box::new(row().class("sidebar-brand").fill((
-                crate::appearance::icon("shield"),
-                text().class("sidebar-brand-name").content("Arkret Admin"),
-            )))];
-        for (label, items) in sections {
-            let mut links: Vec<Box<dyn Widget>> = vec![];
-            if !label.is_empty() {
-                links.push(Box::new(
-                    text().class("sidebar-section-label").content(t(label)),
-                ));
-            }
-            for (label, href, icon) in items {
-                let active = nav_active(current, resolve(href).page);
-                links.push(Box::new(
+    }
+    let query = query.trim().to_lowercase();
+    let mut children: Vec<crate::components::ui::View> = vec![];
+    for (index, (label, items)) in sections.into_iter().enumerate() {
+        let expanded = !query.is_empty()
+            || items
+                .iter()
+                .any(|(_, href, _)| nav_active(current, resolve(href).page));
+        let group_matches = t(label).to_lowercase().contains(&query);
+        let links: Vec<crate::components::ui::View> = items
+            .into_iter()
+            .filter(|(label, href, _)| {
+                query.is_empty()
+                    || group_matches
+                    || label.to_lowercase().contains(&query)
+                    || href.to_lowercase().contains(&query)
+            })
+            .map(|(label, href, icon)| {
+                Box::new(
                     sapid::anchor()
                         .theme(theme.clone())
                         .unstyled()
                         .class(format!("sidebar-nav-link nav-icon-{icon}"))
-                        .label(t(label))
-                        .name(t(label))
-                        .href(href)
-                        .current(active.then_some(Current::Page)),
-                ));
-            }
-            children.push(Box::new(col().class("sidebar-section").fill(links)));
+                        .label(label.clone())
+                        .name(label)
+                        .current(nav_active(current, resolve(&href).page).then_some(Current::Page))
+                        .href(href),
+                ) as crate::components::ui::View
+            })
+            .collect();
+        if links.is_empty() {
+            continue;
         }
-        col().class(class).fill(children).show_in(scope)
-    })
+        let title = t(label);
+        let mut body = Some(links);
+        let open = scope.cage(expanded);
+        children.push(Box::new(
+            sapid::collapsible(format!("nav-group-{index}"))
+                .unstyled()
+                .class("sidebar-section sidebar-nav-group")
+                .label(title.clone())
+                .open(scope.bond(move || open.get() || (collapsed.get() && !mobile.get())))
+                .on_open_change(move |value| open.revise(|current| *current = value))
+                .trigger_content(move || {
+                    text().class("sidebar-section-label").content(title.clone())
+                })
+                .content_policy(sapid::ContentPolicy::KeepMounted)
+                .content(move || col().fill(body.take().unwrap_or_default())),
+        ));
+    }
+    if children.is_empty() {
+        children.push(Box::new(
+            text().class("nav-empty").content(t("nav.no_match")),
+        ));
+    }
+    Box::new(col().class("navigation-groups").fill(children))
 }
 fn nav_active(current: Page, target: Page) -> bool {
     current == target
         || matches!(
             (current, target),
             (Page::ActorShow, Page::ActorList)
-                | (Page::RealmShow, Page::RealmList)
+                | (
+                    Page::RealmShow
+                        | Page::RealmAuthority
+                        | Page::RealmLinks
+                        | Page::RealmMediaService
+                        | Page::RealmOrganization,
+                    Page::RealmList
+                )
                 | (Page::SpaceShow, Page::SpaceList)
                 | (Page::HandleShow, Page::HandleList)
                 | (Page::FederationShow, Page::FederationList)

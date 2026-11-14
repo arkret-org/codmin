@@ -180,6 +180,8 @@ export async function setupLayout(page: Page, { dark = false, language = 'en' }:
     if (message.type() === 'error' && /^Glory\b|admin region render failed/.test(message.text())) errors.push(message.text());
   });
   await page.addInitScript(({ dark, language }) => {
+    if (sessionStorage.getItem('glory_fixture_seeded')) return;
+    sessionStorage.setItem('glory_fixture_seeded', '1');
     for (const [key, value] of Object.entries({
       session_active: '1', is_admin: 'true', language, theme: dark ? 'dark' : 'light',
       user_id: 'alice', display_name: 'Alice Chen', coauth_public_url: location.origin,

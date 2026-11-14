@@ -15,12 +15,16 @@ pub type View = Box<dyn Widget>;
 pub struct Resource<T: Clone + 'static> {
     pub data: Cage<Option<std::result::Result<T, HttpError>>>,
     pub revision: Cage<u64>,
+    pub loading: Cage<bool>,
+    pub refresh_error: Cage<String>,
 }
 impl<T: Clone + 'static> Clone for Resource<T> {
     fn clone(&self) -> Self {
         Self {
             data: self.data,
             revision: self.revision,
+            loading: self.loading,
+            refresh_error: self.refresh_error,
         }
     }
 }
@@ -36,7 +40,27 @@ where
     F: Fn() -> Fut + 'static,
     Fut: Future<Output = std::result::Result<T, HttpError>> + 'static,
 {
-    let data = scope.cage(None);
+    resource_with_retention(scope, loader, false)
+}
+
+pub fn resource_retaining<T, F, Fut>(scope: &Scope, loader: F) -> Resource<T>
+where
+    T: Clone + 'static,
+    F: Fn() -> Fut + 'static,
+    Fut: Future<Output = std::result::Result<T, HttpError>> + 'static,
+{
+    resource_with_retention(scope, loader, true)
+}
+
+fn resource_with_retention<T, F, Fut>(scope: &Scope, loader: F, retain: bool) -> Resource<T>
+where
+    T: Clone + 'static,
+    F: Fn() -> Fut + 'static,
+    Fut: Future<Output = std::result::Result<T, HttpError>> + 'static,
+{
+    let data: Cage<Option<std::result::Result<T, HttpError>>> = scope.cage(None);
+    let loading = scope.cage(false);
+    let refresh_error = scope.cage(String::new());
     let revision = scope.cage(0u64);
     let generation = Rc::new(Cell::new(0u64));
     let active = Rc::new(RefCell::new(None::<glory::core::TaskToken>));
@@ -51,23 +75,43 @@ where
         };
         let serial = generation.get().wrapping_add(1);
         generation.set(serial);
-        data.revise(|value| *value = None);
+        loading.revise(|value| *value = true);
+        refresh_error.revise(String::clear);
+        if !retain {
+            data.revise(|value| *value = None);
+        }
         let future = loader();
         let generation = generation.clone();
         let weak = scope.downgrade();
         match scope.owner().spawn(async move {
             let result = future.await;
             if weak.upgrade().is_some() && generation.get() == serial {
-                data.revise(|value| *value = Some(result));
+                loading.revise(|value| *value = false);
+                match result {
+                    Err(error) if retain && matches!(data.get_untracked(), Some(Ok(_))) => {
+                        refresh_error.revise(|value| *value = error_text(&error));
+                    }
+                    result => data.revise(|value| *value = Some(result)),
+                }
             }
         }) {
             Ok(token) => *active.borrow_mut() = Some(token),
             Err(error) => {
-                data.revise(|value| *value = Some(Err(HttpError::message(error.to_string()))))
+                loading.revise(|value| *value = false);
+                if retain && matches!(data.get_untracked(), Some(Ok(_))) {
+                    refresh_error.revise(|value| *value = error.to_string());
+                } else {
+                    data.revise(|value| *value = Some(Err(HttpError::message(error.to_string()))))
+                }
             }
         }
     });
-    Resource { data, revision }
+    Resource {
+        data,
+        revision,
+        loading,
+        refresh_error,
+    }
 }
 
 /// Rebuild only this owned region; fields outside it keep their identity.
@@ -744,6 +788,36 @@ where
     });
     let busy = state.busy;
     let message = state.message;
+    let baseline = scope.cage(
+        values
+            .iter()
+            .map(|value| value.get_untracked())
+            .collect::<Vec<_>>(),
+    );
+    let tracked_values = values.clone();
+    let tracked_owner = scope.downgrade();
+    crate::utils::drafts::track(scope, move || {
+        use crate::utils::drafts::State;
+        if tracked_owner.upgrade().is_none() {
+            return State::Clean;
+        }
+        if busy.get_untracked() {
+            return State::Busy;
+        }
+        if tracked_values
+            .iter()
+            .map(|value| value.get_untracked())
+            .collect::<Vec<_>>()
+            != baseline.get_untracked()
+            || !phrase.get_untracked().is_empty()
+            || !reason.get_untracked().is_empty()
+            || reviewed.get_untracked()
+        {
+            State::Unsaved
+        } else {
+            State::Clean
+        }
+    });
     let label = label.into();
     let kinds: Vec<_> = fields.iter().map(|field| field.kind.clone()).collect();
     let children: Vec<View> = fields
@@ -954,6 +1028,7 @@ where
                 message.revise(|value| *value = error);
                 return;
             }
+            let accepted_fields = snapshot.clone();
             if danger.as_ref().is_some_and(|gate| gate.show_reason) {
                 snapshot.push(reason.get_untracked().trim().to_string());
             }
@@ -975,6 +1050,8 @@ where
                 match result {
                     Ok(()) => {
                         if row_owner.upgrade().is_some() {
+                            baseline.revise(|value| *value = accepted_fields);
+                            reviewed.revise(|value| *value = false);
                             phrase.revise(|value| value.clear());
                             reason.revise(|value| value.clear());
                         }
