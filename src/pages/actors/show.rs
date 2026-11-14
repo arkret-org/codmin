@@ -73,7 +73,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme, actor_id: String) -> impl Widget
                             theme.clone(),
                             t("actors.deactivate"),
                             vec![],
-                            Some(Danger::new(station::suffix(&id)).without_reason()),
+                            Some(
+                                Danger::new(station::suffix(&id))
+                                    .context(&id, "impact.actor", "recovery.none")
+                                    .without_reason(),
+                            ),
                             move |_| {
                                 let id = id.clone();
                                 async move {

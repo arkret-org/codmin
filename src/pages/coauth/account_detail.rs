@@ -101,7 +101,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme, account_id: String) -> impl Widg
                 detail_theme.clone(),
                 t("did_binding_panel.remove"),
                 vec![],
-                Some(Danger::new(common::suffix(&did)).without_reason()),
+                Some(
+                    Danger::new(common::suffix(&did))
+                        .context(&did, "impact.did_binding", "recovery.none")
+                        .without_reason(),
+                ),
                 move |_| {
                     let did = did.clone();
                     let account = account.clone();
@@ -168,7 +172,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme, account_id: String) -> impl Widg
                     detail_theme.clone(),
                     t("common.revoke"),
                     vec![],
-                    Some(Danger::new(common::suffix(&id)).without_reason()),
+                    Some(
+                        Danger::new(common::suffix(&id))
+                            .context(&id, "impact.claim", "recovery.none")
+                            .without_reason(),
+                    ),
                     move |_| {
                         let id = id.clone();
                         async move { coauth::revoke_account_claim(&id).await }
@@ -336,7 +344,13 @@ pub fn page(scope: &Scope, theme: sapid::Theme, account_id: String) -> impl Widg
                     detail_theme.clone(),
                     label.clone(),
                     vec![Field::new(t("risk_action_panel.ticket_label"), "")],
-                    Some(Danger::new(format!("QUEUE {}", action.to_uppercase()))),
+                    Some(
+                        Danger::new(format!("QUEUE {}", action.to_uppercase())).context(
+                            &account_id,
+                            "impact.queue",
+                            "recovery.workflow",
+                        ),
+                    ),
                     move |values| {
                         let account = account.clone();
                         async move {
@@ -383,7 +397,13 @@ pub fn page(scope: &Scope, theme: sapid::Theme, account_id: String) -> impl Widg
                 detail_theme.clone(),
                 t("risk_action_panel.execute_approved"),
                 vec![],
-                Some(Danger::new(format!("EXECUTE {}", action.to_uppercase()))),
+                Some(
+                    Danger::new(format!("EXECUTE {}", action.to_uppercase())).context(
+                        &account_id,
+                        "impact.execute",
+                        "recovery.workflow",
+                    ),
+                ),
                 move |values| {
                     let account = account.clone();
                     let proposal = proposal.clone();

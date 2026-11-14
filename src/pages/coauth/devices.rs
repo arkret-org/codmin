@@ -53,7 +53,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme, account_id: String) -> impl Widg
                         row_theme.clone(),
                         t("coauth_devices.revoke"),
                         vec![],
-                        Some(Danger::new(common::suffix(&id))),
+                        Some(Danger::new(common::suffix(&id)).context(
+                            format!("{} / {}", account_id, id),
+                            "impact.device",
+                            "recovery.none",
+                        )),
                         move |values| {
                             let id = id.clone();
                             let account = account.clone();
@@ -64,14 +68,7 @@ pub fn page(scope: &Scope, theme: sapid::Theme, account_id: String) -> impl Widg
                         },
                         move || changed.reload(),
                     );
-                    ui::compact_action(
-                        row_theme.clone(),
-                        t("coauth_devices.revoke"),
-                        common::stack(
-                            row_theme.clone(),
-                            vec![common::muted(t("coauth_devices.revoke_confirm_body")), form],
-                        ),
-                    )
+                    ui::compact_action(row_theme.clone(), t("coauth_devices.revoke"), form)
                 } else {
                     common::muted("—")
                 };

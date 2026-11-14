@@ -29,7 +29,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                 row_theme.clone(),
                 t("common.delete"),
                 vec![],
-                Some(Danger::new(common::suffix(&id)).without_reason()),
+                Some(
+                    Danger::new(common::suffix(&id))
+                        .context(&id, "impact.upstream_link", "recovery.none")
+                        .without_reason(),
+                ),
                 move |_| {
                     let id = id.clone();
                     async move { coauth::delete_upstream_link(&id).await }
@@ -42,17 +46,7 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                 common::mono(common::optional(row.provider_id)),
                 common::cell(common::optional(row.subject)),
                 common::muted(common::optional(row.created_at)),
-                ui::compact_action(
-                    row_theme.clone(),
-                    t("common.delete"),
-                    common::stack(
-                        row_theme.clone(),
-                        vec![
-                            common::muted(t("coauth.upstream_links.delete_description")),
-                            form,
-                        ],
-                    ),
-                ),
+                ui::compact_action(row_theme.clone(), t("common.delete"), form),
             ]
         },
     );

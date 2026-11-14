@@ -29,7 +29,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                 row_theme.clone(),
                 t("common.delete"),
                 vec![],
-                Some(Danger::new(common::suffix(&id)).without_reason()),
+                Some(
+                    Danger::new(common::suffix(&id))
+                        .context(&id, "impact.provider_delete", "recovery.recreate")
+                        .without_reason(),
+                ),
                 move |_| {
                     let id = id.clone();
                     async move { coauth::delete_upstream_provider(&id).await }
@@ -50,7 +54,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                 row_theme.clone(),
                 toggle_label.clone(),
                 vec![],
-                Some(Danger::new(common::suffix(&id)).without_reason()),
+                Some(
+                    Danger::new(common::suffix(&id))
+                        .context(&id, "impact.provider_toggle", "recovery.toggle")
+                        .without_reason(),
+                ),
                 move |_| {
                     let id = id.clone();
                     async move { coauth::toggle_upstream_provider(&id, enable).await }
@@ -72,17 +80,7 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                 common::muted(common::optional(row.created_at)),
                 common::group(vec![
                     ui::compact_action(row_theme.clone(), toggle_label, toggle),
-                    ui::compact_action(
-                        row_theme.clone(),
-                        t("common.delete"),
-                        common::stack(
-                            row_theme.clone(),
-                            vec![
-                                common::muted(t("coauth.upstream_providers.delete_confirm")),
-                                delete,
-                            ],
-                        ),
-                    ),
+                    ui::compact_action(row_theme.clone(), t("common.delete"), delete),
                 ]),
             ]
         },

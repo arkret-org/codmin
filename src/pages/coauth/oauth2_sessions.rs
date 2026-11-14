@@ -31,7 +31,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                     row_theme.clone(),
                     t("coauth.oauth2_sessions.finish"),
                     vec![],
-                    Some(Danger::new(common::suffix(&id)).without_reason()),
+                    Some(
+                        Danger::new(common::suffix(&id))
+                            .context(&id, "impact.oauth_session", "recovery.sign_in")
+                            .without_reason(),
+                    ),
                     move |_| {
                         let id = id.clone();
                         async move { coauth::finish_oauth2_session(&id).await }

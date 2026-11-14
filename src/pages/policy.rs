@@ -25,7 +25,7 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
             vec![
                 Field::new("Scope", ""),
                 Field::new("Subject reference", ""),
-                Field::new("Include inactive (true / false)", "false"),
+                Field::new(t("policy.include_inactive"), "false").boolean(),
             ],
             None,
             move |values| async move {
@@ -107,7 +107,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                                 body_theme.clone(),
                                 t("common.delete"),
                                 vec![],
-                                Some(Danger::new(station::suffix(&id)).without_reason()),
+                                Some(
+                                    Danger::new(station::suffix(&id))
+                                        .context(&id, "impact.policy_delete", "recovery.recreate")
+                                        .without_reason(),
+                                ),
                                 move |_| {
                                     let id = id.clone();
                                     async move { crate::api::policy::delete_policy(&id).await }
@@ -181,16 +185,28 @@ fn editor(
             "Description",
             field(|p| p.description.clone().unwrap_or_default(), ""),
         ),
-        Field::new("Scope", field(|p| p.scope.clone().unwrap_or_default(), "*")),
+        Field::new(
+            t("policy.scope"),
+            field(|p| p.scope.clone().unwrap_or_default(), "*"),
+        )
+        .hint(t("policy.wildcard_help"))
+        .wildcard_reference(),
         Field::new(
             "Subject reference",
             field(|p| p.subject_ref.clone().unwrap_or_default(), "*"),
+        )
+        .hint(t("policy.subject_wildcard_help"))
+        .wildcard_reference(),
+        Field::new(t("policy.priority"), field(|p| p.priority.to_string(), "0")).integer(
+            i32::MIN.into(),
+            i32::MAX.into(),
+            false,
         ),
-        Field::new("Priority", field(|p| p.priority.to_string(), "0")),
         Field::new(
-            "Enabled (true / false)",
+            t("policy.enabled"),
             field(|p| p.is_enabled.to_string(), "true"),
-        ),
+        )
+        .boolean(),
     ];
     let title = if existing.is_some() {
         t("common.save")

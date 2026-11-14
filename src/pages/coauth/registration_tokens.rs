@@ -33,7 +33,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                     row_theme.clone(),
                     t("coauth.registration_tokens.revoke"),
                     vec![],
-                    Some(Danger::new(common::suffix(&id)).without_reason()),
+                    Some(
+                        Danger::new(common::suffix(&id))
+                            .context(&id, "impact.registration_token", "recovery.new_token")
+                            .without_reason(),
+                    ),
                     move |_| {
                         let id = id.clone();
                         async move { coauth::revoke_registration_token(&id).await }
@@ -43,13 +47,7 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                 ui::compact_action(
                     row_theme.clone(),
                     t("coauth.registration_tokens.revoke"),
-                    common::stack(
-                        row_theme.clone(),
-                        vec![
-                            common::muted(t("coauth.registration_tokens.revoke_confirm")),
-                            form,
-                        ],
-                    ),
+                    form,
                 )
             } else {
                 common::muted("—")
@@ -82,7 +80,13 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
         scope,
         theme.clone(),
         t("common.create"),
-        vec![Field::new(t("coauth.registration_tokens.uses_allowed"), "")],
+        vec![
+            Field::new(t("coauth.registration_tokens.uses_allowed"), "").integer(
+                1,
+                u32::MAX.into(),
+                true,
+            ),
+        ],
         None,
         move |values| async move {
             let value = values[0].trim();

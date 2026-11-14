@@ -192,7 +192,11 @@ fn handle_actions(
                 theme.clone(),
                 t("handles.revoke"),
                 vec![],
-                Some(Danger::new(station::suffix(&id)).without_reason()),
+                Some(
+                    Danger::new(station::suffix(&id))
+                        .context(&id, "impact.handle_revoke", "recovery.none")
+                        .without_reason(),
+                ),
                 move |_| {
                     let id = rid.clone();
                     async move { crate::api::handles::revoke_handle(&id).await }
@@ -208,7 +212,11 @@ fn handle_actions(
                 theme,
                 t("handles.reassign"),
                 vec![Field::new(t("handles.subject"), "")],
-                Some(Danger::new(station::suffix(&id))),
+                Some(Danger::new(station::suffix(&id)).context(
+                    &id,
+                    "impact.handle_reassign",
+                    "recovery.none",
+                )),
                 move |values| {
                     let id = reason_id.clone();
                     async move {

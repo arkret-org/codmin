@@ -494,14 +494,49 @@ pub fn compact_action(theme: sapid::Theme, label: impl Into<String>, content: Vi
             return Ok(());
         };
         let mut content = Some(content);
-        sapid::collapsible(format!("action-{}", scope.id().slot()))
-            .theme(theme.clone())
+        view()
             .class("admin-compact-action")
-            .label(label.clone())
-            .content_policy(sapid::ContentPolicy::KeepMounted)
-            .content(move || content.take().unwrap_or_else(|| Box::new(group())))
+            .fill(
+                sapid::dialog(format!("action-{}", scope.id().slot()))
+                    .unstyled()
+                    .theme(theme.clone())
+                    .class("admin-action-dialog")
+                    .label(label.clone())
+                    .title(label.clone())
+                    .close_label(t("common.close"))
+                    .content_policy(sapid::ContentPolicy::KeepMounted)
+                    .content(move || content.take().unwrap_or_else(|| Box::new(group()))),
+            )
             .show_in(scope)
     }))
+}
+
+#[derive(Clone, Copy)]
+pub enum FieldKind {
+    Text,
+    Boolean,
+    Integer { min: i64, max: i64, optional: bool },
+}
+
+impl FieldKind {
+    fn error(&self, value: &str) -> String {
+        let valid = match self {
+            Self::Text => true,
+            Self::Boolean => matches!(value, "true" | "false"),
+            Self::Integer { min, max, optional } => {
+                (*optional && value.trim().is_empty())
+                    || value
+                        .trim()
+                        .parse::<i64>()
+                        .is_ok_and(|n| (*min..=*max).contains(&n))
+            }
+        };
+        if valid {
+            String::new()
+        } else {
+            t("form.invalid_value")
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -509,6 +544,9 @@ pub struct Field {
     pub label: String,
     pub initial: String,
     pub multiline: bool,
+    pub kind: FieldKind,
+    pub hint: String,
+    pub wildcard_reference: bool,
 }
 impl Field {
     pub fn new(label: impl Into<String>, initial: impl Into<String>) -> Self {
@@ -516,7 +554,35 @@ impl Field {
             label: label.into(),
             initial: initial.into(),
             multiline: false,
+            kind: FieldKind::Text,
+            hint: String::new(),
+            wildcard_reference: false,
         }
+    }
+    pub fn boolean(mut self) -> Self {
+        self.kind = FieldKind::Boolean;
+        self
+    }
+    pub fn integer(mut self, min: i64, max: i64, optional: bool) -> Self {
+        self.kind = FieldKind::Integer { min, max, optional };
+        self.hint = format!(
+            "{}: {min} … {max}{}",
+            t("form.integer_range"),
+            if optional {
+                format!(". {}", t("form.empty_unlimited"))
+            } else {
+                String::new()
+            }
+        );
+        self
+    }
+    pub fn hint(mut self, hint: impl Into<String>) -> Self {
+        self.hint = hint.into();
+        self
+    }
+    pub fn wildcard_reference(mut self) -> Self {
+        self.wildcard_reference = true;
+        self
     }
     pub fn multiline(mut self) -> Self {
         self.multiline = true;
@@ -527,6 +593,9 @@ impl Field {
 #[derive(Clone)]
 pub struct Danger {
     pub phrase: String,
+    pub target: String,
+    pub impact: String,
+    pub recovery: String,
     pub required_reason: bool,
     pub show_reason: bool,
 }
@@ -569,9 +638,23 @@ impl Danger {
     pub fn new(phrase: impl Into<String>) -> Self {
         Self {
             phrase: phrase.into(),
+            target: String::new(),
+            impact: t("dangerous_action.review_impact"),
+            recovery: t("dangerous_action.review_recovery"),
             required_reason: true,
             show_reason: true,
         }
+    }
+    pub fn context(
+        mut self,
+        target: impl Into<String>,
+        impact_key: &str,
+        recovery_key: &str,
+    ) -> Self {
+        self.target = target.into();
+        self.impact = t(impact_key);
+        self.recovery = t(recovery_key);
+        self
     }
     pub fn optional_reason(mut self) -> Self {
         self.required_reason = false;
@@ -638,9 +721,31 @@ where
         .collect();
     let phrase = scope.cage(String::new());
     let reason = scope.cage(String::new());
+    let wildcard_values: Vec<_> = fields
+        .iter()
+        .zip(&values)
+        .filter(|(field, _)| field.wildcard_reference)
+        .map(|(_, value)| *value)
+        .collect();
+    let reviewed = scope.cage(false);
+    let selectors = wildcard_values.clone();
+    scope.effect(move || {
+        for value in &selectors {
+            let _ = value.get();
+        }
+        reviewed.revise(|v| *v = false);
+    });
+    let selectors = wildcard_values.clone();
+    let review_required = scope.bond(move || {
+        selectors.iter().any(|v| {
+            let value = v.get();
+            value.trim().is_empty() || value.trim() == "*"
+        })
+    });
     let busy = state.busy;
     let message = state.message;
     let label = label.into();
+    let kinds: Vec<_> = fields.iter().map(|field| field.kind.clone()).collect();
     let children: Vec<View> = fields
         .into_iter()
         .zip(values.iter().copied())
@@ -648,6 +753,7 @@ where
         .map(|(index, (field, value))| {
             let label = field.label.clone();
             let field_theme = theme.clone();
+            let validation = field.kind.clone();
             Box::new(
                 sapid::field(format!("action-field-{instance:x}-{index}"))
                     .theme(theme.clone())
@@ -663,14 +769,56 @@ where
                         ..Style::new()
                     })
                     .label(field.label)
-                    .control(move |control| {
-                        sapid::text_field()
-                            .theme(field_theme.clone())
-                            .field(control)
-                            .name(label.clone())
-                            .value(value)
-                            .multiline(field.multiline)
-                            .on_value_change(move |new| value.revise(|old| *old = new))
+                    .description(field.hint)
+                    .error(value.map(move |current| validation.error(current)))
+                    .control(move |control| -> View {
+                        match field.kind {
+                            FieldKind::Boolean => Box::new(
+                                sapid::checkbox()
+                                    .theme(field_theme.clone())
+                                    .field(control)
+                                    .checked(value.map(|v| v == "true"))
+                                    .on_checked_change(move |next| {
+                                        value.revise(|v| *v = next.to_string())
+                                    }),
+                            ),
+                            FieldKind::Integer { min, max, .. } => Box::new(
+                                sapid::number_input()
+                                    .theme(field_theme.clone())
+                                    .field(control)
+                                    .min(Some(
+                                        sapid::Decimal::new(min.into(), 0).expect("integer bound"),
+                                    ))
+                                    .max(Some(
+                                        sapid::Decimal::new(max.into(), 0).expect("integer bound"),
+                                    ))
+                                    .step(sapid::Decimal::new(1, 0).expect("integer step"))
+                                    .clamp_behavior(sapid::NumberClampBehavior::None)
+                                    .value(value.map(|v| {
+                                        if v.is_empty() {
+                                            sapid::NumberValue::Empty
+                                        } else {
+                                            sapid::NumberValue::Text(v.clone())
+                                        }
+                                    }))
+                                    .on_value_change(move |next| {
+                                        if let Ok(next) =
+                                            next.text(sapid::NumberLocale::EnUs, false)
+                                        {
+                                            value.revise(|v| *v = next);
+                                        }
+                                    }),
+                            ),
+                            FieldKind::Text => Box::new(
+                                sapid::text_field()
+                                    .theme(field_theme.clone())
+                                    .field(control)
+                                    .name(label.clone())
+                                    .value(value)
+                                    .multiline(field.multiline)
+                                    .on_value_change(move |new| value.revise(|old| *old = new)),
+                            ),
+                        }
                     }),
             ) as View
         })
@@ -687,7 +835,22 @@ where
         })
         .fill(children);
     let mut children: Vec<View> = vec![Box::new(field_grid)];
+    if !wildcard_values.is_empty() {
+        let review_theme = theme.clone();
+        children.push(Box::new(glory::ui::when(review_required, move || {
+            sapid::checkbox()
+                .theme(review_theme.clone())
+                .label(t("policy.review_wildcard"))
+                .checked(reviewed)
+                .on_checked_change(move |next| reviewed.revise(|v| *v = next))
+        })));
+    }
     if let Some(danger) = danger.as_ref() {
+        children.push(details(vec![
+            (t("dangerous_action.target"), danger.target.clone()),
+            (t("dangerous_action.impact"), danger.impact.clone()),
+            (t("dangerous_action.recovery"), danger.recovery.clone()),
+        ]));
         children.push(Box::new(text().content(format!(
             "{}{}{}",
             t("dangerous_action.type_prefix"),
@@ -721,8 +884,20 @@ where
         }
     }
     let valid_danger = danger.clone();
+    let valid_values = values.clone();
+    let valid_kinds = kinds.clone();
+    let guarded_selectors = wildcard_values.clone();
     let enabled = scope.bond(move || {
         !busy.get()
+            && (reviewed.get()
+                || !guarded_selectors.iter().any(|v| {
+                    let value = v.get();
+                    value.trim().is_empty() || value.trim() == "*"
+                }))
+            && valid_values
+                .iter()
+                .zip(&valid_kinds)
+                .all(|(v, kind)| kind.error(&v.get()).is_empty())
             && valid_danger.as_ref().is_none_or(|gate| {
                 phrase.get().trim() == gate.phrase.trim()
                     && (!gate.show_reason
@@ -738,14 +913,23 @@ where
     } else {
         sapid::ButtonVariant::Primary
     };
+    let cancel_confirmation = danger.is_some();
     let submit_button = sapid::button()
-        .theme(theme)
+        .theme(theme.clone())
         .label(label)
         .variant(variant)
         .loading(busy)
         .enabled(enabled)
         .on_press(move || {
             if busy.get_untracked() {
+                return;
+            }
+            if !reviewed.get_untracked()
+                && wildcard_values.iter().any(|v| {
+                    let value = v.get_untracked();
+                    value.trim().is_empty() || value.trim() == "*"
+                })
+            {
                 return;
             }
             if let Some(gate) = danger.as_ref() {
@@ -761,6 +945,15 @@ where
                 }
             }
             let mut snapshot: Vec<_> = values.iter().map(|value| value.get_untracked()).collect();
+            if let Some(error) = snapshot
+                .iter()
+                .zip(&kinds)
+                .map(|(v, kind)| kind.error(v))
+                .find(|error| !error.is_empty())
+            {
+                message.revise(|value| *value = error);
+                return;
+            }
             if danger.as_ref().is_some_and(|gate| gate.show_reason) {
                 snapshot.push(reason.get_untracked().trim().to_string());
             }
@@ -796,6 +989,25 @@ where
                 message.revise(|value| *value = error.to_string());
             }
         });
+    let mut actions: Vec<View> = vec![];
+    if cancel_confirmation {
+        actions.push(Box::new(
+            sapid::button()
+                .theme(theme)
+                .variant(sapid::ButtonVariant::Secondary)
+                .label(t("dangerous_action.cancel_confirmation"))
+                .enabled(scope.bond(move || !busy.get()))
+                .on_press(move || {
+                    if busy.get_untracked() {
+                        return;
+                    }
+                    phrase.revise(String::clear);
+                    reason.revise(String::clear);
+                    message.revise(String::clear);
+                }),
+        ));
+    }
+    actions.push(Box::new(submit_button));
     children.push(Box::new(
         row()
             .class("admin-form-actions")
@@ -807,7 +1019,7 @@ where
                 justify: Some(Justify::End),
                 ..Style::new()
             })
-            .fill(submit_button),
+            .fill(actions),
     ));
     children.push(Box::new(text().class("action-message").content(message)));
     Box::new(

@@ -31,7 +31,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                 row_theme.clone(),
                 t("coauth.personal_sessions.revoke"),
                 vec![],
-                Some(Danger::new(common::suffix(&id)).without_reason()),
+                Some(
+                    Danger::new(common::suffix(&id))
+                        .context(&id, "impact.personal_revoke", "recovery.new_token")
+                        .without_reason(),
+                ),
                 move |_| {
                     let id = id.clone();
                     async move { coauth::revoke_personal_session(&id).await }
@@ -46,7 +50,11 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                 row_theme.clone(),
                 t("coauth.personal_sessions.regenerate"),
                 vec![],
-                Some(Danger::new(common::suffix(&id)).without_reason()),
+                Some(
+                    Danger::new(common::suffix(&id))
+                        .context(&id, "impact.personal_regenerate", "recovery.replace_token")
+                        .without_reason(),
+                ),
                 move |_| {
                     let id = id.clone();
                     async move {
@@ -67,24 +75,12 @@ pub fn page(scope: &Scope, theme: sapid::Theme) -> impl Widget + use<> {
                     ui::compact_action(
                         row_theme.clone(),
                         t("coauth.personal_sessions.regenerate"),
-                        common::stack(
-                            row_theme.clone(),
-                            vec![
-                                common::muted(t("coauth.personal_sessions.regenerate_confirm")),
-                                regenerate,
-                            ],
-                        ),
+                        regenerate,
                     ),
                     ui::compact_action(
                         row_theme.clone(),
                         t("coauth.personal_sessions.revoke"),
-                        common::stack(
-                            row_theme.clone(),
-                            vec![
-                                common::muted(t("coauth.personal_sessions.revoke_confirm")),
-                                revoke,
-                            ],
-                        ),
+                        revoke,
                     ),
                 ]),
             ]

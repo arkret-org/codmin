@@ -230,6 +230,8 @@ test('a pending token regeneration survives list refresh and a remounted row can
     await form.getByRole('textbox', { name: 'Confirmation phrase', exact: true }).fill('1234');
     await regenerate.click();
     await expect.poll(() => regenerations).toBe(1);
+    await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Regenerate', exact: true }).and(page.locator('[aria-expanded]'))).toBeFocused();
     await page.getByRole('button', { name: 'Refresh', exact: true }).click();
     await expect.poll(() => reads).toBe(2);
     await openAction(page, 'Regenerate');
