@@ -503,7 +503,7 @@ fn navigation(
             .class(class)
             .fill((
                 row().class("sidebar-brand").fill((
-                    crate::appearance::icon("shield"),
+                    view().class("sidebar-brand-mark"),
                     text().class("sidebar-brand-name").content("Arkret Admin"),
                 )),
                 sapid::text_field()

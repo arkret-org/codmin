@@ -16,6 +16,8 @@ pub fn page(scope: &Scope, theme: sapid::Theme, realm_id: String) -> impl Widget
         p::stack(vec![
             ui::heading(t("realm_authority.title").replace("{realm_id}", &realm_id)),
             p::description("realm_authority.description"),
+            p::description("detail.signed_readonly"),
+            ui::technical_details(theme.clone(), "authority-technical", &bundle),
             p::card(
                 theme.clone(),
                 "realm_authority.current_station_title",

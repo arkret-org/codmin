@@ -360,6 +360,49 @@ fn error_text(error: &HttpError) -> String {
     parts.join(" · ")
 }
 
+pub fn technical_details(
+    theme: sapid::Theme,
+    key: impl Into<String>,
+    value: &impl serde::Serialize,
+) -> View {
+    let json = match serde_json::to_string_pretty(value) {
+        Ok(value) => value,
+        Err(error) => return Box::new(text().content(error.to_string())),
+    };
+    Box::new(
+        sapid::collapsible(key.into())
+            .theme(theme.clone())
+            .class("technical-details")
+            .label(t("detail.technical"))
+            .default_open(false)
+            .content_policy(sapid::ContentPolicy::KeepMounted)
+            .content(move || {
+                let copy: View = if json.len() <= glory::render::MAX_CLIPBOARD_BYTES {
+                    Box::new(
+                        sapid::copy_button()
+                            .theme(theme.clone())
+                            .label(t("detail.copy_json"))
+                            .copied_label(t("detail.copied"))
+                            .failed_label(t("detail.copy_failed"))
+                            .source(json.clone()),
+                    )
+                } else {
+                    Box::new(text().content(t("detail.manual_copy")))
+                };
+                col().class("technical-details-body").fill((
+                    copy,
+                    sapid::text_field()
+                        .theme(theme.clone())
+                        .class("technical-json")
+                        .name(t("detail.complete_json"))
+                        .multiline(true)
+                        .readonly(true)
+                        .value(json.clone()),
+                ))
+            }),
+    )
+}
+
 pub fn details(values: Vec<(String, String)>) -> View {
     Box::new(
         col()

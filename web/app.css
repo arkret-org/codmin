@@ -2386,3 +2386,9 @@ html.dark .account-query-error { color: #ffb6a8; }
 }
 .preference-change-dialog > .sapid-alert-dialog-confirm { background: #b82d2b; color: #fff; border-color: transparent; }
 .preference-change-dialog > button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.technical-details { min-width: 0; margin-top: 16px; }
+.technical-details-body { gap: 12px; min-width: 0; padding-top: 12px; }
+.technical-json { width: 100%; min-height: 280px; max-height: 500px; font-family: ui-monospace, monospace; font-size: 12px; }
+
+.sidebar-brand-mark { width: 28px; height: 28px; flex: 0 0 28px; background: url("/arkret-logo.svg") center / contain no-repeat; }

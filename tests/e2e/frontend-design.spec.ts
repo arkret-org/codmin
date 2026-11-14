@@ -200,3 +200,90 @@ test('preference changes safely cancel with hidden form drafts and reload only a
   await page.screenshot({ path: test.info().outputPath('confirmed-theme-reload.png'), fullPage: true });
   expect(errors).toEqual([]);
 });
+
+for (const dark of [false, true]) {
+test(`entity summaries retain complete copyable diagnostics and explain unavailable facts from ${dark ? 'dark' : 'light'} theme`, async ({ page, context }) => {
+  const errors = await setupLayout(page, { dark });
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const cases = [
+    { url: `/coauth/accounts/${layoutIds.account}`, marker: 'account', expected: layoutIds.account },
+    { url: `/realms/${encodeURIComponent(layoutIds.realm)}`, marker: 'realm', expected: layoutIds.realm },
+    { url: `/federation/${encodeURIComponent(layoutIds.operation)}`, marker: 'federation', expected: layoutIds.operation },
+  ];
+  let writes = 0;
+  page.on('request', request => { if (/\/_coland\/admin|\/_coauth\/admin/.test(request.url()) && request.method() !== 'GET') writes++; });
+  for (const item of cases) {
+    await page.goto(item.url);
+    await expect(page.getByText('Current state summary', { exact: true })).toBeVisible();
+    if (item.marker === 'account') {
+      await expect(page.getByText('DID bindings', { exact: true }).first()).toBeVisible();
+      await expect(page.getByText(/does not report sessions/)).toBeVisible();
+      await expect(page.getByRole('link', { name: 'View OAuth sessions', exact: true })).toHaveAttribute('href', '/coauth/oauth2-sessions');
+    }
+    if (item.marker === 'realm') {
+      await expect(page.getByText(/does not report the governing Station/)).toBeVisible();
+      await expect(page.getByText(/Read-only: governance/)).toBeVisible();
+      await expect(page.getByText(/\{realm_id\}/)).toHaveCount(0);
+    }
+    if (item.marker === 'federation') await expect(page.getByText(/not a peer health report/)).toBeVisible();
+    const trigger = page.getByRole('button', { name: 'Technical details: complete JSON', exact: true });
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await trigger.click();
+    const json = page.getByRole('textbox', { name: 'Complete technical JSON', exact: true });
+    await expect(json).toHaveValue(new RegExp(item.expected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    const data = JSON.parse(await json.inputValue());
+    await page.getByRole('button', { name: 'Copy complete JSON', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Copied', exact: true })).toBeVisible();
+    expect(JSON.parse(await page.evaluate(() => navigator.clipboard.readText()))).toEqual(data);
+    await trigger.click();await trigger.click();expect(JSON.parse(await json.inputValue())).toEqual(data);
+    await trigger.click();
+    await page.screenshot({ path: test.info().outputPath(`${item.marker}-summary-desktop.png`), fullPage: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    const wasDark = await page.locator('html').evaluate(element => element.classList.contains('dark'));
+    await Promise.all([
+      page.waitForEvent('domcontentloaded'),
+      page.locator('.theme-toggle').click(),
+    ]);
+    await expect.poll(() => page.locator('html').evaluate(element => element.classList.contains('dark'))).toBe(!wasDark);
+    await expect(page.getByText('Current state summary', { exact: true })).toBeVisible();
+    await page.evaluate(() => { for (const element of document.querySelectorAll('*')) element.scrollTop = 0; });
+    await expect(page.getByText('Current state summary', { exact: true })).toBeInViewport();
+    const colors = await page.locator('.text-muted-foreground, .page-description, .admin-entity-summary p').evaluateAll(elements => elements.filter(element => element.getBoundingClientRect().height > 0).map(element => {
+      let parent: Element | null = element;
+      let background = 'rgba(0, 0, 0, 0)';
+      while (parent) {
+        background = getComputedStyle(parent).backgroundColor;
+        if (background !== 'rgba(0, 0, 0, 0)') break;
+        parent = parent.parentElement;
+      }
+      const color = getComputedStyle(element).color;
+      const luminance = (value: string) => {
+        const channels = value.match(/[\d.]+/g)!.slice(0, 3).map(Number).map(channel => {
+          const normalized = channel / 255;
+          return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+        });
+        return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+      };
+      const foregroundLuminance = luminance(color), backgroundLuminance = luminance(background);
+      return { text: element.textContent, color, background, contrast: (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) / (Math.min(foregroundLuminance, backgroundLuminance) + 0.05) };
+    }));
+    expect(colors.length).toBeGreaterThan(0);
+    for (const color of colors) expect(color.contrast, JSON.stringify(color)).toBeGreaterThanOrEqual(4.5);
+    await test.info().attach(`${item.marker}-mobile-colors`, { body: JSON.stringify(colors, null, 2), contentType: 'application/json' });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`${item.marker}-summary-mobile.png`), fullPage: true });
+    await page.setViewportSize({ width: 1280, height: 720 });
+  }
+  expect(writes).toBe(0);expect(errors).toEqual([]);
+});
+}
+
+test('unavailable entity diagnostics show the actual request failure', async ({ page }) => {
+  const errors = await setupLayout(page);
+  await page.route('**/_coland/admin/realms/*', route => route.fulfill({ status: 503, contentType: 'application/problem+json', body: JSON.stringify({ type: 'about:blank', title: 'Unavailable', status: 503, detail: 'The governing service is unavailable.' }) }));
+  await page.goto(`/realms/${encodeURIComponent(layoutIds.realm)}`);
+  await expect(page.getByText(/HTTP 503/)).toBeVisible();
+  await expect(page.getByText('Current state summary', { exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Technical details: complete JSON', exact: true })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

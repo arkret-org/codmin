@@ -15,6 +15,7 @@ pub fn page(scope: &Scope, theme: sapid::Theme, account_id: String) -> impl Widg
     let changed = data.clone();
     let detail_theme = theme.clone();
     let body = common::resource_body(theme.clone(), data.clone(), move |scope, detail| {
+        let technical = ui::technical_details(detail_theme.clone(), "account-technical", &detail);
         let summary = &detail.account;
         let display_name = summary
             .display_name
@@ -82,6 +83,41 @@ pub fn page(scope: &Scope, theme: sapid::Theme, account_id: String) -> impl Widg
                         text().class("account-display-name").content(display_name),
                         common::muted(t("coauth_account_detail.bridge_description")),
                     )),
+            ),
+            common::panel(
+                detail_theme.clone(),
+                t("detail.current_state"),
+                common::fields(vec![
+                    (
+                        "coauth_account_detail.status",
+                        summary.lifecycle_label().into(),
+                    ),
+                    ("detail.bindings", detail.managed_dids.len().to_string()),
+                    (
+                        "detail.risk",
+                        detail.risk_action_current.lifecycle_state.clone(),
+                    ),
+                ]),
+            ),
+            common::panel(
+                detail_theme.clone(),
+                t("detail.sessions"),
+                common::stack(
+                    detail_theme.clone(),
+                    vec![
+                        common::muted(t("detail.sessions_not_reported")),
+                        crate::pages::presentation::link(
+                            detail_theme.clone(),
+                            t("detail.oauth_sessions"),
+                            "/coauth/oauth2-sessions",
+                        ),
+                        crate::pages::presentation::link(
+                            detail_theme.clone(),
+                            t("detail.personal_sessions"),
+                            "/coauth/personal-sessions",
+                        ),
+                    ],
+                ),
             ),
             Box::new(
                 view()
@@ -516,6 +552,7 @@ pub fn page(scope: &Scope, theme: sapid::Theme, account_id: String) -> impl Widg
                 ],
             ),
         ));
+        children.push(technical);
         common::stack(detail_theme.clone(), children)
     });
     common::page(

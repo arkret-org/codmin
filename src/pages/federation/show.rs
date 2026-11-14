@@ -19,6 +19,17 @@ pub fn page(scope: &Scope, theme: sapid::Theme, operation_id: String) -> impl Wi
             ),
             ui::heading(row.operation_id.to_string()),
             p::description("federation.operation_details"),
+            p::description("detail.federation_health_not_reported"),
+            p::card(
+                theme.clone(),
+                "detail.current_state",
+                vec![
+                    ("federation.operation_kind", row.operation_kind_label()),
+                    ("federation.canonical_kind", row.canonical_kind_label()),
+                    ("federation.created_at", row.created_at_display()),
+                ],
+            ),
+            ui::technical_details(theme.clone(), "federation-technical", &row),
             p::card(
                 theme.clone(),
                 "federation.operation_info",
