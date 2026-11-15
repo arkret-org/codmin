@@ -175,50 +175,6 @@ pub fn report_http_error(path: &str, error: &HttpError) {
     });
 }
 
-/// Fire-and-forget reporter for browser-side errors that do NOT originate
-/// from an HTTP envelope (panics, decoder failures, UI assertion misses).
-///
-/// Posts to the configured same-origin telemetry endpoint. No-op when
-/// telemetry is disabled or the endpoint is unset.
-///
-/// `code` is a stable wire-style identifier (e.g. `ui.error_banner.shown`).
-/// `context` is a short human-readable hint, MUST NOT include operator
-/// input, secrets, or PII — keep it to component names and error kinds.
-pub fn report_error(code: &str, context: &str) {
-    if !is_enabled() {
-        return;
-    }
-    let endpoint = match storage::get_item(ENDPOINT_KEY) {
-        Some(e) if !e.is_empty() => e,
-        _ => return,
-    };
-    // Bound error storms: drop the event when the window is saturated.
-    if !allow_send() {
-        return;
-    }
-
-    let payload = serde_json::json!({
-        "code": code,
-        "context": context,
-        "ts": iso_now(),
-    });
-    let body = match serde_json::to_string(&payload) {
-        Ok(b) => b,
-        Err(_) => return,
-    };
-
-    // Fire-and-forget. We do not await — telemetry MUST never block.
-    wasm_bindgen_futures::spawn_local(async move {
-        // Telemetry MUST never break the UI: drop on builder failure.
-        if let Ok(req) = gloo_net::http::Request::post(&endpoint)
-            .header("Content-Type", "application/json")
-            .body(body)
-        {
-            let _ = req.send().await;
-        }
-    });
-}
-
 fn iso_now() -> String {
     // js_sys::Date::to_iso_string returns a JsString; convert to native.
     js_sys::Date::new_0()

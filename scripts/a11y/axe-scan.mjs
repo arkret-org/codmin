@@ -11,7 +11,7 @@ if (!baseUrl) {
 }
 
 // This static bundle harness has no authenticated service stack. Protected
-// routes belong to tests/e2e/a11y.spec.ts with configured admin credentials.
+// routes belong to tests/e2e/glory-migration.spec.ts with current HTTP fixtures.
 const routes = ["/login"];
 const browser = await chromium.launch();
 const failures = [];

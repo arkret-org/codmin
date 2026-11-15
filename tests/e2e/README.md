@@ -52,16 +52,14 @@ explicitly provisions those variables and seeded backend data.
 | `CODMIN_E2E_ACCOUNT_ID` unset                     | skip    |
 | All env vars set + dev stack running              | run     |
 
-## High-traffic page smoke
+## Current UI checks
 
-`high-traffic-pages.spec.ts` adds authenticated route-level smokes for
-the server-ops surfaces (dashboard, actors, spaces, federation,
-deactivation, audit, policy, server status). Governance pages
-(moderation/applets/agents/directory/circles) were removed from codmin
-in the ops-level consolidation and now live in inkson, so they are no
-longer smoked here. These tests use the shared `CODMIN_E2E_BASE_URL`,
-`CODMIN_E2E_ADMIN_EMAIL`, and `CODMIN_E2E_ADMIN_PASSWORD` env vars and
-self-skip when the local stack is not configured.
+`glory-migration.spec.ts` owns route mounting, public and authenticated axe
+checks, RTL layout, the development-mode banner, and keyboard navigation to
+an actual device-revoke button. These checks drive the current WASM UI with
+contract-shaped mocked HTTP data; they require no retired local password form.
+Run `npm run test:migration`, or select `test:a11y`, `test:keyboard`, or `test:rtl`.
+They do not establish live cross-service revocation or approval behavior.
 
 ## Happy-path device revoke + cascade audit
 

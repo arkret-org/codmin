@@ -1,5 +1,5 @@
 #![allow(clippy::result_large_err)]
-#![allow(dead_code)]
+#![cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 mod api;
 mod appearance;
 mod browser;

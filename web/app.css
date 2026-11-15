@@ -853,7 +853,11 @@ h3 {
 }
 
 .stat-caption.online {
-    color: #25856c;
+    color: #277c64;
+}
+
+html.dark .stat-caption.online {
+    color: #7eceb7;
 }
 
 .stat-caption.online::before {

@@ -90,7 +90,6 @@ pub struct CoauthAccountDetail {
 }
 
 pub use coauth_admin_types::{
-    AccountRiskActionApprovalOutcome, AccountRiskActionApprovalRequestBody,
     AccountRiskActionCurrentOutcome, AccountRiskActionExecuteRequestBody,
     AccountRiskActionHistoryOutcome, AccountRiskActionProposalOutcome,
     AccountRiskActionProposalRequestBody, AccountRiskActionTransitionRecord,
@@ -220,19 +219,6 @@ pub async fn submit_account_risk_action(
     );
     // The draft is `coauth_admin_types`' own request-body type, so it is
     // already the exact shape coauth deserializes.
-    api_client(&url, "POST", Some(draft)).await
-}
-
-pub async fn approve_account_risk_action(
-    id: &str,
-    proposal_id: &str,
-    draft: &AccountRiskActionApprovalRequestBody,
-) -> Result<AccountRiskActionApprovalOutcome, HttpError> {
-    let url = format!(
-        "/_coauth/admin/accounts/{}/risk-action/{}/approve",
-        urlencoding::encode(id),
-        urlencoding::encode(proposal_id)
-    );
     api_client(&url, "POST", Some(draft)).await
 }
 

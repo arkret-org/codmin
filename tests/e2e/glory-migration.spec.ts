@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, Page } from '@playwright/test';
+import { layoutIds, setupLayout } from './layout-fixtures';
+import { expect, test, Page, type Response } from '@playwright/test';
 
 test.use({ channel: 'msedge', trace: 'off' });
 
@@ -18,7 +19,7 @@ async function setup(page: Page, admin = true) {
   await page.addInitScript(() => {
     if (sessionStorage.getItem('glory_fixture_seeded')) return;
     sessionStorage.setItem('glory_fixture_seeded', '1');
-    for (const [key, value] of Object.entries({ session_active: '1', is_admin: 'true', language: 'en', user_id: 'operator', coauth_public_url: location.origin })) {
+    for (const [key, value] of Object.entries({ session_active: '1', language: 'en', user_id: 'operator', coauth_public_url: location.origin })) {
       localStorage.setItem(key, JSON.stringify(value));
     }
   });
@@ -78,7 +79,7 @@ test('login loads deployment configuration, exposes a recoverable error, and ret
   expect(errors).toEqual([]);
 });
 
-test('a server rejection blocks the admin shell even if a cached marker says admin', async ({ page }) => {
+test('a server rejection blocks the admin shell despite a local session marker', async ({ page }) => {
   const errors = await setup(page, false);
   await page.goto('/coauth/accounts');
   await expect(page.getByRole('heading', { name: 'This account is not a server administrator' })).toBeVisible();
@@ -326,4 +327,141 @@ test('keyboard navigation ignores form editing and confirmed logout in another t
     expect(secondErrors).toEqual([]);
   } finally { await second.close(); }
   expect(errors).toEqual([]);
+});
+
+
+async function visitLoadedLayoutRoute(page: Page, route: string) {
+  const endpoints: Record<string, string[]> = {
+    '/': ['/_coland/admin/server/stats', '/_coland/admin/server/info', '/_arkret/describe', '/_coland/admin/server/status'],
+    '/devices': ['/_coland/admin/devices'],
+    '/federation': ['/_coland/admin/federation'],
+    '/audit': ['/_coland/admin/audit'],
+    '/policy': ['/_coland/self/policies'],
+    '/server-status': ['/_coland/admin/server/info', '/_arkret/describe', '/_coland/admin/server/status'],
+  };
+  const responses = endpoints[route].map(path => page.waitForResponse(response =>
+    new URL(response.url()).pathname === path && response.request().method() === 'GET',
+  ));
+  await page.goto(route);
+  for (const pending of responses) {
+    const response = await pending;
+    expect(response.status(), `${route}: ${response.url()}`).toBe(200);
+    expect(await response.finished(), `${route}: fixture response must finish`).toBeNull();
+  }
+  await expect(page.getByRole('navigation')).toBeVisible();
+  const main = page.getByRole('main');
+  switch (route) {
+    case '/':
+      await expect(main.locator('.server-summary-grid').getByText('Arkret Engineering', { exact: true })).toBeVisible();
+      await expect(main.locator('.metadata-cell').filter({
+        has: page.getByText('Station DID', { exact: true }),
+      }).getByText('did:web:station.example', { exact: true })).toBeVisible();
+      await expect(main.locator('.dashboard-stats').getByText('1284', { exact: true })).toBeVisible();
+      await expect(main.locator('.conformance-grid').getByText('Healthy', { exact: true })).toBeVisible();
+      break;
+    case '/devices':
+      await expect(main.getByRole('row').filter({ hasText: 'Alice’s workstation' })).toBeVisible();
+      break;
+    case '/federation':
+      await expect(main.getByRole('link', { name: layoutIds.operation, exact: true })).toBeVisible();
+      break;
+    case '/audit':
+      await expect(main.getByRole('row').filter({ hasText: 'admin.devices.revoke' })).toBeVisible();
+      break;
+    case '/policy':
+      await expect(main.getByRole('row').filter({ hasText: 'policy-1234' })).toBeVisible();
+      break;
+    case '/server-status':
+      await expect(main.locator('.server-info-card').getByText('Arkret Engineering', { exact: true })).toBeVisible();
+      await expect(main.locator('.service-description-card').getByText('did:web:station.example', { exact: true })).toBeVisible();
+      await expect(main.locator('.node-probe').getByText(layoutIds.station, { exact: true })).toBeVisible();
+      break;
+  }
+  await expect(main.locator('.loading')).toHaveCount(0);
+  await expect(main.locator('.resource-error')).toHaveCount(0);
+}
+
+test('authenticated administrative routes pass serious accessibility checks', async ({ page }) => {
+  test.setTimeout(180_000);
+  const fixture = await setupLayout(page);
+  for (const route of ['/', '/devices', '/federation', '/audit', '/policy', '/server-status']) {
+    await visitLoadedLayoutRoute(page, route);
+    const audit = await new AxeBuilder({ page }).analyze();
+    expect(audit.violations.filter(item => ['critical', 'serious'].includes(item.impact || '')), route).toEqual([]);
+  }
+  expect(fixture).toEqual([]);
+});
+
+test('RTL login and authenticated dashboard stay within the viewport', async ({ page }) => {
+  const fixture = await setupLayout(page);
+  for (const route of ['/login', '/']) {
+    if (route === '/login') {
+      await page.goto(route);
+      await expect(page.getByRole('button', { name: 'Sign In', exact: true })).toBeEnabled();
+    } else {
+      await visitLoadedLayoutRoute(page, route);
+    }
+    await page.evaluate(() => {
+      document.documentElement.setAttribute('dir', 'rtl');
+      document.documentElement.setAttribute('lang', 'ar');
+    });
+    expect(await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth)), route).toBeLessThanOrEqual(1);
+  }
+  expect(fixture).toEqual([]);
+});
+
+for (const developmentMode of [true, false]) {
+  test(`development-mode banner reflects the current describe flag: ${developmentMode}`, async ({ page }) => {
+    const fixture = await setupLayout(page, { developmentMode });
+    const describeResponses: Response[] = [];
+    const recordDescribe = (response: Response) => {
+      if (new URL(response.url()).pathname === '/_arkret/describe') describeResponses.push(response);
+    };
+    page.on('response', recordDescribe);
+    try {
+      await visitLoadedLayoutRoute(page, '/');
+      // The header and Dashboard each own a Describe resource. Both responses
+      // must finish before a negative assertion can observe the header.
+      await expect.poll(() => describeResponses.length).toBe(2);
+      for (const response of describeResponses) {
+        expect(response.status()).toBe(200);
+        expect(await response.finished()).toBeNull();
+        expect((await response.json()).development_mode).toBe(developmentMode);
+      }
+      const header = page.getByRole('banner');
+      await header.getByRole('button', { name: 'Keyboard Shortcuts', exact: true }).click();
+      await expect(header.locator('.shortcut-help').getByRole('heading', { name: 'Keyboard Shortcuts', exact: true })).toBeVisible();
+      await header.locator('.shortcut-help').getByRole('button', { name: 'Close', exact: true }).click();
+      await expect(header.locator('.shortcut-help')).toHaveCount(0);
+      const banner = header.locator('.development-banner');
+      if (developmentMode) await expect(banner).toBeVisible();
+      else await expect(banner).toHaveCount(0);
+      expect(fixture).toEqual([]);
+    } finally {
+      page.off('response', recordDescribe);
+    }
+  });
+}
+
+test('keyboard Tab reaches the actual device revoke control and Enter opens its guarded form', async ({ page }) => {
+  const fixture = await setupLayout(page);
+  await page.goto(`/coauth/accounts/${layoutIds.account}/devices`);
+  const trigger = page.getByRole('button', { name: 'Revoke', exact: true }).and(page.locator('[aria-expanded]')).first();
+  await expect(trigger).toBeVisible();
+  let reached = false;
+  for (let index = 0; index < 80; index++) {
+    if (await trigger.evaluate(element => element === document.activeElement)) {
+      reached = true;
+      break;
+    }
+    await page.keyboard.press('Tab');
+  }
+  expect(reached, 'Tab must reach the destructive button itself').toBe(true);
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Revoke', exact: true })).toBeDisabled();
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(trigger).toBeFocused();
+  expect(fixture).toEqual([]);
 });

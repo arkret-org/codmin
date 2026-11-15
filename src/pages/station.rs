@@ -33,7 +33,6 @@ type DocumentView = Rc<dyn Fn(&Scope, sapid::Theme) -> View>;
 pub struct Document {
     pub sections: Vec<(String, Value)>,
     pub next_cursor: Option<String>,
-    pub links: Vec<(String, String)>,
     pub numeric: Option<NumericPagination>,
     pub view: Option<DocumentView>,
 }
@@ -67,10 +66,6 @@ impl Document {
     }
     pub fn next(mut self, value: Option<String>) -> Self {
         self.next_cursor = value.filter(|value| !value.is_empty());
-        self
-    }
-    pub fn link(mut self, title: impl Into<String>, href: impl Into<String>) -> Self {
-        self.links.push((title.into(), href.into()));
         self
     }
     pub fn numeric(mut self, page: u64, per_page: u64, total: Option<u64>) -> Self {
@@ -234,36 +229,8 @@ pub fn render(theme: sapid::Theme, document: Document) -> View {
                 .fill(value_view(theme.clone(), value))
                 .show_in(scope)?;
         }
-        for (label, href) in document.links {
-            link().label(label).target(href).show_in(scope)?;
-        }
         Ok(())
     }))
-}
-
-pub fn read<F, Fut>(scope: &Scope, theme: sapid::Theme, title: String, loader: F) -> View
-where
-    F: Fn() -> Fut + 'static,
-    Fut: Future<Output = Result<Document, HttpError>> + 'static,
-{
-    let data = ui::resource(scope, loader);
-    let reload = data.clone();
-    let body_theme = theme.clone();
-    Box::new(
-        col().class("station-page").fill((
-            row().class("page-header").fill((
-                ui::heading(title),
-                sapid::button()
-                    .theme(theme.clone())
-                    .variant(sapid::ButtonVariant::Secondary)
-                    .label(t("common.refresh"))
-                    .on_press(move || reload.reload()),
-            )),
-            ui::resource_content(scope, theme, data, move |_, document| {
-                render(body_theme.clone(), document)
-            }),
-        )),
-    )
 }
 
 pub fn browse<F, Fut>(
