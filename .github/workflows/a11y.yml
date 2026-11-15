@@ -41,7 +41,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coauth
           path: coauth
-          ref: 3079db149a44684503d5e740d14df69fbf3571f0
+          ref: c7b37228f2c1e787ce7ca7b87d6862f68bf2719c
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out coland
