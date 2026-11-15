@@ -45,7 +45,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/arkret-rust-sdk
           path: arkret-rust-sdk
-          ref: d5a2ec492b343bfe3a3e1be33e36713ed154fc59
+          ref: 819fc97ca2356cd0ed467864babfaca93e0b5494
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out coauth
@@ -85,7 +85,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/bridges
           path: bridges
-          ref: af9c598b7a3756b4903074fc0e8381483da5dd9a
+          ref: 9a0f7615f85e5b8139705048d936437d848a03c7
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Checkout arkret-spec

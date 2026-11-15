@@ -862,7 +862,7 @@ where
         }
     });
     let label = label.into();
-    let kinds: Vec<_> = fields.iter().map(|field| field.kind.clone()).collect();
+    let kinds: Vec<_> = fields.iter().map(|field| field.kind).collect();
     let children: Vec<View> = fields
         .into_iter()
         .zip(values.iter().copied())
@@ -870,7 +870,7 @@ where
         .map(|(index, (field, value))| {
             let label = field.label.clone();
             let field_theme = theme.clone();
-            let validation = field.kind.clone();
+            let validation = field.kind;
             Box::new(
                 sapid::field(format!("action-field-{instance:x}-{index}"))
                     .theme(theme.clone())
