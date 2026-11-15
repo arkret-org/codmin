@@ -45,7 +45,7 @@ function capability(realmId: string, principalId: string, revoked = false) {
     value: {
       id: grantId, schema: 'ak.schema.capability.v1', realm_id: realmId,
       issuer_id: issuer, subject: actor, actions: ['ak.message.create'], resources: [{ kind: 'realm', realm_id: realmId }],
-      issuer_authority_refs: [root], authority_depth: 1, authority_root_refs: [root],
+      issuer_authority_refs: [root], authority_depth: 1, authority_root_ref: root,
       issued_at: created, status: revoked ? 'revoked' : 'active',
       ...(revoked ? { revoked_by: issuer, revoked_at: recent } : {}),
     },
