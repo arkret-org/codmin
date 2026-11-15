@@ -45,7 +45,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coauth
           path: coauth
-          ref: ca57512d219f1c1fbf76acef4e9c9df59135d738
+          ref: c7b37228f2c1e787ce7ca7b87d6862f68bf2719c
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out arkret-rust-sdk
@@ -53,7 +53,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/arkret-rust-sdk
           path: arkret-rust-sdk
-          ref: e84ab4be3f1004ef5f48ea2250cd403787c4e706
+          ref: 5a2d1665e1831ff6e6cefe8a0b09a4d37989b611
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out coland
@@ -61,7 +61,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coland
           path: coland
-          ref: 122bfa71e24c5c46f7f2587e2308617777dd153a
+          ref: 3cdc2265f5134b7f7c53b563474c58cdc0070d06
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Complete Coland build dependency layout
