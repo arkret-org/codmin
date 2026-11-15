@@ -471,11 +471,6 @@ pub(crate) fn describe_card(theme: sapid::Theme, describe: &ServerDescribeDocume
         None,
     ));
     let limits = serde_json::to_string_pretty(&describe.limits).unwrap_or_else(|_| "-".into());
-    let rate = describe
-        .rate_limit_policy
-        .as_ref()
-        .and_then(|policy| serde_json::to_value(policy).ok())
-        .unwrap_or_default();
     body.push(Box::new(
         view()
             .class("service-limits-grid")
@@ -489,7 +484,7 @@ pub(crate) fn describe_card(theme: sapid::Theme, describe: &ServerDescribeDocume
             })
             .fill((
                 code_panel(theme.clone(), t("server_status.limits_label"), limits),
-                rate_panel(theme.clone(), &rate),
+                rate_panel(theme.clone(), describe.rate_limit_policy.as_ref()),
             )),
     ));
     body.push(chips(
@@ -598,68 +593,57 @@ fn code_panel(theme: sapid::Theme, title: String, value: String) -> View {
     )
 }
 
-fn rate_panel(theme: sapid::Theme, value: &serde_json::Value) -> View {
+fn rate_panel(
+    theme: sapid::Theme,
+    policy: Option<&arkret_models_discovery::RateLimitPolicy>,
+) -> View {
     let mut children = vec![code_panel(
         theme.clone(),
         t("server_status.rate_limit_label"),
-        if value.is_null() {
-            "-".into()
-        } else {
-            serde_json::to_string_pretty(value).unwrap_or_default()
-        },
+        policy
+            .and_then(|policy| serde_json::to_string_pretty(policy).ok())
+            .unwrap_or_else(|| "-".into()),
     )];
-    if let Some(fields) = value.as_object() {
-        let number = |value: &serde_json::Value| {
-            value
-                .as_f64()
-                .or_else(|| value.as_str().and_then(|value| value.parse::<f64>().ok()))
-        };
-        let base = fields
-            .get("limit")
-            .and_then(number)
-            .or_else(|| fields.get("capacity").and_then(number));
-        for key in [
-            "limit",
-            "burst",
-            "capacity",
-            "tokens",
-            "remaining",
-            "requests",
+    for entry in policy.into_iter().flat_map(|policy| &policy.entries) {
+        let mut details: Vec<View> = Vec::new();
+        for selector in [&entry.endpoint, &entry.operation_id].into_iter().flatten() {
+            details.push(Box::new(
+                sapid::text()
+                    .theme(theme.clone())
+                    .font_size(11.0)
+                    .content(selector.clone()),
+            ));
+        }
+        for (key, count) in [
+            (
+                "server_status.rate_max_request_count",
+                entry.max_request_count,
+            ),
+            ("server_status.rate_window_seconds", entry.window_seconds),
+            (
+                "server_status.rate_burst_request_count",
+                entry.burst_request_count,
+            ),
         ] {
-            if let Some(value) = fields.get(key).and_then(number) {
-                let percent = (value / base.unwrap_or(value).max(1.0) * 100.0).clamp(0.0, 100.0);
-                children.push(Box::new(
-                    col()
-                        .style(
-                            Style::new()
-                                .display(Display::Flex)
-                                .flex_direction(FlexDirection::Column)
-                                .gap(4.0),
-                        )
-                        .fill((
-                            sapid::text()
-                                .theme(theme.clone())
-                                .font_size(11.0)
-                                .content(format!("{key}: {value}")),
-                            sapid::progress(percent)
-                                .theme(theme.clone())
-                                .name(format!("rate limit {key}"))
-                                .width(Length::Percent(100.0)),
-                        )),
+            if let Some(count) = count {
+                details.push(Box::new(
+                    sapid::text()
+                        .theme(theme.clone())
+                        .font_size(11.0)
+                        .content(format!("{}: {count}", t(key))),
                 ));
             }
         }
-        if let Some(window) = fields
-            .get("window")
-            .or_else(|| fields.get("window_seconds"))
-            .or_else(|| fields.get("refill_interval_seconds"))
-            .and_then(number)
-        {
+        if !details.is_empty() {
             children.push(Box::new(
-                sapid::text()
-                    .theme(theme)
-                    .font_size(11.0)
-                    .content(format!("window: {window}s")),
+                col()
+                    .style(
+                        Style::new()
+                            .display(Display::Flex)
+                            .flex_direction(FlexDirection::Column)
+                            .gap(4.0),
+                    )
+                    .fill(details),
             ));
         }
     }

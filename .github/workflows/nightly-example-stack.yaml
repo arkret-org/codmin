@@ -56,7 +56,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coauth
           path: coauth
-          ref: ca57512d219f1c1fbf76acef4e9c9df59135d738
+          ref: c7b37228f2c1e787ce7ca7b87d6862f68bf2719c
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out coland
@@ -64,7 +64,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/coland
           path: coland
-          ref: 122bfa71e24c5c46f7f2587e2308617777dd153a
+          ref: 3cdc2265f5134b7f7c53b563474c58cdc0070d06
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Complete Coland build dependency layout
@@ -82,7 +82,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/floria
           path: floria
-          ref: 03e7f8cdd8c9905ea7fdd402abbac2299e419f49
+          ref: 74cdcef3be19397ff7b813779c3e1ec734ed487b
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out arkret-rust-sdk
@@ -90,7 +90,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/arkret-rust-sdk
           path: arkret-rust-sdk
-          ref: 819fc97ca2356cd0ed467864babfaca93e0b5494
+          ref: 5a2d1665e1831ff6e6cefe8a0b09a4d37989b611
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       # Coauth's package graph includes Cotest's fixture crate and Garth.
@@ -100,7 +100,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/cotest
           path: cotest
-          ref: 7a1cf197ce50c1dd7370d660faba366bd4fe3cc1
+          ref: 6014fd04077aeca6a5f5f5e0dc5e7f84c9a07ec0
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out garth
@@ -108,7 +108,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/garth
           path: garth
-          ref: 8c35acec7c6d8c79b61c06855367340f0a17da78
+          ref: 960e007b4905f91b2ffc52ccf91db0b3cf5ca44d
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out arkret-spec
@@ -116,7 +116,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/arkret-spec
           path: arkret-spec
-          ref: 4e46718f83a4fcbedc12ef7409bc68743ec41dc9
+          ref: fa57d06e1aec58970e588d503621e65ba3445a32
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Set up Docker Buildx
