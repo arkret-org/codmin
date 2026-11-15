@@ -1,5 +1,5 @@
 # codmin Dockerfile.
-# Build from the repository parent with savfox, glory and sapid named contexts.
+# Build from the repository parent with Glory and Sapid named contexts.
 #
 # Build context: the arkret umbrella directory (parent of codmin).
 # The Cargo workspace at codmin/Cargo.toml has path-deps on sibling
@@ -48,7 +48,6 @@ COPY floria/ /workspace/floria
 COPY garth/ /workspace/garth
 COPY bridges/ /workspace/bridges
 COPY arkret-spec/ /workspace/arkret-spec
-COPY --from=savfox . /savfox-ai/savfox
 COPY --from=glory Cargo.toml /glory-rs/glory/Cargo.toml
 COPY --from=glory crates /glory-rs/glory/crates
 COPY --from=sapid Cargo.toml README.md /glory-rs/sapid/

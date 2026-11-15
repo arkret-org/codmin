@@ -82,7 +82,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/floria
           path: floria
-          ref: 2c5b292081316cfa164c3a026df46001a92e534e
+          ref: 03e7f8cdd8c9905ea7fdd402abbac2299e419f49
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out arkret-rust-sdk
@@ -90,7 +90,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/arkret-rust-sdk
           path: arkret-rust-sdk
-          ref: d5a2ec492b343bfe3a3e1be33e36713ed154fc59
+          ref: 819fc97ca2356cd0ed467864babfaca93e0b5494
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       # Coauth's package graph includes Cotest's fixture crate and Garth.
@@ -108,7 +108,7 @@ jobs:
         with:
           repository: ${{ github.repository_owner }}/garth
           path: garth
-          ref: 60b40c9dc27a2c3e9af0946b004bc23777e87803
+          ref: 8c35acec7c6d8c79b61c06855367340f0a17da78
           token: ${{ secrets.CI_REPO_TOKEN || github.token }}
 
       - name: Check out arkret-spec
