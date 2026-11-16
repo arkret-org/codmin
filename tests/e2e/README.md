@@ -1,105 +1,40 @@
-# tests/e2e — Playwright suite
+# Codmin Playwright checks
 
-This directory holds the Playwright e2e tests for codmin.
+## Current WASM behavior and design checks
 
-Automated CI runs only `npm run test:smoke`, which is limited to the
-unauthenticated responsive smoke that needs `CODMIN_E2E_BASE_URL` only.
-The authenticated high-risk management specs in this directory are manual
-or seeded-stack checks: they require admin credentials plus account, device,
-or policy ids and are intentionally not reported as automated CI coverage.
+Build the current source with `python scripts/build-web.py --release`, serve the reported output directory, and run `npm run test:migration`. Set `CODMIN_E2E_BASE_URL` to that server and `CODMIN_E2E_CHANNEL=msedge` or `chrome` to reuse an installed browser. `CODMIN_E2E_OUTPUT_DIR` selects the artifact directory.
 
-## Happy-path risk-action
+The canonical migration configuration collects `glory-migration.spec.ts` (16 cases) and `frontend-design.spec.ts` (11 cases). It covers current typed HTTP projections, form guards, failure handling, navigation, sign-out, accessibility, keyboard and RTL behavior. CI runs the full entrypoint on its freshly built WASM artifact; `test:a11y`, `test:keyboard` and `test:rtl` select existing subsets and should not be counted as independent extra coverage.
 
-`risk-action.spec.ts` drives the full risk-action approval strand:
+The design suite now owns the former pin-policy privacy/read-only obligation and the current risk-approval boundary: opaque pin resources must not reach the DOM or gain mutation controls, and the approval button remains disabled without the required admin signing capability. These use contract-shaped HTTP fixtures, not live authorization or audit evidence.
 
-1. Login at `/login`
-2. Navigate to `/coauth/accounts`
-3. Open an account detail page
-4. Click "Approve risk action"
-5. Confirm the ConfirmDialog
-6. Assert the audit log surfaces a `risk_action` entry
+`npm test` is the broader multi-project entrypoint and also collects the design spec. Avoid running it after the migration suite merely to count the same assertions again. `npm run test:smoke` selects the unauthenticated responsive spec.
 
-## Running locally
+## Live device revoke and cascade audit
 
-```bash
-# 1. Boot a codmin dev instance + coland + coauth (manual, today)
-#    — typically: `npm run stack:up` in the codmin repo root.
+`device-revoke.spec.ts` retains a separate live obligation: a real admin cookie session revokes the exact seeded device, the response reports at least one revoked SessionGrant, the reloaded device row loses its revoke control, and a newly created device audit row carries the same account, device, reason, timestamp and cascade count. It does not mock any HTTP response.
 
-# 2. Export env vars pointing at the dev instance
-export CODMIN_E2E_BASE_URL=http://localhost:8080
-export CODMIN_E2E_ADMIN_EMAIL=admin@example.com
-export CODMIN_E2E_ADMIN_PASSWORD=changeme
-export CODMIN_E2E_ACCOUNT_ID=01HXY...
+Prepare a running Codmin + Coauth + Coland deployment and a separate target account with a revocable device and active SessionGrants. Complete the real OAuth flow, then export that browser context with Playwright `context.storageState({ path })`. The state must include the actual HttpOnly cookies and the application localStorage from that login. The test does not synthesize a bearer token or bypass login by inventing a session marker.
 
-# 3. From the codmin repo root, install playwright + browsers if needed
-npm install
-npx playwright install chromium
+Set these environment variables:
 
-# 4. Run the whole suite
-npx playwright test -c tests/e2e/playwright.config.ts
+- `CODMIN_E2E_BASE_URL`: the deployed Codmin origin.
+- `CODMIN_E2E_AUTH_STATE`: the exported Playwright state JSON, kept in an ignored artifact directory.
+- `CODMIN_E2E_ACCOUNT_ID`: the seeded target account ULID.
+- `CODMIN_E2E_DEVICE_ID`: its revocable device identifier.
+
+Run the destructive fixture once, without retries:
+
+```sh
+npx playwright test -c tests/e2e/playwright.config.ts device-revoke.spec.ts --project chromium-desktop --workers 1 --retries 0
 ```
 
-If any of the four env vars is missing, the spec self-skips for local
-operator convenience. CI does not invoke this manual spec unless a workflow
-explicitly provisions those variables and seeded backend data.
+Missing qualification is reported as an explicit skip. This live check is not part of the mock migration gate or the current static-SPA CI stack. Session state contains credentials and must remain outside Git. On Windows, call the workspace D-drive cache helper in the same PowerShell before validation; keep browser artifacts, TEMP and dependency caches on D.
 
-## Skip behaviour summary
+## Retired local-login specs and remaining live scope
 
-| Condition                                         | Outcome |
-|---------------------------------------------------|---------|
-| `CODMIN_E2E_BASE_URL` unset                       | skip    |
-| `CODMIN_E2E_ADMIN_EMAIL` / `_PASSWORD` unset      | skip    |
-| `CODMIN_E2E_ACCOUNT_ID` unset                     | skip    |
-| All env vars set + dev stack running              | run     |
+Codmin has no local email/password form. The old `CODMIN_E2E_ADMIN_EMAIL` and `_ADMIN_PASSWORD` contract and the obsolete pin/risk spec files have been removed. They are not a supported alternative login path.
 
-## Current UI checks
+The browser still cannot create the detached Ed25519 approval JWS, so end-to-end browser approval followed by a live audit remains an unimplemented capability, not a passing test. Coauth's existing `test_risk_action_execute_requires_approval_and_locks_account` and `test_risk_action_approve_rejects_forged_approved_by_threshold_bypass` cover the real signed server workflow at their own HTTP/PG boundary; `native_admin_approval_binds_current_rotated_root_without_document_vm` checks native signing evidence. Their presence does not establish that this live browser path was run.
 
-`glory-migration.spec.ts` owns route mounting, public and authenticated axe
-checks, RTL layout, the development-mode banner, and keyboard navigation to
-an actual device-revoke button. These checks drive the current WASM UI with
-contract-shaped mocked HTTP data; they require no retired local password form.
-Run `npm run test:migration`, or select `test:a11y`, `test:keyboard`, or `test:rtl`.
-They do not establish live cross-service revocation or approval behavior.
-
-## Happy-path device revoke + cascade audit
-
-`device-revoke.spec.ts` revokes a device on a target account, asserts
-the row badge transitions to Revoked, and cross-checks that the
-coauth audit feed shows both the device-revoke entry AND a
-session-grant cascade entry (proving the issuer-ledger lifecycle mutation
-landed on the canonical coauth audit pipeline):
-
-1. Login at `/login`
-2. Navigate to `/coauth/accounts`
-3. Open the target account detail page
-4. Jump to `/coauth/accounts/:id/devices`
-5. Click "Revoke" on the target row
-6. Confirm the destructive ConfirmDialog
-7. Assert the row badge transitions to "Revoked"
-8. Navigate to `/coauth/audit-log` and assert both a device-revoke row
-   AND a session-grant cascade row are visible
-
-Required env vars (in addition to the shared trio):
-
-- `CODMIN_E2E_ACCOUNT_ID` — the target account
-- `CODMIN_E2E_DEVICE_ID` — a revocable (Active or Stale) device on
-  that account
-
-If unset, the spec self-skips.
-
-## Glory migration checks
-
-Build with `python scripts/build-web.py --release`, serve the reported web directory,
-and run `npm run test:migration`. This separate suite drives the real WASM app
-with mocked HTTP contracts. It covers authorization, forms, cursors, token
-regeneration during refresh, mobile navigation, sign-out, every admin route
-and the public accessibility surface. It does not require seeded backend data
-and does not prove live OAuth or backend authorization. Artifacts are saved under artifacts/glory-e2e by default; CODMIN_E2E_OUTPUT_DIR selects an explicit destination.
-Set `CODMIN_E2E_CHANNEL=msedge` or `chrome` to reuse an installed browser.
-
-
-### 当前WASM行为与设计回归
-
-`npm run test:migration`使用同一个canonical配置，收集`glory-migration.spec.ts`和`frontend-design.spec.ts`，当前分别16和9个case；每个case只在该入口执行一次。可用`npm run test:migration -- frontend-design`单独选择设计场景。CI在fresh WASM artifact上运行全集，a11y、keyboard和RTL已在其中，不再重复运行同一子集。
-
-通用`npm test`仍是多项目广域入口并可收集设计spec；需要已配置的live业务规格时再选择它，不应把它与migration全集连续运行并计作两份独立覆盖。mock设计回归验证输入类型、草稿、取消零写、错误处理和响应归属，不能代替真实后台授权/审计验收。
+Likewise the pin summary surface remains unavailable: read-only/privacy projection checks do not prove live pin-policy administration. The follow-up receipt records the old-to-current obligation mapping and the exact validation performed.
