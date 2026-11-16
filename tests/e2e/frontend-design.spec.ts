@@ -1,6 +1,58 @@
 import { test, expect } from '@playwright/test';
 import { setupLayout, layoutIds } from './layout-fixtures';
 
+test('pin policy stays read-only and never renders opaque private material', async ({ page }) => {
+  const errors = await setupLayout(page);
+  const policyId = 'pin-policy-private-1234';
+  const privateSentinel = 'PRIVATE-PIN-RESOURCE-MUST-NOT-RENDER';
+  const writes: string[] = [];
+  await page.route('**/_coland/self/policies**', route => {
+    if (route.request().method() !== 'GET') {
+      writes.push(route.request().method());
+      return route.fulfill({ status: 500, json: { error: 'unexpected policy mutation' } });
+    }
+    return route.fulfill({ json: { policies: [{
+      policy_id: policyId, owner: layoutIds.actor, scope: 'realm', subject_ref: layoutIds.realm,
+      policy_kind: 'ak.profile.pinned_items.v1', active: true, updated_at: '2026-11-14T00:00:00.000Z',
+      payload: { effect: 'allow', actions: ['ak.pin.add'], resource: { private_key: privateSentinel }, obligations: [] },
+    }], next_cursor: null } });
+  });
+  await page.goto('/policy');
+  const row = page.getByRole('row').filter({ has: page.getByRole('cell', { name: policyId, exact: true }) });
+  await expect(row).toHaveCount(1);
+  await expect(row).toContainText('Read-only');
+  await expect(row.getByRole('button', { name: 'Delete', exact: true })).toHaveCount(0);
+  await expect(row.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
+  await row.getByRole('button', { name: 'View', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('pin policy summary standard surface unavailable; opaque resource is not inspected');
+  await expect(dialog.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText(privateSentinel);
+  expect(writes).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('risk approval remains disabled until the browser can produce the required admin signature', async ({ page }) => {
+  const errors = await setupLayout(page);
+  const writes: string[] = [];
+  await page.route('**/_coauth/admin/accounts/*/risk-action**', route => {
+    if (route.request().method() === 'GET') return route.fallback();
+    writes.push(route.request().method());
+    return route.fulfill({ status: 500, json: { error: 'unsigned approval must not be sent' } });
+  });
+  await page.goto(`/coauth/accounts/${layoutIds.account}`);
+  const workflow = page.locator('.risk-workflow-summary');
+  await expect(workflow).toContainText('proposed');
+  await expect(workflow).toContainText('approve');
+  await expect(workflow).toContainText('approval is disabled fail-closed');
+  const approval = page.getByRole('button', { name: 'Approve last proposal', exact: true });
+  await expect(approval).toBeVisible();
+  await expect(approval).toBeDisabled();
+  await approval.evaluate(button => (button as HTMLButtonElement).click());
+  expect(writes).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
 test('policy uses boolean and bounded integer controls while preserving typed requests', async ({ page }) => {
   const errors = await setupLayout(page);
   const writes: any[] = [];

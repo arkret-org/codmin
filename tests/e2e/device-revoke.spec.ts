@@ -1,134 +1,55 @@
-// Happy-path device revoke + cascade-revoke Playwright e2e.
-//
-// Drives the codmin SPA against a codmin dev instance + a coauth + coland
-// dev stack. The test exercises the per-account device admin page:
-// boot the SPA, sign the admin in, navigate to the accounts list, open
-// an account detail page, jump to the per-account device list, click
-// Revoke on a target device, confirm the destructive ConfirmDialog,
-// assert the device row badge transitions to Revoked, and assert the
-// coauth audit feed surfaces the cascade-revoke session-grant entries
-// emitted by the coland side.
-//
-// Pattern matches the `risk-action.spec.ts` shape — identical
-// env-var contract, identical "self-skip when env vars unset" behaviour.
-//
-// Skip behaviour: if any of `CODMIN_E2E_BASE_URL`,
-// `CODMIN_E2E_ADMIN_EMAIL`, `CODMIN_E2E_ADMIN_PASSWORD`,
-// `CODMIN_E2E_ACCOUNT_ID`, or `CODMIN_E2E_DEVICE_ID` are unset, the
-// test calls `test.skip()` so a CI environment that hasn't wired the
-// dev stack still passes. The expectation is that an operator boots a
-// local dev stack manually (or via `npm run stack:up`), seeds a
-// revocable device on a target account, exports the env vars, then
-// invokes `npx playwright test -c tests/e2e/playwright.config.ts`.
+import { test, expect } from '@playwright/test';
 
-import { test, expect } from "@playwright/test";
+const BASE_URL = process.env.CODMIN_E2E_BASE_URL || '';
+const AUTH_STATE = process.env.CODMIN_E2E_AUTH_STATE || '';
+const ACCOUNT_ID = process.env.CODMIN_E2E_ACCOUNT_ID || '';
+const DEVICE_ID = process.env.CODMIN_E2E_DEVICE_ID || '';
 
-const BASE_URL = process.env.CODMIN_E2E_BASE_URL || "";
-const ADMIN_EMAIL = process.env.CODMIN_E2E_ADMIN_EMAIL || "";
-const ADMIN_PASSWORD = process.env.CODMIN_E2E_ADMIN_PASSWORD || "";
-const ACCOUNT_ID = process.env.CODMIN_E2E_ACCOUNT_ID || "";
-const DEVICE_ID = process.env.CODMIN_E2E_DEVICE_ID || "";
+test.describe('live device revocation with an existing OAuth session', () => {
+  test.use({ storageState: AUTH_STATE || undefined });
+  test.describe.configure({ retries: 0 });
+  test.skip(!BASE_URL || !AUTH_STATE || !ACCOUNT_ID || !DEVICE_ID,
+    'Set CODMIN_E2E_BASE_URL, _AUTH_STATE, _ACCOUNT_ID and _DEVICE_ID for the seeded live stack');
 
-test.describe("device-revoke happy-path", () => {
-  test.beforeAll(async () => {
-    if (
-      !BASE_URL ||
-      !ADMIN_EMAIL ||
-      !ADMIN_PASSWORD ||
-      !ACCOUNT_ID ||
-      !DEVICE_ID
-    ) {
-      test.skip(
-        true,
-        "CODMIN_E2E_BASE_URL / _ADMIN_EMAIL / _ADMIN_PASSWORD / _ACCOUNT_ID / _DEVICE_ID must be set",
-      );
-    }
-  });
+  test('revokes the exact device and binds its cascade count to the new audit row', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'chromium-desktop', 'Run this destructive live fixture once');
+    const reason = `e2e-device-revoke-${Date.now()}`;
+    const devicesPath = `/_coauth/admin/accounts/${encodeURIComponent(ACCOUNT_ID)}/devices`;
+    await page.goto(`${BASE_URL}/coauth/accounts/${encodeURIComponent(ACCOUNT_ID)}/devices`);
+    const row = page.getByRole('row').filter({ has: page.getByText(DEVICE_ID, { exact: true }) });
+    await expect(row).toHaveCount(1);
+    const trigger = row.getByRole('button', { name: /^Revoke$|^撤销$/ }).and(page.locator('[aria-expanded]'));
+    await expect(trigger).toBeEnabled();
+    await trigger.click();
+    const form = page.locator('.admin-compact-action').filter({ has: trigger }).locator('.admin-action-form');
+    await expect(form).toContainText(DEVICE_ID);
+    await form.getByRole('textbox', { name: /^Confirmation phrase$|^确认短语$/ }).fill([...DEVICE_ID].slice(-4).join(''));
+    await form.getByRole('textbox', { name: /^Reason \/ ticket$|^原因 \/ 工单$/ }).fill(reason);
+    const posted = page.waitForResponse(response => response.request().method() === 'POST'
+      && new URL(response.url()).pathname === `${devicesPath}/${encodeURIComponent(DEVICE_ID)}/revoke`);
+    const reloaded = page.waitForResponse(response => response.request().method() === 'GET'
+      && new URL(response.url()).pathname === devicesPath);
+    await form.getByRole('button', { name: /^Revoke$|^撤销$/ }).click();
+    const response = await posted;
+    expect(response.status()).toBe(200);
+    const outcome = await response.json();
+    expect(outcome.device.id).toBe(DEVICE_ID);
+    expect(outcome.device.account_id).toBe(ACCOUNT_ID);
+    expect(outcome.revoked_session_grants).toBeGreaterThan(0);
+    expect((await reloaded).status()).toBe(200);
+    await expect(row).toHaveCount(1);
+    await expect(row.getByRole('cell').nth(5)).toHaveText(new Date(outcome.device.revoked_at).toISOString());
+    await expect(row.getByRole('button', { name: /^Revoke$|^撤销$/ })).toHaveCount(0);
 
-  test("revokes a device, surfaces Revoked badge + cascade audit entries", async ({
-    page,
-  }) => {
-    const revokeReason = `e2e-device-revoke-${Date.now()}`;
-
-    // 1. Navigate to login
-    await page.goto(`${BASE_URL}/login`);
-    await expect(page).toHaveURL(/\/login/);
-
-    // 2. Sign the admin in
-    await page.getByLabel(/email/i).fill(ADMIN_EMAIL);
-    await page.getByLabel(/password/i).fill(ADMIN_PASSWORD);
-    await page.getByRole("button", { name: /sign in|log in|login/i }).click();
-
-    // 3. Wait until the dashboard / sidebar mounts
-    await expect(page.locator("nav")).toBeVisible({ timeout: 15_000 });
-
-    // 4. Navigate to the accounts list
-    await page.goto(`${BASE_URL}/coauth/accounts`);
-    await expect(
-      page.getByRole("heading", { name: /accounts|账号/i }),
-    ).toBeVisible();
-
-    // 5. Open the account detail page
-    await page.goto(`${BASE_URL}/coauth/accounts/${ACCOUNT_ID}`);
-    await expect(page.getByText(ACCOUNT_ID)).toBeVisible({ timeout: 10_000 });
-
-    // 6. Jump to the per-account device list.
-    await page.goto(`${BASE_URL}/coauth/accounts/${ACCOUNT_ID}/devices`);
-    await expect(
-      page.getByRole("heading", { name: /devices|设备/i }),
-    ).toBeVisible({ timeout: 10_000 });
-
-    // 7. Confirm the target device row exists.
-    const deviceCell = page.getByText(DEVICE_ID).first();
-    await expect(deviceCell).toBeVisible({ timeout: 10_000 });
-
-    // 8. Click Revoke on the row. The button copy is "Revoke" / 撤销.
-    //    Multiple Revoke buttons may exist for other rows; the spec
-    //    expects exactly one revocable target device row to be set up
-    //    by the operator, so we click the first match.
-    const revokeBtn = page.getByRole("button", { name: /^revoke$|^撤销$/i }).first();
-    await expect(revokeBtn).toBeVisible({ timeout: 10_000 });
-    await revokeBtn.click();
-
-    // 9. Confirm the destructive ConfirmDialog. The dialog confirm copy
-    //    is also "Revoke" / 撤销; we use `.last()` to disambiguate from
-    //    the row trigger button.
-    const confirmBtn = page
-      .getByRole("button", { name: /^revoke$|^撤销$|^confirm$|^确认$/i })
-      .last();
-    await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
-    await page
-      .getByLabel(/reason|ticket|原因|工单/i)
-      .fill(revokeReason);
-    await confirmBtn.click();
-
-    // 10. Toast surfaces the mutation result. An unwired backend endpoint
-    //     is a real failure for this manual high-risk-action regression spec.
-    await expect(
-      page.getByText(/device revoked|cascade-revoke/i),
-    ).toBeVisible({ timeout: 10_000 });
-
-    // 11. After the action, the row's status badge should transition
-    //     to Revoked / 已撤销. We re-resolve the row and assert it
-    //     contains the Revoked label. The data-restart in the page
-    //     re-fetches automatically.
-    await expect(
-      page.getByText(/^revoked$|^已撤销$/i).first(),
-    ).toBeVisible({ timeout: 15_000 });
-
-    // 12. Cross-check the coauth audit feed surfaces a device-revoke
-    //     entry AND at least one session-grant cascade entry — proves
-    //     the coauth issuer-ledger lifecycle mutation landed on the
-    //     canonical audit pipeline, not just the local UI mutation.
     await page.goto(`${BASE_URL}/coauth/audit-log`);
-    await expect(page.getByText(revokeReason).first()).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(
-      page.getByText(/device.*revoke|revoke.*device/i).first(),
-    ).toBeVisible({ timeout: 15_000 });
-    await expect(
-      page.getByText(/session.*revoke|revoke.*session|session_grant/i).first(),
-    ).toBeVisible({ timeout: 15_000 });
+    const audit = page.getByRole('row').filter({ hasText: reason });
+    await expect(audit).toHaveCount(1);
+    await expect(audit.getByRole('cell').nth(1)).toHaveText('device.revoke');
+    const details = JSON.parse(await audit.locator('.audit-details').innerText());
+    expect(details.account_id).toBe(ACCOUNT_ID);
+    expect(details.device_id).toBe(DEVICE_ID);
+    expect(details.reason).toBe(reason);
+    expect(details.revoked_session_grants).toBe(outcome.revoked_session_grants);
+    expect(details.revoked_at).toBe(outcome.device.revoked_at);
   });
 });
