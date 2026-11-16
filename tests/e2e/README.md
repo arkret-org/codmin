@@ -96,3 +96,10 @@ regeneration during refresh, mobile navigation, sign-out, every admin route
 and the public accessibility surface. It does not require seeded backend data
 and does not prove live OAuth or backend authorization. Artifacts are saved under artifacts/glory-e2e by default; CODMIN_E2E_OUTPUT_DIR selects an explicit destination.
 Set `CODMIN_E2E_CHANNEL=msedge` or `chrome` to reuse an installed browser.
+
+
+### 当前WASM行为与设计回归
+
+`npm run test:migration`使用同一个canonical配置，收集`glory-migration.spec.ts`和`frontend-design.spec.ts`，当前分别16和9个case；每个case只在该入口执行一次。可用`npm run test:migration -- frontend-design`单独选择设计场景。CI在fresh WASM artifact上运行全集，a11y、keyboard和RTL已在其中，不再重复运行同一子集。
+
+通用`npm test`仍是多项目广域入口并可收集设计spec；需要已配置的live业务规格时再选择它，不应把它与migration全集连续运行并计作两份独立覆盖。mock设计回归验证输入类型、草稿、取消零写、错误处理和响应归属，不能代替真实后台授权/审计验收。

@@ -813,12 +813,8 @@ where
             .collect::<Vec<_>>(),
     );
     let tracked_values = values.clone();
-    let tracked_owner = scope.downgrade();
     crate::utils::drafts::track(scope, move || {
         use crate::utils::drafts::State;
-        if tracked_owner.upgrade().is_none() {
-            return State::Clean;
-        }
         if busy.get_untracked() {
             return State::Busy;
         }
