@@ -364,10 +364,11 @@ fn header(theme: sapid::Theme) -> impl Widget {
                 .class("app-header-language")
                 .label("Language")
                 .value(language)
-                .options([
-                    sapid::select_option("en", "English"),
-                    sapid::select_option("zh-CN", "中文"),
-                ])
+                .options(
+                    crate::utils::i18n::Language::all()
+                        .iter()
+                        .map(|language| sapid::select_option(language.code(), language.label())),
+                )
                 .on_value_change(move |value| {
                     if let Some(lang) = value
                         .as_deref()

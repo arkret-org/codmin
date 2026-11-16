@@ -1,4 +1,3 @@
-pub mod cache;
 pub mod destructive_reason;
 pub mod drafts;
 pub mod fmt;

@@ -13,7 +13,7 @@
 //!   callback consumes them, so leakage has zero replay value).
 //! - **Callback** — `handle_oauth_callback` exchanges the code with `credentials: "include"`.
 //!   coauth sets the session cookie. On success, codmin stores ONLY a non-secret `session_active=1`
-//!   marker plus the userinfo block (id / display name / avatar). None of these carry entropy.
+//!   marker plus the userinfo block (id / display name). None of these carry entropy.
 //! - **API calls** — `api::client::api_client` now sends every request with `credentials:
 //!   "include"` so the cookie travels with the request automatically. There is no `Authorization:
 //!   Bearer` header from the SPA.
@@ -92,12 +92,6 @@ impl LogoutReport {
     /// confirmation boundary.
     pub fn local_cookie_cleared(&self) -> bool {
         self.cookie_logout.is_confirmed()
-    }
-
-    pub fn fully_confirmed(&self) -> bool {
-        self.local_cookie_cleared()
-            && self.principal_logout.is_confirmed()
-            && self.oauth_revoke.is_confirmed()
     }
 
     /// Fixed, non-sensitive codes suitable for the login-page query string
@@ -390,7 +384,6 @@ pub async fn handle_oauth_callback(code: &str, state: Option<&str>) -> Result<()
             if let Some(profile) = viewer_resp.profile.as_ref() {
                 storage::set_item("user_display_name", &profile.display_name);
             }
-            storage::remove_item("user_avatar_url");
         }
         Err(err) => {
             log::warn!("OAuth viewer fetch failed after token exchange: {}", err);
@@ -511,19 +504,7 @@ pub async fn verify_admin() -> Result<bool, HttpError> {
     }
 
     let viewer = crate::api::coauth::get_viewer().await?;
-    storage::set_item(
-        "is_admin",
-        if viewer.is_server_admin {
-            "true"
-        } else {
-            "false"
-        },
-    );
     Ok(viewer.is_server_admin)
-}
-
-pub fn cached_is_admin() -> Option<bool> {
-    storage::get_item("is_admin").map(|v| v == "true")
 }
 
 fn persist_token_expiry(expires_in: Option<u64>) {
@@ -685,11 +666,9 @@ fn finalize_logout_report(report: &LogoutReport) -> bool {
 fn clear_session_marker() {
     const KEYS_TO_CLEAR: &[&str] = &[
         SESSION_ACTIVE_KEY,
-        "is_admin",
         "token_expires_at_ms",
         "user_id",
         "user_display_name",
-        "user_avatar_url",
     ];
     for key in KEYS_TO_CLEAR {
         storage::remove_item(key);
@@ -800,7 +779,6 @@ mod tests {
             ),
         };
         assert!(!report.local_cookie_cleared());
-        assert!(!report.fully_confirmed());
         assert!(report.login_warning_code().is_none());
         assert!(report.retry_message().contains("Retry sign-out"));
         assert!(!super::finalize_logout_report(&report));
@@ -816,7 +794,6 @@ mod tests {
             cookie_logout: LogoutStepStatus::Confirmed,
         };
         assert!(report.local_cookie_cleared());
-        assert!(!report.fully_confirmed());
         assert_eq!(
             report.login_warning_code().as_deref(),
             Some("principal_logout,oauth_revoke")

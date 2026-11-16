@@ -272,31 +272,6 @@ fn card(
             .fill(children),
     )
 }
-pub(crate) fn description(scope: &Scope, theme: sapid::Theme) -> View {
-    let resource = ui::resource(scope, || async { server::get_server_describe().await });
-    ui::resource_view(scope, theme.clone(), resource, move |_, describe| {
-        card(
-            theme.clone(),
-            t("server.features"),
-            Some(t("dashboard.discovery_source")),
-            vec![
-                (
-                    t("dashboard.station_did"),
-                    describe.service_resolution.did.to_string(),
-                ),
-                (
-                    t("dashboard.protocol_version"),
-                    describe.protocol_version.to_string(),
-                ),
-                (
-                    t("dashboard.supported_profiles"),
-                    join_or_dash(&describe.supported_profiles),
-                ),
-            ],
-            "metadata-grid three-columns",
-        )
-    })
-}
 fn non_empty(value: String) -> Option<String> {
     let value = value.trim().to_string();
     if value.is_empty() { None } else { Some(value) }

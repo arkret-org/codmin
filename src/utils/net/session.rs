@@ -27,7 +27,6 @@ use crate::utils::storage;
 pub struct CurrentUser {
     pub id: Option<String>,
     pub display_name: Option<String>,
-    pub avatar_url: Option<String>,
 }
 
 impl CurrentUser {
@@ -43,7 +42,6 @@ pub fn current_user() -> CurrentUser {
     CurrentUser {
         id: storage::get_item("user_id").filter(|v| !v.is_empty()),
         display_name: storage::get_item("user_display_name").filter(|v| !v.is_empty()),
-        avatar_url: storage::get_item("user_avatar_url").filter(|v| !v.is_empty()),
     }
 }
 

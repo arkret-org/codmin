@@ -464,21 +464,6 @@ pub fn table(theme: sapid::Theme, headers: Vec<String>, rows: Vec<Vec<String>>) 
     )
 }
 
-/// Headers include the trailing actions column, keeping all row operations aligned.
-pub fn table_with_actions(
-    theme: sapid::Theme,
-    headers: Vec<String>,
-    rows: Vec<(Vec<String>, View)>,
-) -> View {
-    table_content(
-        theme,
-        headers,
-        rows.into_iter()
-            .map(|(cells, actions)| (cells, Some(actions)))
-            .collect(),
-    )
-}
-
 pub fn table_widgets(theme: sapid::Theme, headers: Vec<String>, rows: Vec<Vec<View>>) -> View {
     let mut content = Some((theme, headers, rows));
     Box::new(widget(move |scope| {
@@ -630,7 +615,6 @@ impl FieldKind {
 pub struct Field {
     pub label: String,
     pub initial: String,
-    pub multiline: bool,
     pub kind: FieldKind,
     pub hint: String,
     pub wildcard_reference: bool,
@@ -640,7 +624,6 @@ impl Field {
         Self {
             label: label.into(),
             initial: initial.into(),
-            multiline: false,
             kind: FieldKind::Text,
             hint: String::new(),
             wildcard_reference: false,
@@ -669,10 +652,6 @@ impl Field {
     }
     pub fn wildcard_reference(mut self) -> Self {
         self.wildcard_reference = true;
-        self
-    }
-    pub fn multiline(mut self) -> Self {
-        self.multiline = true;
         self
     }
 }
@@ -741,10 +720,6 @@ impl Danger {
         self.target = target.into();
         self.impact = t(impact_key);
         self.recovery = t(recovery_key);
-        self
-    }
-    pub fn optional_reason(mut self) -> Self {
-        self.required_reason = false;
         self
     }
     pub fn without_reason(mut self) -> Self {
@@ -932,7 +907,6 @@ where
                                     .field(control)
                                     .name(label.clone())
                                     .value(value)
-                                    .multiline(field.multiline)
                                     .on_value_change(move |new| value.revise(|old| *old = new)),
                             ),
                         }

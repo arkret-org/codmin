@@ -130,7 +130,7 @@ const describe = {
   supported_profiles: [], supported_operation_bundles: ['ak.operation_bundle.station.describe.v1'],
   transport_bindings: [{ kind: 'http_json', base_url: 'https://station.example/', extension_profile_required: null }],
   supported_features: [],
-  auth_metadata: {
+  authentication_metadata: {
     account_authority: { origin: 'https://auth.example', gate_account_base_url: 'https://auth.example/_arkret/gate/account' },
     methods: [{ method: 'oidc', issuer_uri: 'https://auth.example', openid_configuration_url: 'https://auth.example/.well-known/openid-configuration', client_id: '01GFWR28C4KNE04WG3HKXB7C9R', scopes: ['openid', 'profile'], grant_exchange: { kind: 'account_handoff' } }],
     did_binding_methods: ['session_dpop'],
@@ -171,7 +171,7 @@ const manifest = {
 };
 
 /** Non-empty, contract-shaped data for layout acceptance; unsupported APIs fail visibly. */
-export async function setupLayout(page: Page, { dark = false, language = 'en' }: { dark?: boolean; language?: string } = {}) {
+export async function setupLayout(page: Page, { dark = false, language = 'en', developmentMode = false }: { dark?: boolean; language?: string; developmentMode?: boolean } = {}) {
   const errors: string[] = [];
   const requests: string[] = [];
   const missing: string[] = [];
@@ -183,7 +183,7 @@ export async function setupLayout(page: Page, { dark = false, language = 'en' }:
     if (sessionStorage.getItem('glory_fixture_seeded')) return;
     sessionStorage.setItem('glory_fixture_seeded', '1');
     for (const [key, value] of Object.entries({
-      session_active: '1', is_admin: 'true', language, theme: dark ? 'dark' : 'light',
+      session_active: '1', language, theme: dark ? 'dark' : 'light',
       user_id: 'alice', display_name: 'Alice Chen', coauth_public_url: location.origin,
     })) localStorage.setItem(key, JSON.stringify(value));
   }, { dark, language });
@@ -244,7 +244,7 @@ export async function setupLayout(page: Page, { dark = false, language = 'en' }:
     const reply = (json: unknown) => route.fulfill({ json });
     if (path === '/config.json') return reply({ coauth_public_url: url.origin, oauth_client_id: '01GFWR28C4KNE04WG3HKXB7C9R' });
     if (path === '/_coland/admin/viewer') return reply({ principal_id: layoutIds.actor, state: 'active', devices: [], is_server_admin: true });
-    if (path === '/_arkret/describe') return reply(describe);
+    if (path === '/_arkret/describe') return reply({ ...describe, development_mode: developmentMode });
     if (path === '/_coland/admin/server/info') return reply({ server_version: '0.3.0', protocol_version: '1.0', server_name: 'Arkret Engineering', uptime: 86400, service_id: layoutIds.station, trust_domain: 'station.example', development_mode: false, allow_public_registration: false });
     if (path === '/_coland/admin/server/stats') return reply({ actor_count: 1284, active_actor_count: 1128, realm_count: 32, device_count: 2048, federation_peer_count: 8, applet_count: 12, blob_count: 8492, blob_total_size: 7516192768, generated_at: recent });
     if (path === '/_coland/admin/server/status') return reply({ status: 'ok', service_id: layoutIds.station, storage: 'postgres', development_mode: false, checked_by: layoutIds.actor, generated_at: recent, counts: { accounts: 1284, devices: 2048, realms: 32 } });
