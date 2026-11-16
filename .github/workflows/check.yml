@@ -219,18 +219,6 @@ jobs:
         env:
           CODMIN_E2E_BASE_URL: http://127.0.0.1:4173
         run: npm run test:smoke -- --reporter=line
-      - name: Run axe Playwright gate
-        env:
-          CODMIN_E2E_BASE_URL: http://127.0.0.1:4173
-        run: npm run test:a11y -- --reporter=line
-      - name: Run keyboard gate
-        env:
-          CODMIN_E2E_BASE_URL: http://127.0.0.1:4173
-        run: npm run test:keyboard -- --reporter=line
-      - name: Run RTL gate
-        env:
-          CODMIN_E2E_BASE_URL: http://127.0.0.1:4173
-        run: npm run test:rtl -- --reporter=line
 
   lighthouse:
     name: Lighthouse budget

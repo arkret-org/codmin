@@ -5,7 +5,7 @@ const output = process.env.CODMIN_E2E_OUTPUT_DIR || resolve(__dirname, '../../ar
 
 export default defineConfig({
   testDir: '.',
-  testMatch: 'glory-migration.spec.ts',
+  testMatch: ['glory-migration.spec.ts', 'frontend-design.spec.ts'],
   fullyParallel: false,
   workers: 1,
   retries: 0,
