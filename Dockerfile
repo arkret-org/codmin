@@ -1,5 +1,5 @@
 # codmin Dockerfile.
-# Build from the repository parent with Glory and Sapid named contexts.
+# Build from the repository parent. Cargo resolves the locked UI crates.
 #
 # Build context: the arkret umbrella directory (parent of codmin).
 # The Cargo workspace at codmin/Cargo.toml has path-deps on sibling
@@ -48,15 +48,6 @@ COPY floria/ /workspace/floria
 COPY garth/ /workspace/garth
 COPY bridges/ /workspace/bridges
 COPY arkret-spec/ /workspace/arkret-spec
-COPY --from=glory Cargo.toml /glory-rs/glory/Cargo.toml
-COPY --from=glory crates /glory-rs/glory/crates
-COPY --from=sapid Cargo.toml README.md /glory-rs/sapid/
-COPY --from=sapid src /glory-rs/sapid/src
-COPY --from=sapid styles /glory-rs/sapid/styles
-COPY --from=sapid examples /glory-rs/sapid/examples
-COPY --from=apace . /glory-rs/apace
-COPY --from=takia . /glory-rs/takia
-COPY --from=wingy . /glory-rs/wingy
 COPY codmin/ /workspace/codmin
 
 WORKDIR /workspace/codmin
