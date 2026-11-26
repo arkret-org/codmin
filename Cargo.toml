@@ -78,7 +78,6 @@ glory = { workspace = true }
 sapid = { workspace = true }
 futures-util = { workspace = true, default-features = false, features = ["alloc", "async-await-macro"] }
 gloo-net = { workspace = true, features = ["http", "json"] }
-gloo-storage = { workspace = true }
 gloo-timers = { workspace = true, features = ["futures"] }
 js-sys = { workspace = true }
 log = { workspace = true }
@@ -125,16 +124,15 @@ web-sys = { workspace = true, features = [
     "Event",
     "HtmlInputElement",
     "KeyboardEvent",
-    "Url",
 ] }
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+gloo-storage = { workspace = true }
+
+# HTTP transport for the native codmin-smoke binary.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { workspace = true, default-features = false, features = ["blocking", "json", "rustls"], optional = true }
 
 [build-dependencies]
-
-# Native-only deps used by the `codmin-smoke` post-deploy smoke test
-# binary (src/bin/codmin_smoke.rs). Gated on cfg(not(target_arch="wasm32"))
-# so they don't bloat the wasm bundle.
 serde_json = { workspace = true }
 
 [dev-dependencies]
