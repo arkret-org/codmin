@@ -219,7 +219,7 @@ if can_resolve_url_host "$COLAND_URL"; then
     write_proxy_location "/_arkret/" "$COLAND_URL"
     # coland's deployment-local operator + product surface (`/_coland/*`):
     # admin operator API plus the product-surface self/root extensions
-    # (e.g. /_coland/self/circles, /_coland/root/identity/recovery-*). coauth
+    # (e.g. /_coland/root/identity/recovery-*). coauth
     # keeps its own `/_coauth/` namespace declared above.
     write_proxy_location "/_coland/" "$COLAND_URL"
 else

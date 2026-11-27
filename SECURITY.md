@@ -22,16 +22,11 @@ Out-of-scope:
 - Self-hosted dev defaults intended to be overridden in production
 - Theoretical issues without practical exploitation
 
-## AKP-0007 Circle Invariants
+## Administrative reads
 
-Per spec, Circle is an intra-Realm cryptographic sub-boundary:
-- Circle member lists MUST NOT leak to directory services or push gateways in plaintext
-- The security scope of an Event lives in its producer-signed `scope_ref`
-  (`models/circle.md` §6.2 — the Event wire has exactly one scope field).
-  Object read projections MAY materialize `effective_scope`, which must equal
-  the creating Event's `scope_ref` and is never a writable source of truth.
-- An admin surface MUST NOT render Circle-scoped rows to an operator who is
-  not resolved against the committed Circle membership of the row's scope.
+Render protected records only after verifying the operator's current authorization
+for the source Realm or Sidecar. A read projection's `effective_scope` must
+match the creating Event's signed `scope_ref`.
 
 Violations of these invariants are treated as security issues.
 

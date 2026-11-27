@@ -68,33 +68,6 @@ impl fmt::Display for HttpError {
 impl std::error::Error for HttpError {}
 
 pub fn display_error(errcode: &str, status: u16, message: &str) -> String {
-    // Registered Circle reason codes come from the generated SDK type so
-    // protocol renames fail at compile time. Local admin-only reasons remain
-    // literals and use the same i18n fallback path.
-    let circle_reason: Option<&'static str> = match errcode {
-        _ if errcode == arkret_wire::ReasonCode::CIRCLE_REALM_MISMATCH => {
-            Some("error.circle_realm_mismatch")
-        }
-        _ if errcode == arkret_wire::ReasonCode::CIRCLE_MEMBER_MUST_BE_REALM_MEMBER => {
-            Some("error.circle_member_must_be_realm_member")
-        }
-        _ if errcode == arkret_wire::ReasonCode::CIRCLE_NOT_ACTIVE => {
-            Some("error.circle_not_active")
-        }
-        "circle_already_terminal" => Some("error.circle_already_terminal"),
-        "circle_capability_denied" => Some("error.circle_capability_denied"),
-        "circle_scope_rotation_in_progress" => Some("error.circle_scope_rotation_in_progress"),
-        _ => None,
-    };
-    if let Some(key) = circle_reason {
-        let localised = crate::utils::i18n::t(key);
-        let safe_message = redact_pii(message);
-        if safe_message.is_empty() || localised.contains(&safe_message) {
-            return format!("{errcode} ({status}): {localised}");
-        }
-        return format!("{errcode} ({status}): {localised}: {safe_message}");
-    }
-
     // coland's error envelope carries bare snake_case errcodes straight
     // from the spec error-code-registry (there is no `ak.error.*`
     // prefix in the registry, and `schema` is registered as

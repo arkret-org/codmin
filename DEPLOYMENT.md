@@ -110,31 +110,6 @@ operator's current grant list before submission to reduce the
 visible regardless: only the backend can authoritatively reject the
 action.
 
-## AKP-0007 Circle administration
-
-Codmin's `/circles/*` surfaces call into coland's `/_arkret/self/circles/*`
-admin layer. Before an operator can use those pages, coauth must have
-issued the matching `ak.circle.*` capability grants to the operator's
-admin DID — typically via the Coauth Capabilities admin page at
-`/coauth/capabilities`, or by running the bootstrap migration that
-seeds the six actions:
-
-* `ak.circle.create` (medium risk, no constraints)
-* `ak.circle.manage` (medium risk, requires `allowed_circle_ids`)
-* `ak.circle.member.add` (low risk, no constraints)
-* `ak.circle.member.manage` (medium risk, requires `allowed_circle_ids`)
-* `ak.circle.member.add.others` (high risk, requires `allowed_circle_ids`)
-* `ak.circle.audit` (high risk, paired with `audit_pair_required` check)
-
-Without these grants every Circle admin call returns 403 with
-`capability_denied`. The codmin UI surfaces that as
-"Administrator capability denied" — coauth side fix.
-
-`connect-src` in `docker-entrypoint.sh` MUST include the coland,
-coauth, and (when used) floria origins so the SPA can call them. The
-nginx CSP template already covers the default three; add additional
-peers per deployment.
-
 ## Database migration
 
 codmin itself is stateless — it ships no database. Operator-facing data

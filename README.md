@@ -210,10 +210,3 @@ examples/       Local deployment examples, pending Arkret stack refresh
 ## Current Gaps
 
 See the cross-project [`../_codmin_coland_todos.md`](../_codmin_coland_todos.md). Remaining deferred work includes the docs site/user guide and example-stack cold image verification.
-
----
-
-<!-- circle-rollout milestone pointer -->
-> **Active milestone tracking** (local-only, gitignored): see
-> `_codmin_coland_todos.md` in the parent `arkret/` directory for the
-> circle-rollout (AKP-0007) work item list and per-stage checkpoints.

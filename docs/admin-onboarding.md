@@ -99,7 +99,6 @@ For codmin administration the recommended starter grant set is:
 | Capability | Why |
 | --- | --- |
 | `ak.agent.manage` | Meta-scope for the 11 personal-agent admin endpoints. |
-| `ak.circle.create` / `ak.circle.manage` | Create and administer Circles. |
 | `ak.realm.admin` | Destroy / classify Realms. |
 | `ak.audit.read` | Read the audit log on `/audit`. |
 

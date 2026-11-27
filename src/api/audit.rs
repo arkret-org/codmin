@@ -21,7 +21,7 @@ pub struct AuditFilter {
     pub action: Option<String>,
     pub actor_id: Option<String>,
     pub realm_id: Option<String>,
-    /// AKP-0007 event-kind filter (`ak.circle.create`, ...);
+    /// Protocol event-kind filter;
     /// matches the action or the payload `kind`/`type` server-side.
     pub kind: Option<String>,
     pub since: Option<String>,
@@ -124,14 +124,14 @@ mod tests {
     fn filter_drops_empty_fields_and_unparsable_times() {
         let query = AuditFilter {
             action: Some("  ".to_owned()),
-            kind: Some(event_kind_str::CIRCLE_CREATE.to_owned()),
+            kind: Some(event_kind_str::SPACE_CREATE.to_owned()),
             since: Some("yesterday".to_owned()),
             ..Default::default()
         }
         .into_query();
         assert_eq!(
             query,
-            vec![("filter[kind]", event_kind_str::CIRCLE_CREATE.to_owned())]
+            vec![("filter[kind]", event_kind_str::SPACE_CREATE.to_owned())]
         );
     }
 }
