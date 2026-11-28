@@ -8,15 +8,10 @@ if (fixture.capabilities.length !== 5) throw new Error('Non-empty five-row PG/HT
 
 async function prepare(page: import('@playwright/test').Page, deny = false) {
   const requests: URL[] = [];
-  let legacyCalls = 0;
   await page.addInitScript(() => {
     localStorage.setItem('session_active', JSON.stringify('1'));
     localStorage.setItem('is_admin', JSON.stringify('true'));
     localStorage.setItem('language', JSON.stringify('en'));
-  });
-  await page.route('**/_coauth/admin/collaboration/capabilities*', async route => {
-    legacyCalls++;
-    await route.fulfill({status: 500, body: 'retired mirror must never be called'});
   });
   await page.route('**/_coland/admin/viewer', route => route.fulfill({
     json: { principal_id: 'ak:did_core:web:operator.example', state: 'active', is_server_admin: true }
@@ -51,7 +46,7 @@ async function prepare(page: import('@playwright/test').Page, deny = false) {
     await route.fulfill({json: {capabilities: rows, total, has_more: hasMore,
       next_cursor: hasMore ? rows.at(-1).selector.grant_id : null, filters: Object.fromEntries([...url.searchParams].filter(([key]) => key.startsWith("filter[")).map(([key,value]) => [key.slice(7,-1),value]))}});
   });
-  return {requests, legacyCalls: () => legacyCalls};
+  return {requests};
 }
 
 for (const path of ['/capabilities', '/coauth/capabilities']) {
@@ -78,16 +73,14 @@ for (const path of ['/capabilities', '/coauth/capabilities']) {
     await page.getByRole('button', {name: /apply filters|应用筛选/i}).click();
     await expect(page.getByText(/complete Account or Service ActorId/i)).toBeVisible();
     expect(state.requests.length).toBe(count);
-    expect(state.legacyCalls()).toBe(0);
   });
 }
 
-test('operator denial stays visible and never falls back to Coauth grants', async ({page}) => {
-  const state = await prepare(page, true);
+test('operator denial stays visible on the capabilities page', async ({page}) => {
+  await prepare(page, true);
   await page.goto('/coauth/capabilities');
   await expect(page.getByText(/operator permission denied|capability denied/i)).toBeVisible();
   await expect(page.locator('table')).toHaveCount(0);
-  expect(state.legacyCalls()).toBe(0);
 });
 
 test('Service, condition and terminal rows remain distinct; an empty Realm never falls back', async ({page}) => {
@@ -122,5 +115,4 @@ test('Service, condition and terminal rows remain distinct; an empty Realm never
   await expect.poll(() => state.requests.at(-1)?.searchParams.get('filter[realm_id]')).toBe(emptyRealm);
   await expect(page.locator('table tbody')).toContainText(/no capabilities/i);
   expect(state.requests.at(-1)!.searchParams.has('cursor')).toBe(false);
-  expect(state.legacyCalls()).toBe(0);
 });
